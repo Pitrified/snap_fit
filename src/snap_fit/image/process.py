@@ -203,3 +203,61 @@ def find_surf_keypoints(image: np.ndarray) -> tuple[list[cv2.KeyPoint], np.ndarr
     keypoints, descriptors = surf.detectAndCompute(image, None)
 
     return keypoints, descriptors
+
+
+def apply_gaussian_blur(
+    image: np.ndarray,
+    kernel_size: tuple[int, int] = (5, 5),
+    sigma: float = 0,
+) -> np.ndarray:
+    """
+    Applies a Gaussian blur to the given image.
+
+    Args:
+        image (np.ndarray): The input image to be blurred.
+        kernel_size (tuple[int, int]): The size of the Gaussian kernel (default is (5, 5)).
+        sigma (float): The standard deviation for the Gaussian kernel.
+            If 0, it is automatically computed based on the kernel size.
+
+    Returns:
+        np.ndarray: The blurred image.
+    """
+    if image is None:
+        raise ValueError("Input image is None.")
+
+    if len(kernel_size) != 2 or kernel_size[0] % 2 == 0 or kernel_size[1] % 2 == 0:
+        raise ValueError(
+            "Kernel size must be a tuple of odd integers (e.g., (3, 3), (5, 5))."
+        )
+
+    # Apply Gaussian blur
+    blurred_image = cv2.GaussianBlur(image, kernel_size, sigma)
+
+    return blurred_image
+
+
+def apply_bilateral_filter(
+    image: np.ndarray,
+    diameter: int = 9,
+    sigma_color: float = 75,
+    sigma_space: float = 75,
+) -> np.ndarray:
+    """
+    Applies a bilateral filter to the given image.
+
+    Args:
+        image (np.ndarray): The input image to be filtered.
+        diameter (int): Diameter of each pixel neighborhood used during filtering (default is 9).
+        sigma_color (float): Filter sigma in the color space. Larger values mean more distant colors are mixed.
+        sigma_space (float): Filter sigma in the coordinate space. Larger values mean distant pixels influence each other.
+
+    Returns:
+        np.ndarray: The filtered image.
+    """
+    if image is None:
+        raise ValueError("Input image is None.")
+
+    # Apply Bilateral Filter
+    filtered_image = cv2.bilateralFilter(image, diameter, sigma_color, sigma_space)
+
+    return filtered_image
