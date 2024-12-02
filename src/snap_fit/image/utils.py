@@ -123,3 +123,27 @@ def flip_colors_bw(image: np.ndarray) -> np.ndarray:
         np.ndarray: The image with the colors flipped.
     """
     return cv2.bitwise_not(image)
+
+
+def compute_rect_area(rect: Rect) -> int:
+    """Computes the area of a rectangle.
+
+    Args:
+        rect (Rect): The rectangle to compute the area for.
+
+    Returns:
+        int: The area of the rectangle.
+    """
+    return rect[2] * rect[3]
+
+
+def compute_rects_area(rects: list[Rect]) -> list[int]:
+    """Computes the area of multiple rectangles.
+
+    Args:
+        rects (list[Rect]): The list of rectangles to compute the area for.
+
+    Returns:
+        list[int]: The areas of the rectangles.
+    """
+    return [compute_rect_area(rect) for rect in rects]

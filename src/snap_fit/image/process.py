@@ -106,3 +106,20 @@ def find_white_regions(image: np.ndarray) -> list[Rect]:
     white_regions: list[Rect] = [cv2.boundingRect(contour) for contour in contours]
 
     return white_regions
+
+
+def compute_bounding_rectangles(contours: Sequence[MatLike]) -> list[Rect]:
+    """Computes bounding rectangles for the given contours.
+
+    Args:
+        image (np.ndarray): The original image.
+        contours (list[np.ndarray]): A list of contours.
+
+    Returns:
+        list[Rect]: A list of bounding rectangles for the contours.
+    """
+    bounding_rectangles: list[Rect] = [
+        cv2.boundingRect(contour) for contour in contours
+    ]
+
+    return bounding_rectangles
