@@ -244,3 +244,54 @@ def draw_keypoints(
     return cv2.drawKeypoints(
         image, keypoints, None, color, cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS
     )
+
+
+def draw_contours(
+    image: np.ndarray,
+    contours: list[np.ndarray],
+    color: tuple[int, int, int] = (0, 255, 0),
+    thickness: int = 2,
+) -> np.ndarray:
+    """
+    Draws contours on the given image.
+
+    Args:
+        image (np.ndarray): The original image to draw the contours on.
+        contours (list[np.ndarray]): A list of contours, as returned by cv2.findContours.
+        color (tuple[int, int, int]): The color of the contours (default is green in BGR).
+        thickness (int): The thickness of the contour lines (default is 2).
+
+    Returns:
+        np.ndarray: The image with contours drawn.
+    """
+    if image is None:
+        raise ValueError("Input image is None.")
+
+    # Make a copy of the image to draw on
+    output_image = image.copy()
+
+    # Draw the contours on the image
+    cv2.drawContours(output_image, contours, -1, color, thickness)
+
+    return output_image
+
+
+def draw_contour(
+    image: np.ndarray,
+    contour: np.ndarray,
+    color: tuple[int, int, int] = (0, 255, 0),
+    thickness: int = 2,
+) -> np.ndarray:
+    """
+    Draws a single contour on the given image.
+
+    Args:
+        image (np.ndarray): The original image to draw the contour on.
+        contour (np.ndarray): The contour to draw.
+        color (tuple[int, int, int]): The color of the contour (default is green in BGR).
+        thickness (int): The thickness of the contour line (default is 2).
+
+    Returns:
+        np.ndarray: The image with the contour drawn.
+    """
+    return cv2.drawContours(image, [contour], -1, color, thickness)
