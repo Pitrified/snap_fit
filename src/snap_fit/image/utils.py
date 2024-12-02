@@ -295,3 +295,25 @@ def draw_contour(
         np.ndarray: The image with the contour drawn.
     """
     return cv2.drawContours(image, [contour], -1, color, thickness)
+
+
+def translate_contour(contour: np.ndarray, x_offset: int, y_offset: int) -> np.ndarray:
+    """
+    Translates a contour by the specified x and y offsets.
+
+    Args:
+        contour (np.ndarray): The input contour, a NumPy array of shape (n, 1, 2).
+        x_offset (int): The offset by which to translate the contour along the x-axis.
+        y_offset (int): The offset by which to translate the contour along the y-axis.
+
+    Returns:
+        np.ndarray: The translated contour.
+    """
+    if contour is None or not len(contour):
+        raise ValueError("Input contour is empty or None.")
+
+    # Add the offsets to the contour points
+    translation_matrix = np.array([[x_offset, y_offset]])
+    translated_contour = contour + translation_matrix
+
+    return translated_contour
