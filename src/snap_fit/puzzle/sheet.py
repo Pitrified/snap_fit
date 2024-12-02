@@ -25,6 +25,8 @@ class Sheet:
         self.preprocess()
 
         self.find_pieces()
+        self.sort_pieces()
+        self.build_pieces()
 
     def load_image(self) -> None:
         """Loads the image from the file path."""
@@ -44,19 +46,20 @@ class Sheet:
         self.contours = find_contours(self.img_bw)
         self.regions = compute_bounding_rectangles(self.contours)
         self.region_areas = compute_rects_area(self.regions)
-        self.sort_pieces()
-
-    def sort_pieces(self) -> None:
-        """Sort the pieces based on their area."""
-        pieces_data = [
+        self.pieces_data = [
             {"contour": contour, "region": region, "area": area}
             for contour, region, area in zip(
                 self.contours, self.regions, self.region_areas
             )
         ]
-        pieces_data_sorted = sorted(
-            pieces_data, key=lambda piece: piece["area"], reverse=True
-        )
-        self.contours = [piece["contour"] for piece in pieces_data_sorted]
-        self.regions = [piece["region"] for piece in pieces_data_sorted]
-        self.region_areas = [piece["area"] for piece in pieces_data_sorted]
+
+    def sort_pieces(self) -> None:
+        """Sort the pieces based on their area."""
+        self.pieces_data.sort(key=lambda piece: piece["area"], reverse=True)
+        self.contours = [piece["contour"] for piece in self.pieces_data]
+        self.regions = [piece["region"] for piece in self.pieces_data]
+        self.region_areas = [piece["area"] for piece in self.pieces_data]
+
+    def build_pieces(self) -> None:
+        """Build the pieces from the regions."""
+        self.pieces = []
