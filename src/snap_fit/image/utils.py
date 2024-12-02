@@ -69,18 +69,18 @@ def save_image(image: np.ndarray, output_path: Path) -> None:
         raise ValueError(f"Failed to save image to: {output_path}")
 
 
-def draw_black_regions(
+def draw_regions(
     image: np.ndarray,
     regions: list[Rect],
     color: tuple[int, int, int] = (0, 255, 0),
     thickness: int = 2,
 ) -> np.ndarray:
     """
-    Draws bounding rectangles for black regions on the given image.
+    Draws bounding rectangles for regions on the given image.
 
     Args:
         image (np.ndarray): The original image on which to draw the rectangles.
-        regions (list[tuple[int, int, int, int]]): A list of bounding rectangles representing black regions.
+        regions (list[tuple[int, int, int, int]]): A list of bounding rectangles representing regions.
         color (tuple[int, int, int]): The color of the rectangle (default is green in BGR).
         thickness (int): The thickness of the rectangle border (default is 2).
 
@@ -111,3 +111,15 @@ def sort_rects(rects: list[Rect]) -> list[Rect]:
     """
 
     return sorted(rects, key=lambda rect: rect[2] * rect[3], reverse=True)
+
+
+def flip_colors_bw(image: np.ndarray) -> np.ndarray:
+    """Flips the colors of a black and white image.
+
+    Args:
+        image (np.ndarray): The input image.
+
+    Returns:
+        np.ndarray: The image with the colors flipped.
+    """
+    return cv2.bitwise_not(image)
