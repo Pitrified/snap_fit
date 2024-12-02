@@ -10,7 +10,14 @@ from snap_fit.image.process import (
     convert_to_grayscale,
     find_contours,
 )
-from snap_fit.image.utils import compute_rects_area, flip_colors_bw, load_image
+from snap_fit.image.utils import (
+    compute_rects_area,
+    cut_rect_from_image,
+    flip_colors_bw,
+    load_image,
+    pad_rect,
+)
+from snap_fit.puzzle.piece import Piece
 
 
 class Sheet:
@@ -26,6 +33,7 @@ class Sheet:
 
         self.find_pieces()
         self.sort_pieces()
+        self.filter_pieces()
         self.build_pieces()
 
     def load_image(self) -> None:
@@ -60,6 +68,33 @@ class Sheet:
         self.regions = [piece["region"] for piece in self.pieces_data]
         self.region_areas = [piece["area"] for piece in self.pieces_data]
 
+    def filter_pieces(self) -> None:
+        """Filter the pieces based on the area."""
+        min_area = 80_000
+        self.pieces_data = [
+            piece for piece in self.pieces_data if piece["area"] > min_area
+        ]
+        self.contours = [piece["contour"] for piece in self.pieces_data]
+        self.regions = [piece["region"] for piece in self.pieces_data]
+        self.region_areas = [piece["area"] for piece in self.pieces_data]
+
     def build_pieces(self) -> None:
         """Build the pieces from the regions."""
+        pad = 30
+
         self.pieces = []
+        for pd in self.pieces_data:
+            region = pd["region"]
+            contour = pd["contour"]
+            region_pad = pad_rect(region, pad, self.img_bw)
+            img_bw_cut = cut_rect_from_image(self.img_bw, region_pad)
+            img_orig_cut = cut_rect_from_image(self.img_orig, region_pad)
+            piece = Piece(
+                img_fp=self.img_fp,
+                img_orig=img_orig_cut,
+                img_bw=img_bw_cut,
+                contour=contour,
+                region=region,
+                region_pad=region_pad,
+            )
+            self.pieces.append(piece)

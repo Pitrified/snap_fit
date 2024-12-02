@@ -16,10 +16,22 @@ class Piece:
         img_bw: np.ndarray,
         contour: MatLike,
         region: Rect,
+        region_pad: Rect,
     ) -> None:
-        """Initialize the piece with the contour, region, and area."""
+        """Initialize the piece with the contour, region, and area.
+
+        Args:
+            img_fp (Path): The image file path.
+            img_orig (np.ndarray): The original image.
+            img_bw (np.ndarray): The black and white image.
+            contour (MatLike): The contour of the piece.
+            region (Rect): The bounding rectangle of the piece.
+                It is the bounding rectangle of the contour.
+            region_pad (Rect): The padded bounding rectangle of the piece.
+        """
         self.img_fp = img_fp
         self.img_orig = img_orig
         self.img_bw = img_bw
         self.contour = contour
         self.region = region
+        self.region_pad = region_pad
