@@ -123,3 +123,38 @@ def compute_bounding_rectangles(contours: Sequence[MatLike]) -> list[Rect]:
     ]
 
     return bounding_rectangles
+
+
+def find_corners(
+    image: np.ndarray,
+    max_corners: int = 100,
+    quality_level: float = 0.01,
+    min_distance: float = 10,
+) -> list[tuple[int, int]]:
+    """Finds corner keypoints in the given image using the Shi-Tomasi method.
+
+    Args:
+        image (np.ndarray): The input image, which should be grayscale.
+        max_corners (int): The maximum number of corners to return.
+        quality_level (float): The minimum quality of corners (0 to 1).
+        min_distance (float): The minimum Euclidean distance between corners.
+
+    Returns:
+        list[tuple[int, int]]: A list of detected corner keypoints as (x, y) coordinates.
+    """
+    if len(image.shape) != 2:
+        raise ValueError("Input image must be grayscale.")
+
+    # Detect corners using cv2.goodFeaturesToTrack
+    corners = cv2.goodFeaturesToTrack(
+        image,
+        maxCorners=max_corners,
+        qualityLevel=quality_level,
+        minDistance=min_distance,
+    )
+
+    if corners is not None:
+        # Convert to a list of tuples
+        return [(int(x), int(y)) for x, y in corners.reshape(-1, 2)]
+    else:
+        return []

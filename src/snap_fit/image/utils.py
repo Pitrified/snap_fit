@@ -147,3 +147,51 @@ def compute_rects_area(rects: list[Rect]) -> list[int]:
         list[int]: The areas of the rectangles.
     """
     return [compute_rect_area(rect) for rect in rects]
+
+
+def cut_rect_from_image(image: np.ndarray, rect: Rect) -> np.ndarray:
+    """Cuts a rectangle from an image.
+
+    Args:
+        image (np.ndarray): The input image.
+        rect (Rect): The rectangle to cut from the image.
+
+    Returns:
+        np.ndarray: The cut out region from the image.
+    """
+    x, y, w, h = rect
+    return image[y : y + h, x : x + w]
+
+
+def pad_rect(
+    rect: Rect,
+    padding: int,
+    image: np.ndarray | None = None,
+) -> Rect:
+    """Pads a rectangle with additional pixels.
+
+    If an image is provided, the function will check if the padding is valid and adjust it if necessary.
+
+    Args:
+        rect (Rect): The rectangle to pad.
+        padding (int): The number of pixels to add to each side of the rectangle.
+
+    Returns:
+        Rect: The padded rectangle.
+    """
+    x, y, w, h = rect
+
+    # Add padding to the rectangle
+    x -= padding
+    y -= padding
+    w += 2 * padding
+    h += 2 * padding
+
+    # Ensure the padded rectangle is within the image bounds
+    if image is not None:
+        x = max(0, x)
+        y = max(0, y)
+        w = min(w, image.shape[1] - x)
+        h = min(h, image.shape[0] - y)
+
+    return x, y, w, h
