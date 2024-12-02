@@ -5,6 +5,7 @@ from pathlib import Path
 from snap_fit.image.process import (
     apply_dilation,
     apply_erosion,
+    apply_gaussian_blur,
     apply_threshold,
     compute_bounding_rectangles,
     convert_to_grayscale,
@@ -42,12 +43,14 @@ class Sheet:
 
     def preprocess(self) -> None:
         """Preprocess the image."""
-        gray_image = convert_to_grayscale(self.img_orig)
-        binary_image = apply_threshold(gray_image, threshold=self.threshold)
-        eroded_image = apply_erosion(binary_image, kernel_size=3, iterations=2)
-        dilated_image = apply_dilation(eroded_image, kernel_size=3, iterations=1)
-        img_bw = flip_colors_bw(dilated_image)
-        self.img_bw = img_bw
+        image = self.img_orig
+        image = apply_gaussian_blur(image, kernel_size=(21, 21))
+        image = convert_to_grayscale(image)
+        image = apply_threshold(image, threshold=self.threshold)
+        image = apply_erosion(image, kernel_size=3, iterations=2)
+        image = apply_dilation(image, kernel_size=3, iterations=1)
+        image = flip_colors_bw(image)
+        self.img_bw = image
 
     def find_pieces(self) -> None:
         """Find the pieces in the image."""
