@@ -161,6 +161,28 @@ def find_corners(
         return []
 
 
+def find_sift_keypoints(image: np.ndarray) -> tuple[list[cv2.KeyPoint], np.ndarray]:
+    """
+    Finds keypoints in the given image using SIFT (Scale-Invariant Feature Transform).
+
+    Args:
+        image (np.ndarray): The input image, which should ideally be grayscale.
+
+    Returns:
+        tuple[list[cv2.KeyPoint], np.ndarray]: A list of detected keypoints and their descriptors.
+    """
+    if len(image.shape) > 2:
+        raise ValueError("Input image must be grayscale.")
+
+    # Create a SIFT detector
+    sift = cv2.SIFT_create()
+
+    # Detect keypoints and compute descriptors
+    keypoints, descriptors = sift.detectAndCompute(image, None)
+
+    return keypoints, descriptors
+
+
 def find_surf_keypoints(image: np.ndarray) -> tuple[list[cv2.KeyPoint], np.ndarray]:
     """
     Finds keypoints in the given image using SURF (Speeded-Up Robust Features).
@@ -175,7 +197,7 @@ def find_surf_keypoints(image: np.ndarray) -> tuple[list[cv2.KeyPoint], np.ndarr
         raise ValueError("Input image must be grayscale.")
 
     # Create a SURF detector
-    surf = cv2.xfeatures2d.SURF_create(hessianThreshold=400)
+    surf = cv2.xfeatures2d.SURF_create(hessianThreshold=4000)
 
     # Detect keypoints and compute descriptors
     keypoints, descriptors = surf.detectAndCompute(image, None)
