@@ -195,3 +195,52 @@ def pad_rect(
         h = min(h, image.shape[0] - y)
 
     return x, y, w, h
+
+
+def draw_corners(
+    image: np.ndarray,
+    corners: list[tuple[int, int]],
+    color: tuple[int, int, int] = (0, 255, 0),
+    radius: int = 5,
+) -> np.ndarray:
+    """
+    Draws circles at the detected corners on the given image.
+
+    Args:
+        image (np.ndarray): The original image to draw the corners on.
+        corners (list[tuple[int, int]]): A list of corner coordinates as (x, y).
+        color (tuple[int, int, int]): The color of the corners (default is green in BGR).
+        radius (int): The radius of the circles to draw.
+
+    Returns:
+        np.ndarray: The image with corners drawn.
+    """
+    # Make a copy of the image to draw on
+    output_image = image.copy()
+
+    # Draw each corner as a circle
+    for x, y in corners:
+        cv2.circle(output_image, (x, y), radius, color, -1)
+
+    return output_image
+
+
+def draw_keypoints(
+    image: np.ndarray,
+    keypoints: list[cv2.KeyPoint],
+    color: tuple[int, int, int] = (0, 255, 0),
+) -> np.ndarray:
+    """
+    Draws keypoints on the given image.
+
+    Args:
+        image (np.ndarray): The original image to draw the keypoints on.
+        keypoints (list[cv2.KeyPoint]): The detected keypoints.
+        color (tuple[int, int, int]): The color of the keypoints (default is green in BGR).
+
+    Returns:
+        np.ndarray: The image with keypoints drawn.
+    """
+    return cv2.drawKeypoints(
+        image, keypoints, None, color, cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS
+    )
