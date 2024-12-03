@@ -43,13 +43,15 @@ def display_image(image: np.ndarray, window_name: str = "Image") -> None:
     cv2.destroyAllWindows()
 
 
-def show_image_mpl(image: np.ndarray) -> None:
+def show_image_mpl(image: np.ndarray, figsize: tuple[int, int] = (10, 10)) -> None:
     """Displays the given image using Matplotlib.
 
     Args:
         image (np.ndarray): The image to display.
+        figsize (tuple[int, int]): The size of the output plot (default is (10, 10)).
+            Measured in inches.
     """
-
+    plt.figure(figsize=figsize)
     plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
     plt.axis("off")
     plt.show()
@@ -317,3 +319,52 @@ def translate_contour(contour: np.ndarray, x_offset: int, y_offset: int) -> np.n
     translated_contour = contour + translation_matrix
 
     return translated_contour
+
+
+def draw_contour_derivative(
+    image: np.ndarray,
+    contour: np.ndarray,
+    derivative: np.ndarray,
+    skip: int = 5,
+    arrow_length: int = 5,
+) -> np.ndarray:
+    """
+    Draws the derivative of a contour on the given image.
+
+    Args:
+        image (np.ndarray): The original image to draw the contour derivative on.
+        contour (np.ndarray): The original contour.
+        derivative (np.ndarray): The derivative of the contour.
+
+    Returns:
+        np.ndarray: The image with the contour derivative drawn.
+    """
+    if image is None:
+        raise ValueError("Input image is None.")
+
+    # Make a copy of the image to draw on
+    output_image = image.copy()
+
+    # Draw the original contour
+    cv2.drawContours(output_image, [contour], -1, (0, 255, 0), 2)
+
+    # Draw the derivative of the contour
+    for i in range(len(contour)):
+        # Skip some points to avoid clutter
+        if i % skip != 0:
+            continue
+        x, y = contour[i][0]
+        dx, dy = derivative[i][0]
+        # make the arrow longer
+        dx *= arrow_length
+        dy *= arrow_length
+        # draw the arrow
+        cv2.arrowedLine(
+            output_image,
+            (x, y),
+            (x + int(dx), y + int(dy)),
+            (0, 0, 255),
+            1,
+        )
+
+    return output_image
