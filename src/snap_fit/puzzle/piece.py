@@ -5,6 +5,7 @@ from pathlib import Path
 from cv2.typing import MatLike, Rect
 import numpy as np
 
+from snap_fit.image.process import convert_to_grayscale
 from snap_fit.image.utils import translate_contour
 
 
@@ -37,6 +38,8 @@ class Piece:
         self.contour = contour
         self.region = region
         self.region_pad = region_pad
+
+        self.img_gray = convert_to_grayscale(self.img_orig)
 
         self.translate_contour()
 
