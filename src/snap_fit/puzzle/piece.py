@@ -5,6 +5,8 @@ from pathlib import Path
 from cv2.typing import MatLike, Rect
 import numpy as np
 
+from snap_fit.image.utils import translate_contour
+
 
 class Piece:
     """A piece is a chunk of image with a piece in it."""
@@ -35,3 +37,11 @@ class Piece:
         self.contour = contour
         self.region = region
         self.region_pad = region_pad
+
+        self.translate_contour()
+
+    def translate_contour(self) -> None:
+        """Translate the contour from image to piece coordinates."""
+        x = -self.region_pad[0]
+        y = -self.region_pad[1]
+        self.contour_loc = translate_contour(self.contour, x, y)
