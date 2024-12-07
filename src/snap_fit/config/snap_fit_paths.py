@@ -30,6 +30,7 @@ class SnapFitPaths:
         self.cache_fol = self.root_fol / "cache"
         # data
         self.data_fol = self.root_fol / "data"
+        self.sample_img_fol = self.data_fol / "sample"
         # static
         self.static_fol = self.root_fol / "static"
 
