@@ -438,3 +438,45 @@ def color_to_scalar(
         return (color, color, color)
     else:
         return (color,)
+
+
+def find_corner(
+    img_crossmasked: np.ndarray,
+    which_corner: str,
+) -> tuple:
+    """Find the corner of the piece by sweeping the image.
+
+    The function sweeps the image with a line starting from the corner,
+    orthogonal to the diagonal of the image, and stops when the line hits the
+    crossmasked image.
+    The corner is then the point where the line hits the crossmasked image.
+
+    Args:
+        img_crossmasked (np.ndarray): The image with the diagonal line.
+        which_corner (str): The corner to find, one of
+            "top_left", "top_right", "bottom_left", "bottom_right".
+
+    Returns:
+        tuple: The coordinates of the corner, as a tuple (x, y).
+    """
+    shap = img_crossmasked.shape
+    for i in range(min(shap)):
+        for j in range(i):
+            match which_corner:
+                case "top_left":
+                    x = j
+                    y = i - j
+                case "bottom_left":
+                    x = i - j
+                    y = shap[0] - j - 1
+                case "top_right":
+                    x = shap[1] - i + j
+                    y = j
+                case "bottom_right":
+                    x = shap[1] - j - 1
+                    y = shap[0] - i + j
+                case _:
+                    raise ValueError(f"Invalid corner {which_corner=}")
+            if img_crossmasked[y, x] > 0:
+                return (x, y)
+    return (0, 0)
