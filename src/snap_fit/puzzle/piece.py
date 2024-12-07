@@ -36,7 +36,7 @@ class Piece:
         self.img_fp = img_fp
         self.img_orig = img_orig
         self.img_bw = img_bw
-        self.contour = contour
+        self.contour = contour  # REFA should be a Contour object
         self.region = region
         self.region_pad = region_pad
 
@@ -47,8 +47,11 @@ class Piece:
         self.build_cross_masked()
         self.find_corners()
 
+        self.split_contour()
+
     def translate_contour(self) -> None:
         """Translate the contour from image to piece coordinates."""
+        # REFA should be done in the Contour class
         x = -self.region_pad[0]
         y = -self.region_pad[1]
         self.contour_loc = translate_contour(self.contour, x, y)
@@ -91,3 +94,25 @@ class Piece:
             "bottom_right",
         ]:
             self.corners[which_corner] = find_corner(self.img_crossmasked, which_corner)
+
+    def split_contour(self) -> None:
+        """Split the contour into four segments."""
+        # REFA should be done in the Contour class
+
+        # find the point on the contour closest to each corner
+        self.contour_corner_idxs = {}
+        self.contour_corner_coords = {}
+        for which_corner in [
+            "top_left",
+            "top_right",
+            "bottom_left",
+            "bottom_right",
+        ]:
+            corner = self.corners[which_corner]
+            con_diff = self.contour_loc - corner
+            corner_idx = abs(con_diff).sum(axis=1).sum(axis=1).argmin()
+            self.contour_corner_idxs[which_corner] = corner_idx
+            self.contour_corner_coords[which_corner] = self.contour_loc[corner_idx][0]
+
+        # split the contour into four segments
+        self.contour_segments = {}
