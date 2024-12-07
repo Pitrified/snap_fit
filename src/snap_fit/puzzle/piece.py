@@ -6,7 +6,7 @@ import cv2
 from cv2.typing import MatLike, Rect
 import numpy as np
 
-from snap_fit.config.types import CORNER_POSS
+from snap_fit.config.types import CORNER_POSS, EDGE_ENDS_TO_CORNER
 from snap_fit.image.process import convert_to_grayscale
 from snap_fit.image.utils import draw_line, find_corner, translate_contour
 
@@ -107,3 +107,26 @@ class Piece:
 
         # split the contour into four segments
         self.contour_segments = {}
+        self.contour_segments_ends_idxs = {}
+        self.contour_segments_ends_coords = {}
+        for edge_name, edge_ends in EDGE_ENDS_TO_CORNER.items():
+            start_idx = self.contour_corner_idxs[edge_ends[0]]
+            end_idx = self.contour_corner_idxs[edge_ends[1]]
+            self.contour_segments_ends_idxs[edge_name] = (start_idx, end_idx)
+            self.contour_segments_ends_coords[edge_name] = np.vstack(
+                (
+                    self.contour_corner_coords[edge_ends[0]],
+                    self.contour_corner_coords[edge_ends[1]],
+                )
+            )
+
+            # if the start index is greater than the end index, the segment
+            # wraps around the contour
+            if start_idx > end_idx:
+                to_end = self.contour_loc[start_idx:]
+                from_start = self.contour_loc[: end_idx + 1]
+                segment = np.vstack((to_end, from_start))
+            else:
+                segment = self.contour_loc[start_idx : end_idx + 1]
+
+            self.contour_segments[edge_name] = segment
