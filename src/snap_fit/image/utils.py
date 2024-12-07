@@ -289,7 +289,7 @@ def draw_contours(
 def draw_contour(
     image: np.ndarray,
     contour: np.ndarray,
-    color: tuple[int, int, int] = (0, 255, 0),
+    color: int | tuple[int, ...] = (0, 255, 0),
     thickness: int = 2,
 ) -> np.ndarray:
     """
@@ -304,7 +304,8 @@ def draw_contour(
     Returns:
         np.ndarray: The image with the contour drawn.
     """
-    return cv2.drawContours(image, [contour], -1, color, thickness)
+    cs = color_to_scalar(color, image)
+    return cv2.drawContours(image, [contour], -1, cs, thickness)
 
 
 def translate_contour(contour: np.ndarray, x_offset: int, y_offset: int) -> np.ndarray:
