@@ -3,7 +3,7 @@
 from pathlib import Path
 
 import cv2
-from cv2.typing import Rect
+from cv2.typing import MatLike, Point, Rect, Scalar
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -202,7 +202,7 @@ def pad_rect(
 def draw_corners(
     image: np.ndarray,
     corners: list[tuple[int, int]],
-    color: tuple[int, int, int] = (0, 255, 0),
+    color: tuple[int, ...] = (0, 255, 0),
     radius: int = 5,
 ) -> np.ndarray:
     """
@@ -368,3 +368,23 @@ def draw_contour_derivative(
         )
 
     return output_image
+
+
+def draw_line(
+    image: np.ndarray,
+    pt1: Point,
+    pt2: Point,
+    color: int | Scalar,
+    # color: Scalar,
+    thickness: int = 0,
+) -> MatLike:
+    """Draws a line on the given image."""
+    if isinstance(color, int):
+        # check the shape of the image to determine the number of channels
+        if len(image.shape) == 2:
+            color = (color,)
+        elif len(image.shape) == 3:
+            color = (color, color, color)
+        else:
+            raise ValueError("Invalid image shape.")
+    return cv2.line(image, pt1, pt2, color, thickness)
