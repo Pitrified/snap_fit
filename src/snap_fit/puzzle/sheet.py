@@ -1,6 +1,9 @@
 """A sheet is a photo full of pieces."""
 
 from pathlib import Path
+from typing import Sequence
+
+from cv2.typing import MatLike, Point, Rect, Scalar
 
 from snap_fit.image.process import (
     apply_dilation,
@@ -67,19 +70,25 @@ class Sheet:
     def sort_pieces(self) -> None:
         """Sort the pieces based on their area."""
         self.pieces_data.sort(key=lambda piece: piece["area"], reverse=True)
-        self.contours = [piece["contour"] for piece in self.pieces_data]
-        self.regions = [piece["region"] for piece in self.pieces_data]
-        self.region_areas = [piece["area"] for piece in self.pieces_data]
+        self._update_attrs_from_data()
 
     def filter_pieces(self) -> None:
         """Filter the pieces based on the area."""
         min_area = 80_000
-        self.pieces_data = [
-            piece for piece in self.pieces_data if piece["area"] > min_area
+        self.pieces_data = [p for p in self.pieces_data if p["area"] > min_area]
+        self._update_attrs_from_data()
+
+    def _update_attrs_from_data(self) -> None:
+        """Update the attributes from the pieces data.
+
+        This method is used to update the attributes after filtering the pieces.
+        Will update the contours, regions, and region_areas attributes.
+        """
+        self.contours: Sequence[MatLike] = [
+            piece["contour"] for piece in self.pieces_data
         ]
-        self.contours = [piece["contour"] for piece in self.pieces_data]
-        self.regions = [piece["region"] for piece in self.pieces_data]
-        self.region_areas = [piece["area"] for piece in self.pieces_data]
+        self.regions: list[Rect] = [piece["region"] for piece in self.pieces_data]
+        self.region_areas: list[int] = [piece["area"] for piece in self.pieces_data]
 
     def build_pieces(self) -> None:
         """Build the pieces from the regions."""

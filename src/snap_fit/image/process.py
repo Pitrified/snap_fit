@@ -175,7 +175,7 @@ def find_sift_keypoints(image: np.ndarray) -> tuple[list[cv2.KeyPoint], np.ndarr
         raise ValueError("Input image must be grayscale.")
 
     # Create a SIFT detector
-    sift = cv2.SIFT_create()
+    sift = cv2.SIFT_create()  # type: ignore
 
     # Detect keypoints and compute descriptors
     keypoints, descriptors = sift.detectAndCompute(image, None)
@@ -197,7 +197,7 @@ def find_surf_keypoints(image: np.ndarray) -> tuple[list[cv2.KeyPoint], np.ndarr
         raise ValueError("Input image must be grayscale.")
 
     # Create a SURF detector
-    surf = cv2.xfeatures2d.SURF_create(hessianThreshold=4000)
+    surf = cv2.xfeatures2d.SURF_create(hessianThreshold=4000)  # type: ignore
 
     # Detect keypoints and compute descriptors
     keypoints, descriptors = surf.detectAndCompute(image, None)

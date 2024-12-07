@@ -1,6 +1,7 @@
 """Utils related to image processing."""
 
 from pathlib import Path
+from typing import Sequence
 
 import cv2
 from cv2.typing import MatLike, Point, Rect, Scalar
@@ -202,7 +203,7 @@ def pad_rect(
 def draw_corners(
     image: np.ndarray,
     corners: list[tuple[int, int]],
-    color: tuple[int, ...] = (0, 255, 0),
+    color: int | tuple[int, ...] = (0, 255, 0),
     radius: int = 5,
 ) -> np.ndarray:
     """
@@ -220,15 +221,17 @@ def draw_corners(
     # Make a copy of the image to draw on
     output_image = image.copy()
 
+    cs = color_to_scalar(color, image)
+
     # Draw each corner as a circle
     for x, y in corners:
-        cv2.circle(output_image, (x, y), radius, color, -1)
+        cv2.circle(output_image, (x, y), radius, cs, -1)
 
     return output_image
 
 
 def draw_keypoints(
-    image: np.ndarray,
+    image: MatLike,
     keypoints: list[cv2.KeyPoint],
     color: tuple[int, int, int] = (0, 255, 0),
 ) -> np.ndarray:
@@ -244,13 +247,18 @@ def draw_keypoints(
         np.ndarray: The image with keypoints drawn.
     """
     return cv2.drawKeypoints(
-        image, keypoints, None, color, cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS
+        image,
+        keypoints,
+        image,
+        color,
+        cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS,
     )
 
 
 def draw_contours(
     image: np.ndarray,
-    contours: list[np.ndarray],
+    # contours: list[np.ndarray],
+    contours: Sequence[MatLike],
     color: tuple[int, int, int] = (0, 255, 0),
     thickness: int = 2,
 ) -> np.ndarray:
@@ -388,3 +396,45 @@ def draw_line(
         else:
             raise ValueError("Invalid image shape.")
     return cv2.line(image, pt1, pt2, color, thickness)
+
+
+def color_to_scalar(
+    color: int | tuple[int, ...],
+    ref_image: np.ndarray | None = None,
+    num_channels: int | None = None,
+) -> Scalar:
+    """Converts a color tuple to a Scalar."""
+    # if a color tuple is provided, return it
+    if not isinstance(color, int):
+        return color
+    # check that a reference image or number of channels is provided
+    if ref_image is None and num_channels is None:
+        raise ValueError(
+            "Either a reference image or number of channels must be provided."
+        )
+
+    # if we had no channels, the reference image is used
+    if num_channels is None:
+        match ref_image.shape:  # type: ignore (the ref image cannot be none)
+            case (h, w):
+                num_channels = 1
+            case (h, w, c):
+                num_channels = c
+            case _:
+                raise ValueError("Invalid image shape.")
+        # num_channels = ref_image.shape[2]
+
+    # determine if the color should be triplicated
+    match num_channels:
+        case 1:
+            triplicate = False
+        case 3:
+            triplicate = True
+        case _:
+            raise ValueError("Invalid number of channels.")
+
+    # convert the color to a scalar
+    if triplicate:
+        return (color, color, color)
+    else:
+        return (color,)
