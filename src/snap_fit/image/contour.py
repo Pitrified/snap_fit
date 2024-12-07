@@ -1,4 +1,9 @@
-"""A contour is a curve joining all the continuous points (along the boundary)."""
+"""A contour is a curve joining all the continuous points (along the boundary).
+
+Each individual contour is a Numpy array of (x,y) coordinates of boundary points of the object.
+
+https://docs.opencv.org/3.4/d4/d73/tutorial_py_contours_begin.html
+"""
 
 import numpy as np
 
