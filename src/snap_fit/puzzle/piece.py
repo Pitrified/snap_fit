@@ -2,11 +2,12 @@
 
 from pathlib import Path
 
+import cv2
 from cv2.typing import MatLike, Rect
 import numpy as np
 
 from snap_fit.image.process import convert_to_grayscale
-from snap_fit.image.utils import translate_contour
+from snap_fit.image.utils import draw_line, translate_contour
 
 
 class Piece:
@@ -48,3 +49,16 @@ class Piece:
         x = -self.region_pad[0]
         y = -self.region_pad[1]
         self.contour_loc = translate_contour(self.contour, x, y)
+
+    def build_cross_mask(self) -> None:
+        """Build a cross mask for the piece."""
+        shap = self.img_bw.shape
+        diag_mask = np.zeros(shap, dtype=np.uint8)
+        thick = int(sum(shap) / 2 / 4 * 1.05)
+        diag_mask = draw_line(diag_mask, (0, 0), (shap[1], shap[0]), 255, thick)
+        diag_mask = draw_line(diag_mask, (0, shap[0]), (shap[1], 0), 255, thick)
+        self.cross_mask = diag_mask
+
+    def find_corners(self) -> None:
+        """Find the corners of the piece."""
+        pass
