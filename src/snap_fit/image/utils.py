@@ -8,6 +8,8 @@ from cv2.typing import MatLike, Point, Rect, Scalar
 import matplotlib.pyplot as plt
 import numpy as np
 
+from snap_fit.config.types import CornerPos
+
 
 def load_image(file_path: Path) -> np.ndarray:
     """Loads an image from the specified file path.
@@ -443,7 +445,7 @@ def color_to_scalar(
 
 def find_corner(
     img_crossmasked: np.ndarray,
-    which_corner: str,
+    which_corner: CornerPos,
 ) -> tuple:
     """Find the corner of the piece by sweeping the image.
 
@@ -464,16 +466,16 @@ def find_corner(
     for i in range(min(shap)):
         for j in range(i):
             match which_corner:
-                case "top_left":
+                case CornerPos.TOP_LEFT:
                     x = j
                     y = i - j
-                case "bottom_left":
+                case CornerPos.BOTTOM_LEFT:
                     x = i - j
                     y = shap[0] - j - 1
-                case "top_right":
+                case CornerPos.TOP_RIGHT:
                     x = shap[1] - i + j
                     y = j
-                case "bottom_right":
+                case CornerPos.BOTTOM_RIGHT:
                     x = shap[1] - j - 1
                     y = shap[0] - i + j
                 case _:

@@ -6,6 +6,7 @@ import cv2
 from cv2.typing import MatLike, Rect
 import numpy as np
 
+from snap_fit.config.types import CORNER_POSS
 from snap_fit.image.process import convert_to_grayscale
 from snap_fit.image.utils import draw_line, find_corner, translate_contour
 
@@ -87,12 +88,7 @@ class Piece:
             tuple: The coordinates of the corner, as a tuple (x, y).
         """
         self.corners = {}
-        for which_corner in [
-            "top_left",
-            "top_right",
-            "bottom_left",
-            "bottom_right",
-        ]:
+        for which_corner in CORNER_POSS:
             self.corners[which_corner] = find_corner(self.img_crossmasked, which_corner)
 
     def split_contour(self) -> None:
@@ -102,12 +98,7 @@ class Piece:
         # find the point on the contour closest to each corner
         self.contour_corner_idxs = {}
         self.contour_corner_coords = {}
-        for which_corner in [
-            "top_left",
-            "top_right",
-            "bottom_left",
-            "bottom_right",
-        ]:
+        for which_corner in CORNER_POSS:
             corner = self.corners[which_corner]
             con_diff = self.contour_loc - corner
             corner_idx = abs(con_diff).sum(axis=1).sum(axis=1).argmin()
