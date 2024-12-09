@@ -446,7 +446,7 @@ def color_to_scalar(
 def find_corner(
     img_crossmasked: np.ndarray,
     which_corner: CornerPos,
-) -> tuple:
+) -> tuple[int, int]:
     """Find the corner of the piece by sweeping the image.
 
     The function sweeps the image with a line starting from the corner,
