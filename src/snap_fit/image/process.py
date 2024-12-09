@@ -120,10 +120,21 @@ def compute_bounding_rectangles(contours: Sequence[MatLike]) -> list[Rect]:
         list[Rect]: A list of bounding rectangles for the contours.
     """
     bounding_rectangles: list[Rect] = [
-        cv2.boundingRect(contour) for contour in contours
+        compute_bounding_rectangle(contour) for contour in contours
     ]
-
     return bounding_rectangles
+
+
+def compute_bounding_rectangle(contour: MatLike) -> Rect:
+    """Computes the bounding rectangle for the given contour.
+
+    Args:
+        contour (np.ndarray): A single contour.
+
+    Returns:
+        Rect: The bounding rectangle for the contour.
+    """
+    return cv2.boundingRect(contour)
 
 
 def find_corners(
