@@ -5,6 +5,7 @@ from typing import Sequence
 
 from cv2.typing import MatLike, Point, Rect, Scalar
 
+from snap_fit.image.contour import Contour
 from snap_fit.image.process import (
     apply_dilation,
     apply_erosion,
@@ -57,45 +58,26 @@ class Sheet:
 
     def find_pieces(self) -> None:
         """Find the pieces in the image."""
-        self.contours = find_contours(self.img_bw)
-        self.regions = compute_bounding_rectangles(self.contours)
-        self.region_areas = compute_rects_area(self.regions)
-        self.pieces_data = [
-            PieceRaw(contour, region, area)
-            for contour, region, area in zip(
-                self.contours, self.regions, self.region_areas
-            )
-        ]
+        cv_contours = find_contours(self.img_bw)
+        self.contours = [Contour(cv_contour) for cv_contour in cv_contours]
 
     def sort_pieces(self) -> None:
         """Sort the pieces based on their area."""
-        self.pieces_data.sort(key=lambda piece: piece.area, reverse=True)
-        self._update_attrs_from_data()
+        self.contours.sort(key=lambda piece: piece.area, reverse=True)
 
     def filter_pieces(self) -> None:
         """Filter the pieces based on the area."""
         min_area = 80_000
-        self.pieces_data = [p for p in self.pieces_data if p.area > min_area]
-        self._update_attrs_from_data()
-
-    def _update_attrs_from_data(self) -> None:
-        """Update the attributes from the pieces data.
-
-        This method is used to update the attributes after filtering the pieces.
-        Will update the contours, regions, and region_areas attributes.
-        """
-        self.contours: Sequence[MatLike] = [piece.contour for piece in self.pieces_data]
-        self.regions: list[Rect] = [piece.region for piece in self.pieces_data]
-        self.region_areas: list[int] = [piece.area for piece in self.pieces_data]
+        self.contours = [p for p in self.contours if p.area > min_area]
 
     def build_pieces(self) -> None:
         """Build the pieces from the regions."""
         pad = 30
 
         self.pieces = []
-        for pd in self.pieces_data:
+        for pd in self.contours:
             region = pd.region
-            contour = pd.contour
+            contour = pd.cv_contour
             region_pad = pad_rect(region, pad, self.img_bw)
             img_bw_cut = cut_rect_from_image(self.img_bw, region_pad)
             img_orig_cut = cut_rect_from_image(self.img_orig, region_pad)

@@ -7,7 +7,8 @@ https://docs.opencv.org/3.4/d4/d73/tutorial_py_contours_begin.html
 
 import numpy as np
 
-from snap_fit.image.utils import translate_contour
+from snap_fit.image.process import compute_bounding_rectangle
+from snap_fit.image.utils import compute_rect_area, translate_contour
 
 
 class Contour:
@@ -19,6 +20,8 @@ class Contour:
     ) -> None:
         """Initialize the contour with the OpenCV contour."""
         self.cv_contour = cv_contour
+        self.region = compute_bounding_rectangle(cv_contour)
+        self.area = compute_rect_area(self.region)
 
     def translate(self, x_offset: int, y_offset: int) -> None:
         """Translates the contour by the specified x and y offsets."""
