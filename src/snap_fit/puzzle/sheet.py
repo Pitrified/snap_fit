@@ -37,9 +37,6 @@ class Sheet:
         self.preprocess()
 
         self.find_pieces()
-        self.sort_pieces()
-        self.filter_pieces()
-        self.build_pieces()
 
     def load_image(self) -> None:
         """Loads the image from the file path."""
@@ -58,20 +55,27 @@ class Sheet:
 
     def find_pieces(self) -> None:
         """Find the pieces in the image."""
+        self.find_contours()
+        self.sort_contours()
+        self.filter_contours()
+        self.build_pieces()
+
+    def find_contours(self) -> None:
+        """Find the contours in the image."""
         cv_contours = find_contours(self.img_bw)
         self.contours = [Contour(cv_contour) for cv_contour in cv_contours]
 
-    def sort_pieces(self) -> None:
-        """Sort the pieces based on their area."""
+    def sort_contours(self) -> None:
+        """Sort the contours based on their area."""
         self.contours.sort(key=lambda piece: piece.area, reverse=True)
 
-    def filter_pieces(self) -> None:
-        """Filter the pieces based on the area."""
+    def filter_contours(self) -> None:
+        """Filter the contours based on the area."""
         min_area = 80_000
         self.contours = [p for p in self.contours if p.area > min_area]
 
     def build_pieces(self) -> None:
-        """Build the pieces from the regions."""
+        """Build the pieces from the contours."""
         pad = 30
 
         self.pieces = []
