@@ -5,6 +5,8 @@ Each individual contour is a Numpy array of (x,y) coordinates of boundary points
 https://docs.opencv.org/3.4/d4/d73/tutorial_py_contours_begin.html
 """
 
+from __future__ import annotations
+
 import numpy as np
 
 from snap_fit.image.process import compute_bounding_rectangle
@@ -23,9 +25,18 @@ class Contour:
         self.region = compute_bounding_rectangle(cv_contour)
         self.area = compute_rect_area(self.region)
 
-    def translate(self, x_offset: int, y_offset: int) -> None:
-        """Translates the contour by the specified x and y offsets."""
-        self.cv_contour = translate_contour(self.cv_contour, x_offset, y_offset)
+    def translate(self, x_offset: int, y_offset: int) -> Contour:
+        """Translates the contour by the specified x and y offsets.
+
+        Args:
+            x_offset (int): The x offset.
+            y_offset (int): The y offset.
+
+        Returns:
+            Contour: A new contour translated by the specified offsets.
+        """
+        new_cv_contour = translate_contour(self.cv_contour, x_offset, y_offset)
+        return Contour(new_cv_contour)
 
     def derive(
         self,
