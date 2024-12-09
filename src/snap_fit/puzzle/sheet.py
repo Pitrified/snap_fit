@@ -21,7 +21,7 @@ from snap_fit.image.utils import (
     load_image,
     pad_rect,
 )
-from snap_fit.puzzle.piece import Piece
+from snap_fit.puzzle.piece import Piece, PieceRaw
 
 
 class Sheet:
@@ -61,7 +61,7 @@ class Sheet:
         self.regions = compute_bounding_rectangles(self.contours)
         self.region_areas = compute_rects_area(self.regions)
         self.pieces_data = [
-            {"contour": contour, "region": region, "area": area}
+            PieceRaw(contour, region, area)
             for contour, region, area in zip(
                 self.contours, self.regions, self.region_areas
             )
@@ -69,13 +69,13 @@ class Sheet:
 
     def sort_pieces(self) -> None:
         """Sort the pieces based on their area."""
-        self.pieces_data.sort(key=lambda piece: piece["area"], reverse=True)
+        self.pieces_data.sort(key=lambda piece: piece.area, reverse=True)
         self._update_attrs_from_data()
 
     def filter_pieces(self) -> None:
         """Filter the pieces based on the area."""
         min_area = 80_000
-        self.pieces_data = [p for p in self.pieces_data if p["area"] > min_area]
+        self.pieces_data = [p for p in self.pieces_data if p.area > min_area]
         self._update_attrs_from_data()
 
     def _update_attrs_from_data(self) -> None:
@@ -84,11 +84,9 @@ class Sheet:
         This method is used to update the attributes after filtering the pieces.
         Will update the contours, regions, and region_areas attributes.
         """
-        self.contours: Sequence[MatLike] = [
-            piece["contour"] for piece in self.pieces_data
-        ]
-        self.regions: list[Rect] = [piece["region"] for piece in self.pieces_data]
-        self.region_areas: list[int] = [piece["area"] for piece in self.pieces_data]
+        self.contours: Sequence[MatLike] = [piece.contour for piece in self.pieces_data]
+        self.regions: list[Rect] = [piece.region for piece in self.pieces_data]
+        self.region_areas: list[int] = [piece.area for piece in self.pieces_data]
 
     def build_pieces(self) -> None:
         """Build the pieces from the regions."""
@@ -96,8 +94,8 @@ class Sheet:
 
         self.pieces = []
         for pd in self.pieces_data:
-            region = pd["region"]
-            contour = pd["contour"]
+            region = pd.region
+            contour = pd.contour
             region_pad = pad_rect(region, pad, self.img_bw)
             img_bw_cut = cut_rect_from_image(self.img_bw, region_pad)
             img_orig_cut = cut_rect_from_image(self.img_orig, region_pad)

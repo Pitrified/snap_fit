@@ -1,5 +1,6 @@
 """A puzzle piece is a chunk of image with a piece in it."""
 
+from dataclasses import dataclass
 from pathlib import Path
 
 import cv2
@@ -9,6 +10,15 @@ import numpy as np
 from snap_fit.config.types import CORNER_POSS, EDGE_ENDS_TO_CORNER
 from snap_fit.image.process import convert_to_grayscale
 from snap_fit.image.utils import draw_line, find_corner, translate_contour
+
+
+@dataclass
+class PieceRaw:
+    """Raw piece data."""
+
+    contour: MatLike
+    region: Rect
+    area: int
 
 
 class Piece:
