@@ -81,18 +81,12 @@ class Sheet:
         pad = 30
 
         self.pieces = []
-        for pd in self.contours:
-            region = pd.region
-            contour = pd.cv_contour
-            region_pad = pad_rect(region, pad, self.img_bw)
-            img_bw_cut = cut_rect_from_image(self.img_bw, region_pad)
-            img_orig_cut = cut_rect_from_image(self.img_orig, region_pad)
-            piece = Piece(
-                img_fp=self.img_fp,
-                img_orig=img_orig_cut,
-                img_bw=img_bw_cut,
-                contour=contour,
-                region=region,
-                region_pad=region_pad,
+        for contour in self.contours:
+            piece = Piece.from_contour(
+                contour,
+                self.img_orig,
+                self.img_bw,
+                self.img_fp,
+                pad=pad,
             )
             self.pieces.append(piece)

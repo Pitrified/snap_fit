@@ -2,14 +2,16 @@
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Self
 
 import cv2
 from cv2.typing import MatLike, Rect
 import numpy as np
 
 from snap_fit.config.types import CORNER_POSS, EDGE_ENDS_TO_CORNER
+from snap_fit.image.contour import Contour
 from snap_fit.image.process import convert_to_grayscale
-from snap_fit.image.utils import draw_line, find_corner, translate_contour
+from snap_fit.image.utils import cut_rect_from_image, draw_line, find_corner, pad_rect
 
 
 @dataclass
@@ -29,9 +31,7 @@ class Piece:
         img_fp: Path,
         img_orig: np.ndarray,
         img_bw: np.ndarray,
-        contour: MatLike,
-        region: Rect,
-        region_pad: Rect,
+        contour: Contour,
     ) -> None:
         """Initialize the piece with the contour, region, and area.
 
@@ -39,33 +39,57 @@ class Piece:
             img_fp (Path): The image file path.
             img_orig (np.ndarray): The original image.
             img_bw (np.ndarray): The black and white image.
-            contour (MatLike): The contour of the piece.
-            region (Rect): The bounding rectangle of the piece.
-                It is the bounding rectangle of the contour.
-            region_pad (Rect): The padded bounding rectangle of the piece.
+            contour (Contour): The contour of the piece.
         """
         self.img_fp = img_fp
         self.img_orig = img_orig
         self.img_bw = img_bw
-        self.contour = contour  # REFA should be a Contour object
-        self.region = region
-        self.region_pad = region_pad
+        self.contour = contour
+        self.contour_loc = contour.cv_contour
 
         self.img_gray = convert_to_grayscale(self.img_orig)
-
-        self.translate_contour()
 
         self.build_cross_masked()
         self.find_corners()
 
         self.split_contour()
 
-    def translate_contour(self) -> None:
-        """Translate the contour from image to piece coordinates."""
-        # REFA should be done in the Contour class
-        x = -self.region_pad[0]
-        y = -self.region_pad[1]
-        self.contour_loc = translate_contour(self.contour, x, y)
+    @classmethod
+    def from_contour(
+        cls,
+        contour: Contour,
+        full_img_orig: np.ndarray,
+        full_img_bw: np.ndarray,
+        img_fp: Path,
+        pad: int = 30,
+    ) -> Self:
+        """Create a piece from a contour and the full image.
+
+        Will cut the piece from the full image, after padding the region of the contour.
+
+        Args:
+            contour (Contour): The contour of the piece.
+            full_img_orig (np.ndarray): The original full image.
+            full_img_bw (np.ndarray): The black and white full image.
+            img_fp (Path): The image file path.
+            pad (int): The padding around the region of the contour.
+
+        Returns:
+            Piece: The piece created from the contour and the full image.
+        """
+        region = contour.region
+        region_pad = pad_rect(region, pad, full_img_bw)
+        img_orig_cut = cut_rect_from_image(full_img_orig, region_pad)
+        img_bw_cut = cut_rect_from_image(full_img_bw, region_pad)
+        # translate the contour to the new coordinates
+        contour_cut = contour.translate(-region_pad[0], -region_pad[1])
+        c = cls(
+            img_fp=img_fp,
+            img_orig=img_orig_cut,
+            img_bw=img_bw_cut,
+            contour=contour_cut,
+        )
+        return c
 
     def build_cross_masked(self) -> None:
         """Build a cross mask for the piece and apply it."""
