@@ -1,9 +1,6 @@
 """A sheet is a photo full of pieces."""
 
 from pathlib import Path
-from typing import Sequence
-
-from cv2.typing import MatLike, Point, Rect, Scalar
 
 from snap_fit.image.contour import Contour
 from snap_fit.image.process import (
@@ -11,28 +8,34 @@ from snap_fit.image.process import (
     apply_erosion,
     apply_gaussian_blur,
     apply_threshold,
-    compute_bounding_rectangles,
     convert_to_grayscale,
     find_contours,
 )
 from snap_fit.image.utils import (
-    compute_rects_area,
     cut_rect_from_image,
     flip_colors_bw,
     load_image,
     pad_rect,
 )
-from snap_fit.puzzle.piece import Piece, PieceRaw
+from snap_fit.puzzle.piece import Piece
 
 
 class Sheet:
     """A sheet is a photo full of pieces."""
 
-    def __init__(self, img_fp: Path) -> None:
+    def __init__(
+        self,
+        img_fp: Path,
+        min_area: int = 80_000,
+    ) -> None:
         """Initialize the sheet with the image file path."""
         self.img_fp = img_fp
+        self.min_area = min_area
+
         self.load_image()
 
+        # REFA should be a config object
+        #      together with the preprocess params
         self.threshold = 130
         self.preprocess()
 
@@ -71,8 +74,7 @@ class Sheet:
 
     def filter_contours(self) -> None:
         """Filter the contours based on the area."""
-        min_area = 80_000
-        self.contours = [p for p in self.contours if p.area > min_area]
+        self.contours = [p for p in self.contours if p.area > self.min_area]
 
     def build_pieces(self) -> None:
         """Build the pieces from the contours."""
