@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import numpy as np
 
+from snap_fit.config.types import CORNER_POSS, EDGE_ENDS_TO_CORNER, CornerPos
 from snap_fit.image.process import compute_bounding_rectangle
 from snap_fit.image.utils import compute_rect_area, translate_contour
 
@@ -62,3 +63,53 @@ class Contour:
         # Remove the wrapped points
         d = d_wrap[step:-step]
         self.derivative = d
+
+    def build_segments(self, corners: dict[CornerPos, tuple[int, int]]) -> None:
+        """Split the contour into four segments."""
+        self.match_corners(corners)
+        self.split_contour()
+
+    def match_corners(self, corners: dict[CornerPos, tuple[int, int]]) -> None:
+        """Match the given corners to the closest points on the contour.
+
+        Will find the indexes of the closest points on the contour to the given corners.
+        Will also store the coordinates of the closest points.
+
+        Args:
+            corners (dict[CornerPos, tuple[int, int]]): The corners to match to the contour.
+        """
+        self.corner_idxs = {}
+        self.corner_coords = {}
+        for which_corner in CORNER_POSS:
+            corner = corners[which_corner]
+            con_diff = self.cv_contour - corner
+            corner_idx = abs(con_diff).sum(axis=1).sum(axis=1).argmin()
+            self.corner_idxs[which_corner] = corner_idx
+            self.corner_coords[which_corner] = self.cv_contour[corner_idx][0]
+
+    def split_contour(self) -> None:
+        """Split the contour into four segments."""
+        self.segments = {}
+        self.segments_ends_idxs = {}
+        self.segments_ends_coords = {}
+        for edge_name, edge_ends in EDGE_ENDS_TO_CORNER.items():
+            start_idx = self.corner_idxs[edge_ends[0]]
+            end_idx = self.corner_idxs[edge_ends[1]]
+            self.segments_ends_idxs[edge_name] = (start_idx, end_idx)
+            self.segments_ends_coords[edge_name] = np.vstack(
+                (
+                    self.corner_coords[edge_ends[0]],
+                    self.corner_coords[edge_ends[1]],
+                )
+            )
+
+            # if the start index is greater than the end index, the segment
+            # wraps around the contour
+            if start_idx > end_idx:
+                to_end = self.cv_contour[start_idx:]
+                from_start = self.cv_contour[: end_idx + 1]
+                segment = np.vstack((to_end, from_start))
+            else:
+                segment = self.cv_contour[start_idx : end_idx + 1]
+
+            self.segments[edge_name] = segment

@@ -127,40 +127,4 @@ class Piece:
 
     def split_contour(self) -> None:
         """Split the contour into four segments."""
-        # REFA should be done in the Contour class
-
-        # find the point on the contour closest to each corner
-        self.contour_corner_idxs = {}
-        self.contour_corner_coords = {}
-        for which_corner in CORNER_POSS:
-            corner = self.corners[which_corner]
-            con_diff = self.contour_loc - corner
-            corner_idx = abs(con_diff).sum(axis=1).sum(axis=1).argmin()
-            self.contour_corner_idxs[which_corner] = corner_idx
-            self.contour_corner_coords[which_corner] = self.contour_loc[corner_idx][0]
-
-        # split the contour into four segments
-        self.contour_segments = {}
-        self.contour_segments_ends_idxs = {}
-        self.contour_segments_ends_coords = {}
-        for edge_name, edge_ends in EDGE_ENDS_TO_CORNER.items():
-            start_idx = self.contour_corner_idxs[edge_ends[0]]
-            end_idx = self.contour_corner_idxs[edge_ends[1]]
-            self.contour_segments_ends_idxs[edge_name] = (start_idx, end_idx)
-            self.contour_segments_ends_coords[edge_name] = np.vstack(
-                (
-                    self.contour_corner_coords[edge_ends[0]],
-                    self.contour_corner_coords[edge_ends[1]],
-                )
-            )
-
-            # if the start index is greater than the end index, the segment
-            # wraps around the contour
-            if start_idx > end_idx:
-                to_end = self.contour_loc[start_idx:]
-                from_start = self.contour_loc[: end_idx + 1]
-                segment = np.vstack((to_end, from_start))
-            else:
-                segment = self.contour_loc[start_idx : end_idx + 1]
-
-            self.contour_segments[edge_name] = segment
+        self.contour.build_segments(self.corners)
