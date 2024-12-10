@@ -272,3 +272,46 @@ def apply_bilateral_filter(
     filtered_image = cv2.bilateralFilter(image, diameter, sigma_color, sigma_space)
 
     return filtered_image
+
+
+def estimate_affine_transform(source: np.ndarray, target: np.ndarray) -> np.ndarray:
+    """Estimates the affine transformation matrix from source to target points.
+
+    Parameters:
+        source (np.ndarray): Source points with shape (N, 2).
+        target (np.ndarray): Target points with shape (N, 2).
+
+    Returns:
+        np.ndarray: Estimated affine transformation matrix (2x3).
+    """
+    # Reshape to (N, 1, 2) as required by estimateAffinePartial2D
+    source = source.reshape(-1, 1, 2)
+    target = target.reshape(-1, 1, 2)
+
+    # Estimate the affine transformation matrix
+    transform_matrix, _ = cv2.estimateAffinePartial2D(source, target)
+
+    return transform_matrix
+
+
+def transform_contour(
+    contour: np.ndarray,
+    transform_matrix: np.ndarray,
+) -> np.ndarray:
+    """Applies a 2D affine transformation to a contour.
+
+    Parameters:
+        contour (np.ndarray): Contour with shape (n, 1, 2).
+        transform_matrix (np.ndarray): Transformation matrix (2x3) from cv2.estimateAffinePartial2D or similar.
+
+    Returns:
+        np.ndarray: Transformed contour with the same shape as the input.
+    """
+    # Validate input shape
+    if contour.shape[1:] != (1, 2):
+        raise ValueError("Contour must have shape (n, 1, 2)")
+
+    # Apply the transformation
+    transformed_contour = cv2.transform(contour, transform_matrix)
+
+    return transformed_contour
