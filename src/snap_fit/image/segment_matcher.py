@@ -55,21 +55,22 @@ class SegmentMatcher:
         # s1_len = s1_points_transformed.shape[0]
         s2_len = len(self.s2)
         # s2_len = self.s2.points.shape[0]
-        ratio = s1_len / s2_len
-        # lg.debug(f"ratio: {ratio}")
+        ratio = s2_len / s1_len
+        # lg.debug(f"{s1_len=} {s2_len=} {ratio=}")
 
         # compute the similarity
         tot_dist: float = 0
         for i1 in range(s1_len):
             i2 = floor(i1 * ratio)
+            # lg.debug(f"{i1=} {i2=}")
             p1 = s1_points_transformed[i1][0]
             p2 = self.s2.points[i2][0]
             dist = np.linalg.norm(p1 - p2)
             tot_dist += dist  # type: ignore - numpy floating to float
 
         # normalize the total distance
-        # similarity = tot_dist / s2_len
-        similarity = tot_dist
+        similarity = tot_dist / max(s1_len, s2_len)
+        # similarity = tot_dist
 
         # MAYBE should we rescale the dist on the distance between the ends?
         # MAYBE should we take the average of the distances between the points?
