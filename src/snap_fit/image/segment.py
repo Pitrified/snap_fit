@@ -60,3 +60,7 @@ class Segment:
             # if the segment does not wrap around the contour,
             # get the points from the start to the end
             self.points = self.contour.cv_contour[self.start_idx : self.end_idx + 1]
+
+    def __len__(self) -> int:
+        """Return the number of points in the segment."""
+        return self.points.shape[0]
