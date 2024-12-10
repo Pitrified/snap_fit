@@ -8,9 +8,10 @@ import cv2
 from cv2.typing import MatLike, Rect
 import numpy as np
 
-from snap_fit.config.types import CORNER_POSS, EDGE_ENDS_TO_CORNER
+from snap_fit.config.types import CORNER_POSS, CornerPos, EdgePos
 from snap_fit.image.contour import Contour
 from snap_fit.image.process import convert_to_grayscale
+from snap_fit.image.segment import Segment
 from snap_fit.image.utils import cut_rect_from_image, draw_line, find_corner, pad_rect
 
 
@@ -28,6 +29,7 @@ class Piece:
 
     def __init__(
         self,
+        piece_id: int,
         img_fp: Path,
         img_orig: np.ndarray,
         img_bw: np.ndarray,
@@ -41,11 +43,14 @@ class Piece:
             img_bw (np.ndarray): The black and white image.
             contour (Contour): The contour of the piece.
         """
+        self.piece_id = piece_id
         self.img_fp = img_fp
         self.img_orig = img_orig
         self.img_bw = img_bw
         self.contour = contour
         self.contour_loc = contour.cv_contour
+
+        self.name = img_fp.stem
 
         self.img_gray = convert_to_grayscale(self.img_orig)
 
@@ -61,6 +66,7 @@ class Piece:
         full_img_orig: np.ndarray,
         full_img_bw: np.ndarray,
         img_fp: Path,
+        piece_id: int,
         pad: int = 30,
     ) -> Self:
         """Create a piece from a contour and the full image.
@@ -84,6 +90,7 @@ class Piece:
         # translate the contour to the new coordinates
         contour_cut = contour.translate(-region_pad[0], -region_pad[1])
         c = cls(
+            piece_id=piece_id,
             img_fp=img_fp,
             img_orig=img_orig_cut,
             img_bw=img_bw_cut,
@@ -121,10 +128,12 @@ class Piece:
         Returns:
             tuple: The coordinates of the corner, as a tuple (x, y).
         """
-        self.corners = {}
+        self.corners: dict[CornerPos, tuple[int, int]] = {}
         for which_corner in CORNER_POSS:
             self.corners[which_corner] = find_corner(self.img_crossmasked, which_corner)
 
     def split_contour(self) -> None:
         """Split the contour into four segments."""
         self.contour.build_segments(self.corners)
+        # for ease of access, store the segments as attributes
+        self.segments: dict[EdgePos, Segment] = self.contour.segments

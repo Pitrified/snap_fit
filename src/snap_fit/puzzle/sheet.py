@@ -81,12 +81,13 @@ class Sheet:
         pad = 30
 
         self.pieces = []
-        for contour in self.contours:
+        for piece_id, contour in enumerate(self.contours):
             piece = Piece.from_contour(
-                contour,
-                self.img_orig,
-                self.img_bw,
-                self.img_fp,
+                contour=contour,
+                full_img_orig=self.img_orig,
+                full_img_bw=self.img_bw,
+                img_fp=self.img_fp,
+                piece_id=piece_id,
                 pad=pad,
             )
             self.pieces.append(piece)
