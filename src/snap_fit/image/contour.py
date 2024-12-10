@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from snap_fit.config.types import CORNER_POSS, EDGE_ENDS_TO_CORNER, CornerPos
+from snap_fit.config.types import CORNER_POSS, EDGE_ENDS_TO_CORNER, CornerPos, EdgePos
 from snap_fit.image.process import compute_bounding_rectangle
 from snap_fit.image.segment import Segment
 from snap_fit.image.utils import compute_rect_area, translate_contour
@@ -90,7 +90,7 @@ class Contour:
 
     def split_contour(self) -> None:
         """Split the contour into four segments."""
-        self.segments = {}
+        self.segments: dict[EdgePos, Segment] = {}
         for edge_name, edge_ends in EDGE_ENDS_TO_CORNER.items():
             start_idx = self.corner_idxs[edge_ends[0]]
             end_idx = self.corner_idxs[edge_ends[1]]
