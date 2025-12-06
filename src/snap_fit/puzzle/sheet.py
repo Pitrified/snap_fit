@@ -2,6 +2,8 @@
 
 from pathlib import Path
 
+from cv2.typing import Rect
+
 from snap_fit.image.contour import Contour
 from snap_fit.image.process import (
     apply_dilation,
@@ -12,10 +14,8 @@ from snap_fit.image.process import (
     find_contours,
 )
 from snap_fit.image.utils import (
-    cut_rect_from_image,
     flip_colors_bw,
     load_image,
-    pad_rect,
 )
 from snap_fit.puzzle.piece import Piece
 
@@ -91,3 +91,8 @@ class Sheet:
                 pad=pad,
             )
             self.pieces.append(piece)
+
+    @property
+    def regions(self) -> list[Rect]:
+        """Get the regions of all pieces in the sheet, in the sheet coordinates."""
+        return [contour.region for contour in self.contours]

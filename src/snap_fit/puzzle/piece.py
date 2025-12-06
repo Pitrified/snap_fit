@@ -5,8 +5,8 @@ from pathlib import Path
 from typing import Self
 
 import cv2
-from cv2.typing import MatLike, Rect
 import numpy as np
+from cv2.typing import MatLike, Rect
 
 from snap_fit.config.types import CORNER_POSS, CornerPos, EdgePos
 from snap_fit.image.contour import Contour
@@ -137,3 +137,8 @@ class Piece:
         self.contour.build_segments(self.corners)
         # for ease of access, store the segments as attributes
         self.segments: dict[EdgePos, Segment] = self.contour.segments
+
+    @property
+    def region(self) -> Rect:
+        """Get the region of the piece, in the coordinate of the piece."""
+        return self.contour.region
