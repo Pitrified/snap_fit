@@ -1,0 +1,44 @@
+fail_fast: true
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    # use the ref you want to point at
+    rev: v6.0.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: detect-private-key
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    # uv version. run `uv self update` and match it
+    rev: 0.9.16
+    hooks:
+      - id: uv-lock
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    # uv ruff --version
+    rev: v0.14.8
+    hooks:
+      # run the linter
+      - id: ruff
+        args: [--fix]
+      # run the formatter
+      - id: ruff-format
+  - repo: https://github.com/RobertCraigie/pyright-python
+    # uv pyright --version
+    rev: v1.1.407
+    hooks:
+      - id: pyright
+  - repo: https://github.com/kynan/nbstripout
+    rev: 0.8.2
+    hooks:
+      - id: nbstripout
+        name: Check for Jupyter notebook output
+        args: [--verify]
+  # - repo: https://github.com/Yelp/detect-secrets
+  #   # use the ref you want to point at
+  #   rev: v1.5.0
+  #   hooks:
+  #     - id: detect-secrets
+  #       args: ["--baseline", ".secrets.baseline"]
+  #       exclude: uv.lock
