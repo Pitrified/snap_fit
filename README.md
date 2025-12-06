@@ -2,10 +2,18 @@
 
 ## Installation
 
-To install the package, run the following command:
+### Setup `uv`
+
+To install the package:
+
+Setup [`uv`](https://docs.astral.sh/uv/getting-started/installation/).
+
+### Install the package
+
+Run the following command:
 
 ```bash
-poetry install
+uv sync --all-extras --all-groups
 ```
 
 ## Setup
@@ -61,7 +69,7 @@ uv run ruff format
 To run the tests, use the following command:
 
 ```bash
-poetry run pytest
+uv run pytest
 ```
 
 or use the VSCode interface.
