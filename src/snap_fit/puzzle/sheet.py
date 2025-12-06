@@ -80,7 +80,7 @@ class Sheet:
         """Build the pieces from the contours."""
         pad = 30
 
-        self.pieces = []
+        self.pieces: list[Piece] = []
         for piece_id, contour in enumerate(self.contours):
             piece = Piece.from_contour(
                 contour=contour,
