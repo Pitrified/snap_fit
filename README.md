@@ -25,6 +25,35 @@ workspace [settings file](.vscode/settings.json):
 
 Note that the path to the `.env` file should be absolute.
 
+## Pre-commit
+
+To install the pre-commit hooks, run the following command:
+
+```bash
+pre-commit install
+```
+
+Run against all the files:
+
+```bash
+pre-commit run --all-files
+```
+
+## Linting
+
+Use pyright for type checking:
+
+```bash
+uv run pyright
+```
+
+Use ruff for linting:
+
+```bash
+uv run ruff check --fix
+uv run ruff format
+```
+
 ## Testing
 
 To run the tests, use the following command:
