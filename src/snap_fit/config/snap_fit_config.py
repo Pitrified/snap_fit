@@ -2,15 +2,15 @@
 
 from loguru import logger as lg
 
-from snap_fit.config.snap_fit_paths import SnapFitPaths
 from snap_fit.config.singleton import Singleton
+from snap_fit.config.snap_fit_paths import SnapFitPaths
 
 
 class SnapFitConfig(metaclass=Singleton):
     """SnapFit project configuration."""
 
     def __init__(self) -> None:
-        lg.info(f"Loading SnapFit config")
+        lg.info("Loading SnapFit config")
         self.paths = SnapFitPaths()
 
     def __str__(self) -> str:
