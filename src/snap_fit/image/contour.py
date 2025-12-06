@@ -1,6 +1,7 @@
 """A contour is a curve joining all the continuous points (along the boundary).
 
-Each individual contour is a Numpy array of (x,y) coordinates of boundary points of the object.
+Each individual contour is a Numpy array of (x,y) coordinates of boundary points
+of the object.
 
 https://docs.opencv.org/3.4/d4/d73/tutorial_py_contours_begin.html
 """
@@ -9,10 +10,14 @@ from __future__ import annotations
 
 import numpy as np
 
-from snap_fit.config.types import CORNER_POSS, EDGE_ENDS_TO_CORNER, CornerPos, EdgePos
+from snap_fit.config.types import CORNER_POSS
+from snap_fit.config.types import EDGE_ENDS_TO_CORNER
+from snap_fit.config.types import CornerPos
+from snap_fit.config.types import EdgePos
 from snap_fit.image.process import compute_bounding_rectangle
 from snap_fit.image.segment import Segment
-from snap_fit.image.utils import compute_rect_area, translate_contour
+from snap_fit.image.utils import compute_rect_area
+from snap_fit.image.utils import translate_contour
 
 
 class Contour:
@@ -28,7 +33,7 @@ class Contour:
         self.area = compute_rect_area(self.region)
 
     def translate(self, x_offset: int, y_offset: int) -> Contour:
-        """Translates the contour by the specified x and y offsets.
+        """Translate the contour by the specified x and y offsets.
 
         Args:
             x_offset (int): The x offset.
@@ -44,10 +49,11 @@ class Contour:
         self,
         step: int = 5,
     ) -> None:
-        """Derives the contour to get the orientation and curvature.
+        """Derive the contour to get the orientation and curvature.
 
-        For each point on the contour, the derivative is calculated using the central difference method.
-        The step size determines the distance between the points used for the derivative.
+        For each point on the contour, the derivative is calculated using the
+        central difference method. The step size determines the distance
+        between the points used for the derivative.
 
         Args:
             step (int): The step size for the derivative (default is 5).
@@ -77,7 +83,8 @@ class Contour:
         Will also store the coordinates of the closest points.
 
         Args:
-            corners (dict[CornerPos, tuple[int, int]]): The corners to match to the contour.
+            corners (dict[CornerPos, tuple[int, int]]): The corners to match to
+                the contour.
         """
         self.corner_idxs = {}
         self.corner_coords = {}

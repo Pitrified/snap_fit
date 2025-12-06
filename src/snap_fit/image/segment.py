@@ -23,8 +23,8 @@ class Segment:
 
         Args:
             contour (Contour): The contour to which the segment belongs.
-            start (int): The start index of the segment.
-            end (int): The end index of the segment.
+            start_idx (int): The start index of the segment.
+            end_idx (int): The end index of the segment.
         """
         self.contour = contour
         self.start_idx = start_idx

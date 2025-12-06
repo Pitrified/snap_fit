@@ -1,15 +1,15 @@
 """Process images."""
 
-from typing import Sequence
+from collections.abc import Sequence
 
 import cv2
-from cv2.typing import MatLike, Rect
-from loguru import logger as lg
+from cv2.typing import MatLike
+from cv2.typing import Rect
 import numpy as np
 
 
 def convert_to_grayscale(image: np.ndarray) -> np.ndarray:
-    """Converts the given image to grayscale.
+    """Convert the given image to grayscale.
 
     Args:
         image (np.ndarray): The original image.
@@ -21,7 +21,7 @@ def convert_to_grayscale(image: np.ndarray) -> np.ndarray:
 
 
 def apply_threshold(image: np.ndarray, threshold: int = 127) -> np.ndarray:
-    """Applies a binary threshold to the image, converting it to black and white.
+    """Apply a binary threshold to the image, converting it to black and white.
 
     Args:
         image (np.ndarray): The input image (assumed to be grayscale).
@@ -37,8 +37,7 @@ def apply_threshold(image: np.ndarray, threshold: int = 127) -> np.ndarray:
 def apply_erosion(
     image: np.ndarray, kernel_size: int = 3, iterations: int = 1
 ) -> np.ndarray:
-    """
-    Applies erosion to the image.
+    """Apply erosion to the image.
 
     Args:
         image (np.ndarray): The input binary image.
@@ -55,7 +54,7 @@ def apply_erosion(
 def apply_dilation(
     image: np.ndarray, kernel_size: int = 3, iterations: int = 1
 ) -> np.ndarray:
-    """Applies dilation to the image.
+    """Apply dilation to the image.
 
     Args:
         image (np.ndarray): The input binary image.
@@ -70,7 +69,7 @@ def apply_dilation(
 
 
 def find_contours(image: np.ndarray) -> Sequence[MatLike]:
-    """Finds contours in a binary image.
+    """Find contours in a binary image.
 
     Contours are white regions in the image.
 
@@ -80,7 +79,8 @@ def find_contours(image: np.ndarray) -> Sequence[MatLike]:
     Returns:
         list[np.ndarray]: A list of contours found in the image.
     """
-    if len(image.shape) != 2:
+    # TODO: create utility func to check if image is grayscale
+    if len(image.shape) != 2:  # noqa: PLR2004
         # Ensure the image is binary (2D)
         # convert to grayscale if it is not
         image = convert_to_grayscale(image)
@@ -92,7 +92,7 @@ def find_contours(image: np.ndarray) -> Sequence[MatLike]:
 
 
 def find_white_regions(image: np.ndarray) -> list[Rect]:
-    """Finds white regions in a binary image.
+    """Find white regions in a binary image.
 
     Args:
         image (np.ndarray): The input binary image (values should be 0 or 255).
@@ -110,7 +110,7 @@ def find_white_regions(image: np.ndarray) -> list[Rect]:
 
 
 def compute_bounding_rectangles(contours: Sequence[MatLike]) -> list[Rect]:
-    """Computes bounding rectangles for the given contours.
+    """Compute bounding rectangles for the given contours.
 
     Args:
         image (np.ndarray): The original image.
@@ -126,7 +126,7 @@ def compute_bounding_rectangles(contours: Sequence[MatLike]) -> list[Rect]:
 
 
 def compute_bounding_rectangle(contour: MatLike) -> Rect:
-    """Computes the bounding rectangle for the given contour.
+    """Compute the bounding rectangle for the given contour.
 
     Args:
         contour (np.ndarray): A single contour.
@@ -143,7 +143,7 @@ def find_corners(
     quality_level: float = 0.01,
     min_distance: float = 10,
 ) -> list[tuple[int, int]]:
-    """Finds corner keypoints in the given image using the Shi-Tomasi method.
+    """Find corner keypoints in the given image using the Shi-Tomasi method.
 
     Args:
         image (np.ndarray): The input image, which should be grayscale.
@@ -152,10 +152,12 @@ def find_corners(
         min_distance (float): The minimum Euclidean distance between corners.
 
     Returns:
-        list[tuple[int, int]]: A list of detected corner keypoints as (x, y) coordinates.
+        list[tuple[int, int]]: List of detected corner keypoints as (x, y) coordinates.
     """
-    if len(image.shape) != 2:
-        raise ValueError("Input image must be grayscale.")
+    # TODO: create utility func to check if image is grayscale
+    if len(image.shape) != 2:  # noqa: PLR2004
+        msg = "Input image must be grayscale."
+        raise ValueError(msg)
 
     # Detect corners using cv2.goodFeaturesToTrack
     corners = cv2.goodFeaturesToTrack(
@@ -168,25 +170,27 @@ def find_corners(
     if corners is not None:
         # Convert to a list of tuples
         return [(int(x), int(y)) for x, y in corners.reshape(-1, 2)]
-    else:
-        return []
+    return []
 
 
 def find_sift_keypoints(image: np.ndarray) -> tuple[list[cv2.KeyPoint], np.ndarray]:
-    """
-    Finds keypoints in the given image using SIFT (Scale-Invariant Feature Transform).
+    """Find keypoints in the given image using SIFT (Scale-Invariant Feature Transform).
 
     Args:
         image (np.ndarray): The input image, which should ideally be grayscale.
 
     Returns:
-        tuple[list[cv2.KeyPoint], np.ndarray]: A list of detected keypoints and their descriptors.
+        tuple[list[cv2.KeyPoint], np.ndarray]: A list of detected keypoints and
+            their descriptors.
     """
-    if len(image.shape) > 2:
-        raise ValueError("Input image must be grayscale.")
+    # TODO: create utility func to check if image is grayscale
+    if len(image.shape) != 2:  # noqa: PLR2004
+        msg = "Input image must be grayscale."
+        raise ValueError(msg)
 
     # Create a SIFT detector
-    sift = cv2.SIFT_create()  # type: ignore
+    # SIFT is patented and may not be available in all OpenCV installations
+    sift = cv2.SIFT_create()  # pyright: ignore[reportAttributeAccessIssue]
 
     # Detect keypoints and compute descriptors
     keypoints, descriptors = sift.detectAndCompute(image, None)
@@ -195,20 +199,23 @@ def find_sift_keypoints(image: np.ndarray) -> tuple[list[cv2.KeyPoint], np.ndarr
 
 
 def find_surf_keypoints(image: np.ndarray) -> tuple[list[cv2.KeyPoint], np.ndarray]:
-    """
-    Finds keypoints in the given image using SURF (Speeded-Up Robust Features).
+    """Find keypoints in the given image using SURF (Speeded-Up Robust Features).
 
     Args:
         image (np.ndarray): The input image, which should ideally be grayscale.
 
     Returns:
-        tuple[list[cv2.KeyPoint], np.ndarray]: A list of detected keypoints and their descriptors.
+        tuple[list[cv2.KeyPoint], np.ndarray]: A list of detected keypoints and
+            their descriptors.
     """
-    if len(image.shape) > 2:
-        raise ValueError("Input image must be grayscale.")
+    # TODO: create utility func to check if image is grayscale
+    if len(image.shape) != 2:  # noqa: PLR2004
+        msg = "Input image must be grayscale."
+        raise ValueError(msg)
 
     # Create a SURF detector
-    surf = cv2.xfeatures2d.SURF_create(hessianThreshold=4000)  # type: ignore
+    # experimental module may not be available in all OpenCV installations
+    surf = cv2.xfeatures2d.SURF_create(hessianThreshold=4000)  # pyright: ignore[reportAttributeAccessIssue]
 
     # Detect keypoints and compute descriptors
     keypoints, descriptors = surf.detectAndCompute(image, None)
@@ -221,12 +228,12 @@ def apply_gaussian_blur(
     kernel_size: tuple[int, int] = (5, 5),
     sigma: float = 0,
 ) -> np.ndarray:
-    """
-    Applies a Gaussian blur to the given image.
+    """Apply a Gaussian blur to the given image.
 
     Args:
         image (np.ndarray): The input image to be blurred.
-        kernel_size (tuple[int, int]): The size of the Gaussian kernel (default is (5, 5)).
+        kernel_size (tuple[int, int]): The size of the Gaussian kernel.
+            Default is (5, 5).
         sigma (float): The standard deviation for the Gaussian kernel.
             If 0, it is automatically computed based on the kernel size.
 
@@ -234,12 +241,20 @@ def apply_gaussian_blur(
         np.ndarray: The blurred image.
     """
     if image is None:
-        raise ValueError("Input image is None.")
+        msg = "Input image is None."
+        raise ValueError(msg)
 
-    if len(kernel_size) != 2 or kernel_size[0] % 2 == 0 or kernel_size[1] % 2 == 0:
-        raise ValueError(
-            "Kernel size must be a tuple of odd integers (e.g., (3, 3), (5, 5))."
+    kernel_size_required_len = 2
+    if (
+        len(kernel_size) != kernel_size_required_len
+        or kernel_size[0] % 2 == 0
+        or kernel_size[1] % 2 == 0
+    ):
+        msg = (
+            "Kernel size must be a tuple of len two,"
+            " of odd integers (e.g., (3, 3), (5, 5))."
         )
+        raise ValueError(msg)
 
     # Apply Gaussian blur
     blurred_image = cv2.GaussianBlur(image, kernel_size, sigma)
@@ -253,20 +268,23 @@ def apply_bilateral_filter(
     sigma_color: float = 75,
     sigma_space: float = 75,
 ) -> np.ndarray:
-    """
-    Applies a bilateral filter to the given image.
+    """Apply a bilateral filter to the given image.
 
     Args:
         image (np.ndarray): The input image to be filtered.
-        diameter (int): Diameter of each pixel neighborhood used during filtering (default is 9).
-        sigma_color (float): Filter sigma in the color space. Larger values mean more distant colors are mixed.
-        sigma_space (float): Filter sigma in the coordinate space. Larger values mean distant pixels influence each other.
+        diameter (int): Diameter of each pixel neighborhood used during filtering
+            Default is 9.
+        sigma_color (float): Filter sigma in the color space.
+            Larger values mean more distant colors are mixed.
+        sigma_space (float): Filter sigma in the coordinate space.
+            Larger values mean distant pixels influence each other.
 
     Returns:
         np.ndarray: The filtered image.
     """
     if image is None:
-        raise ValueError("Input image is None.")
+        msg = "Input image is None."
+        raise ValueError(msg)
 
     # Apply Bilateral Filter
     filtered_image = cv2.bilateralFilter(image, diameter, sigma_color, sigma_space)
@@ -275,9 +293,9 @@ def apply_bilateral_filter(
 
 
 def estimate_affine_transform(source: np.ndarray, target: np.ndarray) -> np.ndarray:
-    """Estimates the affine transformation matrix from source to target points.
+    """Estimate the affine transformation matrix from source to target points.
 
-    Parameters:
+    Args:
         source (np.ndarray): Source points with shape (N, 2).
         target (np.ndarray): Target points with shape (N, 2).
 
@@ -298,18 +316,20 @@ def transform_contour(
     contour: np.ndarray,
     transform_matrix: np.ndarray,
 ) -> np.ndarray:
-    """Applies a 2D affine transformation to a contour.
+    """Apply a 2D affine transformation to a contour.
 
-    Parameters:
+    Args:
         contour (np.ndarray): Contour with shape (n, 1, 2).
-        transform_matrix (np.ndarray): Transformation matrix (2x3) from cv2.estimateAffinePartial2D or similar.
+        transform_matrix (np.ndarray): Transformation matrix (2x3) from
+            cv2.estimateAffinePartial2D or similar.
 
     Returns:
         np.ndarray: Transformed contour with the same shape as the input.
     """
     # Validate input shape
     if contour.shape[1:] != (1, 2):
-        raise ValueError("Contour must have shape (n, 1, 2)")
+        msg = "Contour must have shape (n, 1, 2)"
+        raise ValueError(msg)
 
     # Apply the transformation
     transformed_contour = cv2.transform(contour, transform_matrix)

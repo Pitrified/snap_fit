@@ -5,18 +5,14 @@ from pathlib import Path
 from cv2.typing import Rect
 
 from snap_fit.image.contour import Contour
-from snap_fit.image.process import (
-    apply_dilation,
-    apply_erosion,
-    apply_gaussian_blur,
-    apply_threshold,
-    convert_to_grayscale,
-    find_contours,
-)
-from snap_fit.image.utils import (
-    flip_colors_bw,
-    load_image,
-)
+from snap_fit.image.process import apply_dilation
+from snap_fit.image.process import apply_erosion
+from snap_fit.image.process import apply_gaussian_blur
+from snap_fit.image.process import apply_threshold
+from snap_fit.image.process import convert_to_grayscale
+from snap_fit.image.process import find_contours
+from snap_fit.image.utils import flip_colors_bw
+from snap_fit.image.utils import load_image
 from snap_fit.puzzle.piece import Piece
 
 
@@ -42,7 +38,7 @@ class Sheet:
         self.find_pieces()
 
     def load_image(self) -> None:
-        """Loads the image from the file path."""
+        """Load the image from the file path."""
         self.img_orig = load_image(self.img_fp)
 
     def preprocess(self) -> None:

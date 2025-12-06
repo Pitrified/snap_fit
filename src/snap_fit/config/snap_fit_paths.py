@@ -2,8 +2,6 @@
 
 from pathlib import Path
 
-from loguru import logger as lg
-
 import snap_fit
 
 
@@ -35,7 +33,8 @@ class SnapFitPaths:
         self.static_fol = self.root_fol / "static"
 
     def __str__(self) -> str:
-        s = f"SnapFitPaths:\n"
+        """Get the string representation of the SnapFit paths."""
+        s = "SnapFitPaths:\n"
         s += f"   src_fol: {self.src_fol}\n"
         s += f"  root_fol: {self.root_fol}\n"
         s += f" cache_fol: {self.cache_fol}\n"

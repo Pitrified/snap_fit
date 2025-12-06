@@ -1,6 +1,5 @@
 """Test the snap_fit paths."""
 
-import pytest
 
 from snap_fit.config.snap_fit_config import get_snap_fit_paths
 

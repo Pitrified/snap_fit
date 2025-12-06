@@ -2,17 +2,26 @@
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 from typing import Self
 
 import cv2
+from cv2.typing import MatLike
+from cv2.typing import Rect
 import numpy as np
-from cv2.typing import MatLike, Rect
 
-from snap_fit.config.types import CORNER_POSS, CornerPos, EdgePos
+from snap_fit.config.types import CORNER_POSS
+from snap_fit.config.types import CornerPos
+from snap_fit.config.types import EdgePos
 from snap_fit.image.contour import Contour
 from snap_fit.image.process import convert_to_grayscale
-from snap_fit.image.segment import Segment
-from snap_fit.image.utils import cut_rect_from_image, draw_line, find_corner, pad_rect
+from snap_fit.image.utils import cut_rect_from_image
+from snap_fit.image.utils import draw_line
+from snap_fit.image.utils import find_corner
+from snap_fit.image.utils import pad_rect
+
+if TYPE_CHECKING:
+    from snap_fit.image.segment import Segment
 
 
 @dataclass
@@ -38,6 +47,7 @@ class Piece:
         """Initialize the piece with the contour, region, and area.
 
         Args:
+            piece_id (int): The piece ID.
             img_fp (Path): The image file path.
             img_orig (np.ndarray): The original image.
             img_bw (np.ndarray): The black and white image.
@@ -78,6 +88,7 @@ class Piece:
             full_img_orig (np.ndarray): The original full image.
             full_img_bw (np.ndarray): The black and white full image.
             img_fp (Path): The image file path.
+            piece_id (int): The piece ID.
             pad (int): The padding around the region of the contour.
 
         Returns:

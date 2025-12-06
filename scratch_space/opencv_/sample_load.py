@@ -1,25 +1,24 @@
-"""Sample code to load a raw image and apply thresholding, erosion, and dilation."""
+"""Sample code to load a raw image and apply thresholding, erosion, and dilation."""  # noqa: INP001
 
 from snap_fit.config.snap_fit_config import get_snap_fit_paths
-from snap_fit.image.process import (
-    apply_bilateral_filter,
-    apply_dilation,
-    apply_erosion,
-    apply_gaussian_blur,
-    apply_threshold,
-    convert_to_grayscale,
-)
-from snap_fit.image.utils import display_image, load_image, save_image
+from snap_fit.image.process import apply_dilation
+from snap_fit.image.process import apply_erosion
+from snap_fit.image.process import apply_gaussian_blur
+from snap_fit.image.process import apply_threshold
+from snap_fit.image.process import convert_to_grayscale
+from snap_fit.image.utils import display_image
+from snap_fit.image.utils import load_image
+from snap_fit.image.utils import save_image
 
 if __name__ == "__main__":
     sf_paths = get_snap_fit_paths()
     data_fol = sf_paths.data_fol
     sample_fol = data_fol / "sample"
-    # img_fn = "PXL_20241130_105107220.jpg"
-    # img_fn = "front_01.jpg"
+    # > img_fn = "PXL_20241130_105107220.jpg"
+    # > img_fn = "front_01.jpg"
     img_fn = "back_01.jpg"
-    # img_fn = "back_02.jpg"
-    # img_fn = "puzzle_pieces_01.jpeg"
+    # > img_fn = "back_02.jpg"
+    # > img_fn = "puzzle_pieces_01.jpeg"
     img_fp = sample_fol / img_fn
 
     # load original image
@@ -27,19 +26,19 @@ if __name__ == "__main__":
     display_image(image, "Original Image")
 
     # blur image - gaussian blur
-    # ks = 51  # amazing results
+    # > ks = 51  # amazing results
     ks = 21  # darn good results
+    # TODO: do we have configs of these preprocessing steps?
     image = apply_gaussian_blur(image, kernel_size=(ks, ks))
     display_image(image, "Blurred Image")
 
     # # blur image - bilateral filter
-    # d = 50
-    # image = apply_bilateral_filter(image, diameter=d)
-    # display_image(image, "Blurred Image")
+    # > d = 50
+    # > image = apply_bilateral_filter(image, diameter=d)
+    # > display_image(image, "Blurred Image")
 
     # convert to grayscale
     image = convert_to_grayscale(image)
-    # display_image(gray_image, "Grayscale Image")
 
     # apply thresholding
     threshold = 130

@@ -1,10 +1,13 @@
 """Utils related to image processing."""
 
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Sequence
 
 import cv2
-from cv2.typing import MatLike, Point, Rect, Scalar
+from cv2.typing import MatLike
+from cv2.typing import Point
+from cv2.typing import Rect
+from cv2.typing import Scalar
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -12,7 +15,7 @@ from snap_fit.config.types import CornerPos
 
 
 def load_image(file_path: Path) -> np.ndarray:
-    """Loads an image from the specified file path.
+    """Load an image from the specified file path.
 
     Args:
         file_path (Path): The path to the image file.
@@ -21,15 +24,17 @@ def load_image(file_path: Path) -> np.ndarray:
         np.ndarray: The loaded image.
     """
     if not file_path.exists():
-        raise FileNotFoundError(f"File not found: {file_path}")
+        msg = f"File not found: {file_path}"
+        raise FileNotFoundError(msg)
     image = cv2.imread(str(file_path))
     if image is None:
-        raise ValueError(f"Failed to load image from: {file_path}")
+        msg = f"Failed to load image from: {file_path}"
+        raise ValueError(msg)
     return image
 
 
 def display_image(image: np.ndarray, window_name: str = "Image") -> None:
-    """Displays the given image in a window.
+    """Display the given image in a window.
 
     Args:
         image (np.ndarray): The image to display.
@@ -47,7 +52,7 @@ def display_image(image: np.ndarray, window_name: str = "Image") -> None:
 
 
 def show_image_mpl(image: np.ndarray, figsize: tuple[int, int] = (10, 10)) -> None:
-    """Displays the given image using Matplotlib.
+    """Display the given image using Matplotlib.
 
     Args:
         image (np.ndarray): The image to display.
@@ -61,7 +66,7 @@ def show_image_mpl(image: np.ndarray, figsize: tuple[int, int] = (10, 10)) -> No
 
 
 def save_image(image: np.ndarray, output_path: Path) -> None:
-    """Saves the given image to the specified file path.
+    """Save the given image to the specified file path.
 
     Args:
         image (np.ndarray): The image to save.
@@ -71,7 +76,8 @@ def save_image(image: np.ndarray, output_path: Path) -> None:
         output_path.parent.mkdir(parents=True, exist_ok=True)
     success = cv2.imwrite(str(output_path), image)
     if not success:
-        raise ValueError(f"Failed to save image to: {output_path}")
+        msg = f"Failed to save image to: {output_path}"
+        raise ValueError(msg)
 
 
 def draw_regions(
@@ -80,20 +86,21 @@ def draw_regions(
     color: tuple[int, int, int] = (0, 255, 0),
     thickness: int = 2,
 ) -> np.ndarray:
-    """
-    Draws bounding rectangles for regions on the given image.
+    """Draws bounding rectangles for regions on the given image.
 
     Args:
         image (np.ndarray): The original image on which to draw the rectangles.
-        regions (list[tuple[int, int, int, int]]): A list of bounding rectangles representing regions.
-        color (tuple[int, int, int]): The color of the rectangle (default is green in BGR).
+        regions (list[Rect]): A list of bounding rectangles representing regions.
+        color (tuple[int, int, int]): The color of the rectangle.
+            Default is green in BGR.
         thickness (int): The thickness of the rectangle border (default is 2).
 
     Returns:
         np.ndarray: The image with the bounding rectangles drawn.
     """
     if image is None:
-        raise ValueError("Input image is None.")
+        msg = "Input image is None."
+        raise ValueError(msg)
 
     # Create a copy of the image to draw on, preserving the original
     output_image = image.copy()
@@ -109,12 +116,11 @@ def sort_rects(rects: list[Rect]) -> list[Rect]:
     """Sorts the list of rectangles based on the area.
 
     Args:
-        list[Rect]: The list of rectangles to sort.
+        rects (list[Rect]): The list of rectangles to sort.
 
     Returns:
         list[Rect]: The sorted list of rectangles.
     """
-
     return sorted(rects, key=lambda rect: rect[2] * rect[3], reverse=True)
 
 
@@ -131,7 +137,7 @@ def flip_colors_bw(image: np.ndarray) -> np.ndarray:
 
 
 def compute_rect_area(rect: Rect) -> int:
-    """Computes the area of a rectangle.
+    """Compute the area of a rectangle.
 
     Args:
         rect (Rect): The rectangle to compute the area for.
@@ -143,7 +149,7 @@ def compute_rect_area(rect: Rect) -> int:
 
 
 def compute_rects_area(rects: list[Rect]) -> list[int]:
-    """Computes the area of multiple rectangles.
+    """Compute the area of multiple rectangles.
 
     Args:
         rects (list[Rect]): The list of rectangles to compute the area for.
@@ -173,13 +179,15 @@ def pad_rect(
     padding: int,
     image: np.ndarray | None = None,
 ) -> Rect:
-    """Pads a rectangle with additional pixels.
+    """Pad a rectangle with additional pixels.
 
-    If an image is provided, the function will check if the padding is valid and adjust it if necessary.
+    If an image is provided, the function will check if the padding is valid and
+    adjust it if necessary.
 
     Args:
         rect (Rect): The rectangle to pad.
         padding (int): The number of pixels to add to each side of the rectangle.
+        image (np.ndarray | None): The image to check the padding against.
 
     Returns:
         Rect: The padded rectangle.
@@ -208,13 +216,13 @@ def draw_corners(
     color: int | tuple[int, ...] = (0, 255, 0),
     radius: int = 5,
 ) -> np.ndarray:
-    """
-    Draws circles at the detected corners on the given image.
+    """Draws circles at the detected corners on the given image.
 
     Args:
         image (np.ndarray): The original image to draw the corners on.
         corners (list[tuple[int, int]]): A list of corner coordinates as (x, y).
-        color (tuple[int, int, int]): The color of the corners (default is green in BGR).
+        color (tuple[int, int, int]): The color of the corners.
+            Default is green in BGR.
         radius (int): The radius of the circles to draw.
 
     Returns:
@@ -237,13 +245,13 @@ def draw_keypoints(
     keypoints: list[cv2.KeyPoint],
     color: tuple[int, int, int] = (0, 255, 0),
 ) -> np.ndarray:
-    """
-    Draws keypoints on the given image.
+    """Draws keypoints on the given image.
 
     Args:
         image (np.ndarray): The original image to draw the keypoints on.
         keypoints (list[cv2.KeyPoint]): The detected keypoints.
-        color (tuple[int, int, int]): The color of the keypoints (default is green in BGR).
+        color (tuple[int, int, int]): The color of the keypoints.
+            Default is green in BGR.
 
     Returns:
         np.ndarray: The image with keypoints drawn.
@@ -264,20 +272,21 @@ def draw_contours(
     color: tuple[int, int, int] = (0, 255, 0),
     thickness: int = 2,
 ) -> np.ndarray:
-    """
-    Draws contours on the given image.
+    """Draws contours on the given image.
 
     Args:
         image (np.ndarray): The original image to draw the contours on.
-        contours (list[np.ndarray]): A list of contours, as returned by cv2.findContours.
-        color (tuple[int, int, int]): The color of the contours (default is green in BGR).
+        contours (Sequence[MatLike]): List of contours, as returned by cv2.findContours.
+        color (tuple[int, int, int]): The color of the contours.
+            Default is green in BGR.
         thickness (int): The thickness of the contour lines (default is 2).
 
     Returns:
         np.ndarray: The image with contours drawn.
     """
     if image is None:
-        raise ValueError("Input image is None.")
+        msg = "Input image is None."
+        raise ValueError(msg)
 
     # Make a copy of the image to draw on
     output_image = image.copy()
@@ -294,13 +303,13 @@ def draw_contour(
     color: int | tuple[int, ...] = (0, 255, 0),
     thickness: int = 2,
 ) -> np.ndarray:
-    """
-    Draws a single contour on the given image.
+    """Draws a single contour on the given image.
 
     Args:
         image (np.ndarray): The original image to draw the contour on.
         contour (np.ndarray): The contour to draw.
-        color (tuple[int, int, int]): The color of the contour (default is green in BGR).
+        color (tuple[int, int, int]): The color of the contour.
+            Default is green in BGR.
         thickness (int): The thickness of the contour line (default is 2).
 
     Returns:
@@ -311,8 +320,7 @@ def draw_contour(
 
 
 def translate_contour(contour: np.ndarray, x_offset: int, y_offset: int) -> np.ndarray:
-    """
-    Translates a contour by the specified x and y offsets.
+    """Translate a contour by the specified x and y offsets.
 
     Args:
         contour (np.ndarray): The input contour, a NumPy array of shape (n, 1, 2).
@@ -323,7 +331,8 @@ def translate_contour(contour: np.ndarray, x_offset: int, y_offset: int) -> np.n
         np.ndarray: The translated contour.
     """
     if contour is None or not len(contour):
-        raise ValueError("Input contour is empty or None.")
+        msg = "Input contour is empty or None."
+        raise ValueError(msg)
 
     # Add the offsets to the contour points
     translation_matrix = np.array([[x_offset, y_offset]])
@@ -339,19 +348,23 @@ def draw_contour_derivative(
     skip: int = 5,
     arrow_length: int = 5,
 ) -> np.ndarray:
-    """
-    Draws the derivative of a contour on the given image.
+    """Draws the derivative of a contour on the given image.
 
     Args:
         image (np.ndarray): The original image to draw the contour derivative on.
         contour (np.ndarray): The original contour.
         derivative (np.ndarray): The derivative of the contour.
+        skip (int): The number of points to skip when drawing arrows.
+            Default is 5.
+        arrow_length (int): The length of the arrows to draw.
+            Default is 5.
 
     Returns:
         np.ndarray: The image with the contour derivative drawn.
     """
     if image is None:
-        raise ValueError("Input image is None.")
+        msg = "Input image is None."
+        raise ValueError(msg)
 
     # Make a copy of the image to draw on
     output_image = image.copy()
@@ -390,14 +403,16 @@ def draw_line(
     thickness: int = 0,
 ) -> MatLike:
     """Draws a line on the given image."""
+    # TODO: move to a more general utils func get_scalar_from_color
     if isinstance(color, int):
         # check the shape of the image to determine the number of channels
-        if len(image.shape) == 2:
+        if len(image.shape) == 2:  # noqa: PLR2004
             color = (color,)
-        elif len(image.shape) == 3:
+        elif len(image.shape) == 3:  # noqa: PLR2004
             color = (color, color, color)
         else:
-            raise ValueError("Invalid image shape.")
+            msg = "Invalid image shape."
+            raise ValueError(msg)
     return cv2.line(image, pt1, pt2, color, thickness)
 
 
@@ -406,26 +421,25 @@ def color_to_scalar(
     ref_image: np.ndarray | None = None,
     num_channels: int | None = None,
 ) -> Scalar:
-    """Converts a color tuple to a Scalar."""
+    """Convert a color tuple to a Scalar."""
     # if a color tuple is provided, return it
     if not isinstance(color, int):
         return color
     # check that a reference image or number of channels is provided
     if ref_image is None and num_channels is None:
-        raise ValueError(
-            "Either a reference image or number of channels must be provided."
-        )
+        msg = "Either a reference image or number of channels must be provided."
+        raise ValueError(msg)
 
     # if we had no channels, the reference image is used
     if num_channels is None:
         match ref_image.shape:  # type: ignore (the ref image cannot be none)
-            case (h, w):
+            case (_h, _w):
                 num_channels = 1
-            case (h, w, c):
+            case (_h, _w, c):
                 num_channels = c
             case _:
-                raise ValueError("Invalid image shape.")
-        # num_channels = ref_image.shape[2]
+                msg = "Invalid image shape."
+                raise ValueError(msg)
 
     # determine if the color should be triplicated
     match num_channels:
@@ -434,13 +448,13 @@ def color_to_scalar(
         case 3:
             triplicate = True
         case _:
-            raise ValueError("Invalid number of channels.")
+            msg = "Invalid number of channels."
+            raise ValueError(msg)
 
     # convert the color to a scalar
     if triplicate:
         return (color, color, color)
-    else:
-        return (color,)
+    return (color,)
 
 
 def find_corner(
@@ -479,7 +493,8 @@ def find_corner(
                     x = shap[1] - j - 1
                     y = shap[0] - i + j
                 case _:
-                    raise ValueError(f"Invalid corner {which_corner=}")
+                    msg = f"Invalid corner {which_corner=}"
+                    raise ValueError(msg)
             if img_crossmasked[y, x] > 0:
                 return (x, y)
     return (0, 0)

@@ -10,15 +10,18 @@ class SnapFitConfig(metaclass=Singleton):
     """SnapFit project configuration."""
 
     def __init__(self) -> None:
+        """Initialize the SnapFit config."""
         lg.info("Loading SnapFit config")
         self.paths = SnapFitPaths()
 
     def __str__(self) -> str:
+        """Get the string representation of the SnapFit config."""
         s = "SnapFitConfig:"
         s += f"\n{self.paths}"
         return s
 
     def __repr__(self) -> str:
+        """Get the repr representation of the SnapFit config."""
         return str(self)
 
 
