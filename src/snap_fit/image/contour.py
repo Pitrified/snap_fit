@@ -57,8 +57,8 @@ class Contour:
         c_wrap = np.vstack((self.cv_contour, self.cv_contour[:step]))
         # also wrap around the start points to the end points
         c_wrap = np.vstack((self.cv_contour[-step:], c_wrap))
-        print(c_wrap[:10, 0])
-        print(c_wrap[-10:, 0])
+        # > print(c_wrap[:10, 0])
+        # > print(c_wrap[-10:, 0])
         # Calculate the derivative of the contour
         d_wrap = np.gradient(c_wrap, step, axis=0)
         # Remove the wrapped points
