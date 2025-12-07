@@ -56,7 +56,7 @@ class ArucoDetector:
     def correct_perspective(
         self,
         image: np.ndarray,
-        corners: tuple,
+        corners: Sequence[MatLike],
         ids: np.ndarray,
     ) -> np.ndarray | None:
         """Correct the perspective of the image based on detected markers.
@@ -118,3 +118,15 @@ class ArucoDetector:
 
         lg.info(f"Image rectified to size {out_width}x{out_height}")
         return rectified_image
+
+    def rectify(self, image: np.ndarray) -> np.ndarray | None:
+        """Detect markers and rectify the image.
+
+        Args:
+            image: The input image.
+
+        Returns:
+            The rectified image, or None if rectification failed.
+        """
+        corners, ids, _ = self.detect_markers(image)
+        return self.correct_perspective(image, corners, ids)

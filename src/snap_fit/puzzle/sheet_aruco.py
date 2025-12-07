@@ -40,13 +40,7 @@ class SheetAruco:
         img_orig = load_image(img_fp)
 
         lg.info("Detecting ArUco markers and correcting perspective...")
-        corners, ids, _ = self.aruco_detector.detect_markers(img_orig)
-
-        rectified = self.aruco_detector.correct_perspective(
-            img_orig,
-            corners,  # pyright: ignore[reportArgumentType] opencv weirdness
-            ids,
-        )
+        rectified = self.aruco_detector.rectify(img_orig)
 
         if rectified is not None:
             img_final = rectified
