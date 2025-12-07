@@ -10,15 +10,15 @@ class ArucoDetectorConfig(BaseModelKwargs):
     """Configuration for Aruco detector."""
 
     adaptive_thresh_win_size_min: int = Field(
-        3, description="Minimum window size for adaptive thresholding"
+        default=3, description="Minimum window size for adaptive thresholding"
     )
     adaptive_thresh_win_size_max: int = Field(
-        23, description="Maximum window size for adaptive thresholding"
+        default=23, description="Maximum window size for adaptive thresholding"
     )
     adaptive_thresh_win_size_step: int = Field(
-        10, description="Window size step for adaptive thresholding"
+        default=10, description="Window size step for adaptive thresholding"
     )
-    rect_margin: int = Field(50, description="Margin for the rectified image")
+    rect_margin: int = Field(default=50, description="Margin for the rectified image")
 
     def to_detector_parameters(self) -> cv2.aruco.DetectorParameters:
         """Convert config to cv2.aruco.DetectorParameters.
