@@ -1,6 +1,5 @@
 """Sample code to load a raw image and apply thresholding, erosion, and dilation."""  # noqa: INP001
 
-from snap_fit.config.snap_fit_config import get_snap_fit_paths
 from snap_fit.image.process import apply_dilation
 from snap_fit.image.process import apply_erosion
 from snap_fit.image.process import apply_gaussian_blur
@@ -9,6 +8,7 @@ from snap_fit.image.process import convert_to_grayscale
 from snap_fit.image.utils import display_image
 from snap_fit.image.utils import load_image
 from snap_fit.image.utils import save_image
+from snap_fit.params.snap_fit_params import get_snap_fit_paths
 
 if __name__ == "__main__":
     sf_paths = get_snap_fit_paths()
