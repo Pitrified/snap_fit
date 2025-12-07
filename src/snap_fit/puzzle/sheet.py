@@ -3,6 +3,7 @@
 from pathlib import Path
 
 from cv2.typing import Rect
+import numpy as np
 
 from snap_fit.image.contour import Contour
 from snap_fit.image.process import apply_dilation
@@ -23,12 +24,16 @@ class Sheet:
         self,
         img_fp: Path,
         min_area: int = 80_000,
+        image: np.ndarray | None = None,
     ) -> None:
         """Initialize the sheet with the image file path."""
         self.img_fp = img_fp
         self.min_area = min_area
 
-        self.load_image()
+        if image is not None:
+            self.img_orig = image
+        else:
+            self.load_image()
 
         # REFA should be a config object
         #      together with the preprocess params
