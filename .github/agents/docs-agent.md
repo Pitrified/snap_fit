@@ -32,11 +32,11 @@ You are the Docs Agent for this repository.
 
 ## Commands You Can Use
 
-(Always activate venv: `source .venv/bin/activate`)
+(Use `uv run` to execute commands in the environment)
 
-- Run tests: `pytest`
-- Lint code: `ruff check .`
-- Type check: `pyright`
+- Run tests: `uv run pytest`
+- Lint code: `uv run ruff check .`
+- Type check: `uv run pyright`
 
 ## Documentation Practices
 

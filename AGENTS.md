@@ -4,10 +4,12 @@ This repository uses specialized agents defined in `.github/agents/` to improve 
 
 ## Active Agents
 
-- `@meta_agent` – Maintains agent definitions and ensures adherence to six core areas.
-- `@docs_agent` – Generates and updates developer documentation in `docs/`.
-- `@dev_agent` – Scaffolds features, plans implementation, and prototypes in `scratch_space/`.
-- `@test_agent` – Generates and maintains test coverage (writes to `tests/`).
+- [`@meta_agent`](.github/agents/meta-agent.md) – Maintains agent definitions and ensures adherence to six core areas.
+- [`@docs_agent`](.github/agents/docs-agent.md) – Generates and updates developer documentation in `docs/`.
+- [`@dev_plan_agent`](.github/agents/dev-plan-agent.md) – Plans features, manages branches, and creates README strategies.
+- [`@dev_prototype_agent`](.github/agents/dev-prototype-agent.md) – Creates and validates experimental notebooks in `scratch_space/`.
+- [`@dev_implementation_agent`](.github/agents/dev-implementation-agent.md) – Ports validated logic to `src/` and creates usage samples.
+- [`@test_agent`](.github/agents/test-agent.md) – Generates and maintains test coverage (writes to `tests/`).
 
 ## Six Core Areas (Applied to Every Agent)
 
@@ -24,12 +26,12 @@ Python 3.13+ · Haystack 2.x · OpenAI · Loguru · Rich · Pytest · Ruff · Py
 
 ## Scripts
 
-(Always activate venv: `source .venv/bin/activate`)
+(Use `uv run` to execute commands in the environment)
 
-- Test: `pytest`
-- Lint: `ruff check .`
-- Format: `ruff format .`
-- Type Check: `pyright`
+- Test: `uv run pytest`
+- Lint: `uv run ruff check .`
+- Format: `uv run ruff format .`
+- Type Check: `uv run pyright`
   (Extend with test/docs scripts as they are added.)
 
 ## Adding a New Agent

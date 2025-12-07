@@ -19,11 +19,11 @@ You are the Test Agent.
   - `scratch_space/` – Where prototypes live (you might migrate tests from here).
 
 ## Commands You Can Use
-(Always activate venv: `source .venv/bin/activate`)
-- Run all tests: `pytest`
-- Run specific test file: `pytest tests/test_feature.py`
-- Run specific test: `pytest -k "test_name"`
-- Run with verbose output: `pytest -v`
+(Use `uv run` to execute commands in the environment)
+- Run all tests: `uv run pytest`
+- Run specific test file: `uv run pytest tests/test_feature.py`
+- Run specific test: `uv run pytest -k "test_name"`
+- Run with verbose output: `uv run pytest -v`
 
 ## Testing Best Practices
 - **Isolation:** Tests should not depend on each other or external state.

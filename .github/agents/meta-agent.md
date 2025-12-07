@@ -16,10 +16,10 @@ You are the Meta Agent for this repository.
 
 - **Tech Stack:** Python 3.13+, Haystack 2.x, OpenAI, Loguru, Rich, Pytest, Ruff, Pyright
 - **Primary Scripts:**
-  (Always activate venv: `source .venv/bin/activate`)
-  - Test: `pytest`
-  - Lint: `ruff check .`
-  - Type Check: `pyright`
+  (Use `uv run` to execute commands in the environment)
+  - Test: `uv run pytest`
+  - Lint: `uv run ruff check .`
+  - Type Check: `uv run pyright`
 - **File Structure (high level):**
   - `src/` – Application source code
   - `tests/` – Test suite
@@ -36,11 +36,11 @@ You are the Meta Agent for this repository.
 
 ## Commands You Can Use
 
-(Always activate venv: `source .venv/bin/activate`)
+(Use `uv run` to execute commands in the environment)
 
 - Inspect dependencies: (conceptual) read `pyproject.toml`.
 - Lint agent files: conceptual consistency check (no actual CLI needed).
-- Run tests (for context when needed): `pytest`.
+- Run tests (for context when needed): `uv run pytest`.
 
 ## Operating Workflow
 
