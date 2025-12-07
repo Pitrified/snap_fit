@@ -18,6 +18,7 @@ class ArucoDetectorConfig(BaseModelKwargs):
     adaptive_thresh_win_size_step: int = Field(
         10, description="Window size step for adaptive thresholding"
     )
+    rect_margin: int = Field(50, description="Margin for the rectified image")
 
     def to_detector_parameters(self) -> cv2.aruco.DetectorParameters:
         """Convert config to cv2.aruco.DetectorParameters.

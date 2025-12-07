@@ -17,22 +17,19 @@ class ArucoDetector:
     def __init__(
         self,
         board_generator: ArucoBoardGenerator,
-        config: ArucoDetectorConfig | None = None,
+        config: ArucoDetectorConfig,
     ) -> None:
         """Initialize the ArucoDetector.
 
         Args:
             board_generator: The board generator instance used to create the board.
-            config: Optional detector configuration.
+            config: Detector configuration.
         """
         self.board_generator = board_generator
         self.dictionary = board_generator.dictionary
         self.board = board_generator.board
-
-        if config is None:
-            self.detector_params = cv2.aruco.DetectorParameters()
-        else:
-            self.detector_params = config.to_detector_parameters()
+        self.config = config
+        self.detector_params = config.to_detector_parameters()
 
     def detect_markers(
         self, image: np.ndarray
@@ -61,7 +58,6 @@ class ArucoDetector:
         image: np.ndarray,
         corners: tuple,
         ids: np.ndarray,
-        rect_margin: int = 50,
     ) -> np.ndarray | None:
         """Correct the perspective of the image based on detected markers.
 
@@ -69,7 +65,6 @@ class ArucoDetector:
             image: The input image.
             corners: Detected marker corners.
             ids: Detected marker IDs.
-            rect_margin: Margin for the rectified image.
 
         Returns:
             The rectified image, or None if correction failed.
@@ -103,12 +98,12 @@ class ArucoDetector:
 
         # Destination points in the output image
         dst_points = np.zeros_like(object_points_2d)
-        dst_points[:, 0] = object_points_2d[:, 0] - min_x + rect_margin
-        dst_points[:, 1] = object_points_2d[:, 1] - min_y + rect_margin
+        dst_points[:, 0] = object_points_2d[:, 0] - min_x + self.config.rect_margin
+        dst_points[:, 1] = object_points_2d[:, 1] - min_y + self.config.rect_margin
 
         # Output image size
-        out_width = int(board_width + 2 * rect_margin)
-        out_height = int(board_height + 2 * rect_margin)
+        out_width = int(board_width + 2 * self.config.rect_margin)
+        out_height = int(board_height + 2 * self.config.rect_margin)
 
         # 3. Compute Homography
         h, _ = cv2.findHomography(src_points, dst_points)
