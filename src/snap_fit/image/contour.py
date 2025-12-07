@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import numpy as np
 
-from snap_fit.config.types import CORNER_POSS
 from snap_fit.config.types import EDGE_ENDS_TO_CORNER
 from snap_fit.config.types import CornerPos
 from snap_fit.config.types import EdgePos
@@ -88,7 +87,7 @@ class Contour:
         """
         self.corner_idxs = {}
         self.corner_coords = {}
-        for which_corner in CORNER_POSS:
+        for which_corner in CornerPos:
             corner = corners[which_corner]
             con_diff = self.cv_contour - corner
             corner_idx = abs(con_diff).sum(axis=1).sum(axis=1).argmin()

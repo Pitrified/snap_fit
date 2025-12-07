@@ -12,14 +12,6 @@ class CornerPos(Enum):
     TOP_RIGHT = "top_right"
 
 
-CORNER_POSS = [
-    CornerPos.TOP_LEFT,
-    CornerPos.BOTTOM_LEFT,
-    CornerPos.BOTTOM_RIGHT,
-    CornerPos.TOP_RIGHT,
-]
-
-
 class EdgePos(Enum):
     """Edge position enumeration."""
 
@@ -28,13 +20,6 @@ class EdgePos(Enum):
     RIGHT = "right"
     TOP = "top"
 
-
-EDGE_POSS = [
-    EdgePos.LEFT,
-    EdgePos.BOTTOM,
-    EdgePos.RIGHT,
-    EdgePos.TOP,
-]
 
 EDGE_ENDS_TO_CORNER = {
     EdgePos.LEFT: (CornerPos.TOP_LEFT, CornerPos.BOTTOM_LEFT),

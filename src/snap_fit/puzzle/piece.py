@@ -10,7 +10,6 @@ from cv2.typing import MatLike
 from cv2.typing import Rect
 import numpy as np
 
-from snap_fit.config.types import CORNER_POSS
 from snap_fit.config.types import CornerPos
 from snap_fit.config.types import EdgePos
 from snap_fit.image.contour import Contour
@@ -140,7 +139,7 @@ class Piece:
             tuple: The coordinates of the corner, as a tuple (x, y).
         """
         self.corners: dict[CornerPos, tuple[int, int]] = {}
-        for which_corner in CORNER_POSS:
+        for which_corner in CornerPos:
             self.corners[which_corner] = find_corner(self.img_crossmasked, which_corner)
 
     def split_contour(self) -> None:
