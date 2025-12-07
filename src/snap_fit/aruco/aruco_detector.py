@@ -8,6 +8,7 @@ from loguru import logger as lg
 import numpy as np
 
 from snap_fit.aruco.aruco_board import ArucoBoardGenerator
+from snap_fit.config.aruco.aruco_detector_config import ArucoDetectorConfig
 
 
 class ArucoDetector:
@@ -16,22 +17,22 @@ class ArucoDetector:
     def __init__(
         self,
         board_generator: ArucoBoardGenerator,
-        detector_params: cv2.aruco.DetectorParameters | None = None,
+        config: ArucoDetectorConfig | None = None,
     ) -> None:
         """Initialize the ArucoDetector.
 
         Args:
             board_generator: The board generator instance used to create the board.
-            detector_params: Optional detector parameters.
+            config: Optional detector configuration.
         """
         self.board_generator = board_generator
         self.dictionary = board_generator.dictionary
         self.board = board_generator.board
 
-        if detector_params is None:
+        if config is None:
             self.detector_params = cv2.aruco.DetectorParameters()
         else:
-            self.detector_params = detector_params
+            self.detector_params = config.to_detector_parameters()
 
     def detect_markers(
         self, image: np.ndarray

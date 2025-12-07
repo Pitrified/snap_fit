@@ -4,40 +4,31 @@ import cv2
 from loguru import logger as lg
 import numpy as np
 
+from snap_fit.config.aruco.aruco_board_config import ArucoBoardConfig
+
 
 class ArucoBoardGenerator:
     """Generates a custom ArUco board (Ring Layout)."""
 
     def __init__(
         self,
-        markers_x: int = 5,
-        markers_y: int = 7,
-        marker_length: int = 100,
-        marker_separation: int = 100,
-        dictionary_id: int = cv2.aruco.DICT_6X6_250,
+        config: ArucoBoardConfig,
     ) -> None:
         """Initialize the ArucoBoardGenerator.
 
         Args:
-            markers_x: Number of markers in X direction.
-            markers_y: Number of markers in Y direction.
-            marker_length: Length of the marker side in pixels (or arbitrary units).
-            marker_separation: Separation between markers in pixels.
-            dictionary_id: ArUco dictionary ID.
+            config: The configuration for the board.
         """
-        self.markers_x = markers_x
-        self.markers_y = markers_y
-        self.marker_length = marker_length
-        self.marker_separation = marker_separation
-        self.dictionary = cv2.aruco.getPredefinedDictionary(dictionary_id)
+        self.config = config
+        self.dictionary = cv2.aruco.getPredefinedDictionary(config.dictionary_id)
         self.board = self._create_ring_board()
 
     def _create_ring_board(self) -> cv2.aruco.Board:
         # 1. Create a temporary GridBoard to get standard coordinates
         temp_board = cv2.aruco.GridBoard(
-            size=(self.markers_x, self.markers_y),
-            markerLength=self.marker_length,
-            markerSeparation=self.marker_separation,
+            size=(self.config.markers_x, self.config.markers_y),
+            markerLength=self.config.marker_length,
+            markerSeparation=self.config.marker_separation,
             dictionary=self.dictionary,
         )
 
@@ -86,29 +77,25 @@ class ArucoBoardGenerator:
 
         lg.info(
             f"Created ring board with {len(ring_ids)} markers "
-            f"(out of {self.markers_x * self.markers_y} possible)."
+            f"(out of {self.config.markers_x * self.config.markers_y} possible)."
         )
         return board
 
-    def generate_image(self, margin: int = 20, border_bits: int = 1) -> np.ndarray:
+    def generate_image(self) -> np.ndarray:
         """Generate an image of the board.
-
-        Args:
-            margin: Margin around the board in pixels.
-            border_bits: Number of bits for the marker border.
 
         Returns:
             The generated board image.
         """
         min_width = (
-            self.markers_x * self.marker_length
-            + (self.markers_x - 1) * self.marker_separation
-            + margin
+            self.config.markers_x * self.config.marker_length
+            + (self.config.markers_x - 1) * self.config.marker_separation
+            + self.config.margin
         )
         min_height = (
-            self.markers_y * self.marker_length
-            + (self.markers_y - 1) * self.marker_separation
-            + margin
+            self.config.markers_y * self.config.marker_length
+            + (self.config.markers_y - 1) * self.config.marker_separation
+            + self.config.margin
         )
 
         img_width = int(min_width)
@@ -117,7 +104,7 @@ class ArucoBoardGenerator:
         board_image = self.board.generateImage(
             (img_width, img_height),
             None,
-            margin,
-            border_bits,
+            self.config.margin,
+            self.config.border_bits,
         )
         return board_image

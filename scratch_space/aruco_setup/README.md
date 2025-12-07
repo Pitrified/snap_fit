@@ -28,6 +28,8 @@ We need structured configuration for the Aruco components to ensure reproducibil
         *   `marker_length`: int
         *   `marker_separation`: int
         *   `dictionary_id`: int (cv2 constant)
+        *   `margin`: int
+        *   `border_bits`: int
 
 2.  **`ArucoDetectorConfig`** (in `aruco_detector_config.py`)
     *   Inherits from: `BaseModelKwargs`
@@ -40,19 +42,20 @@ We need structured configuration for the Aruco components to ensure reproducibil
 
 ### Detailed Plan
 
-1.  [ ] **Define Config Models**
+1.  [x] **Define Config Models**
     *   Create `src/snap_fit/config/aruco/aruco_board_config.py`.
     *   Create `src/snap_fit/config/aruco/aruco_detector_config.py`.
     *   Implement `ArucoBoardConfig` and `ArucoDetectorConfig`.
 
-2.  [ ] **Refactor ArucoBoardGenerator**
+2.  [x] **Refactor ArucoBoardGenerator**
     *   Update `__init__` to accept `ArucoBoardConfig` (or keep kwargs but use config in higher levels).
     *   Ensure defaults match the config defaults.
+    *   Update `generate_image` to use `margin` and `border_bits` from the config.
 
-3.  [ ] **Refactor ArucoDetector**
+3.  [x] **Refactor ArucoDetector**
     *   Update `__init__` to accept `ArucoDetectorConfig`.
     *   Implement logic to convert `ArucoDetectorConfig` to `cv2.aruco.DetectorParameters`.
 
-4.  [ ] **Implement SheetAruco**
+4.  [x] **Implement SheetAruco**
     *   Create `src/snap_fit/puzzle/sheet_aruco.py`.
     *   Use the config models to initialize the generator and detector.
