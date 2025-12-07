@@ -10,6 +10,17 @@ data/
 *.csv
 *.json
 
+# images
+*.png
+*.jpg
+*.jpeg
+*.bmp
+*.tiff
+*.gif
+*.svg
+*.ico
+*.psd
+
 # ide
 .vscode/
 
