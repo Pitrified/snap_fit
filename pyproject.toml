@@ -13,6 +13,7 @@ dependencies = [
     "opencv-contrib-python>=4.10.0.84",
     "opencv-python>=4.10.0.84",
     "pandas>=2.2.3",
+    "pydantic>=2.12.5",
     "scikit-learn>=1.5.2",
     "seaborn>=0.13.2",
 ]
