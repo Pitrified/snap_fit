@@ -40,7 +40,7 @@ class SheetManager:
             folder_path: Root directory to search.
             pattern: Glob pattern (e.g., "*.jpg", "*.json").
             loader_func: Function to convert a file Path into a Sheet object.
-                         If None, assumes files are pickled Sheets or similar (TBD).
+                TODO: make it mandatory in the future.
 
         Side Effects:
             - Generates an ID for each sheet (e.g., relative path from folder_path).
@@ -55,19 +55,16 @@ class SheetManager:
         lg.info(f"Found {len(files)} files matching '{pattern}' in {folder}")
 
         for file_path in files:
-            try:
-                # Generate ID: relative path from the search folder
-                # This ensures uniqueness within the context of this load
-                sheet_id = str(file_path.relative_to(folder))
+            # Generate ID: relative path from the search folder
+            # This ensures uniqueness within the context of this load
+            sheet_id = str(file_path.relative_to(folder))
 
-                if loader_func:
-                    sheet = loader_func(file_path)
-                    self.add_sheet(sheet, sheet_id)
-                else:
-                    lg.warning(f"No loader_func provided, skipping {file_path}")
-                    # TODO: Implement default loading logic if applicable
-            except Exception as e:  # noqa: BLE001
-                lg.error(f"Failed to load {file_path}: {e}")
+            if loader_func:
+                sheet = loader_func(file_path)
+                self.add_sheet(sheet, sheet_id)
+            else:
+                lg.warning(f"No loader_func provided, skipping {file_path}")
+                # TODO: make loader_func mandatory in the future
 
     def get_sheet(self, sheet_id: str) -> Sheet | None:
         """Retrieve a sheet by its ID.
