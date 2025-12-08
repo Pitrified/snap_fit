@@ -15,16 +15,27 @@ class SheetAruco:
     def __init__(
         self,
         aruco_detector: ArucoDetector,
-        crop_margin: int = 0,
+        crop_margin: int | None = None,
     ) -> None:
         """Initialize the SheetAruco.
 
         Args:
             aruco_detector: The ArucoDetector instance.
             crop_margin: Margin to crop from the rectified image (to remove markers).
+                If None, it is calculated from the detector configuration.
         """
         self.aruco_detector = aruco_detector
-        self.crop_margin = crop_margin
+
+        if crop_margin is None:
+            board_config = self.aruco_detector.board_generator.config
+            detector_config = self.aruco_detector.config
+            self.crop_margin = (
+                board_config.marker_length
+                + board_config.margin
+                + detector_config.rect_margin
+            )
+        else:
+            self.crop_margin = crop_margin
 
     def load_sheet(self, img_fp: Path, min_area: int = 80_000) -> Sheet:
         """Load and rectify the image, then return a Sheet instance.
