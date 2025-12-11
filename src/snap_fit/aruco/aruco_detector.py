@@ -16,19 +16,17 @@ class ArucoDetector:
 
     def __init__(
         self,
-        board_generator: ArucoBoardGenerator,
         config: ArucoDetectorConfig,
     ) -> None:
         """Initialize the ArucoDetector.
 
         Args:
-            board_generator: The board generator instance used to create the board.
             config: Detector configuration.
         """
-        self.board_generator = board_generator
-        self.dictionary = board_generator.dictionary
-        self.board = board_generator.board
         self.config = config
+        self.board_generator = ArucoBoardGenerator(config.board)
+        self.dictionary = self.board_generator.dictionary
+        self.board = self.board_generator.board
         self.detector_params = config.to_detector_parameters()
 
     def detect_markers(

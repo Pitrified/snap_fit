@@ -5,6 +5,7 @@ from pathlib import Path
 from loguru import logger as lg
 
 from snap_fit.aruco.aruco_detector import ArucoDetector
+from snap_fit.config.aruco.aruco_detector_config import ArucoDetectorConfig
 from snap_fit.image.utils import load_image
 from snap_fit.puzzle.sheet import Sheet
 
@@ -14,21 +15,21 @@ class SheetAruco:
 
     def __init__(
         self,
-        aruco_detector: ArucoDetector,
+        detector_config: ArucoDetectorConfig,
         crop_margin: int | None = None,
     ) -> None:
         """Initialize the SheetAruco.
 
         Args:
-            aruco_detector: The ArucoDetector instance.
+            detector_config: The ArucoDetector configuration.
             crop_margin: Margin to crop from the rectified image (to remove markers).
                 If None, it is calculated from the detector configuration.
         """
-        self.aruco_detector = aruco_detector
+        self.detector_config = detector_config
+        self.aruco_detector = ArucoDetector(detector_config)
 
         if crop_margin is None:
-            board_config = self.aruco_detector.board_generator.config
-            detector_config = self.aruco_detector.config
+            board_config = detector_config.board
             self.crop_margin = (
                 board_config.marker_length
                 + board_config.margin

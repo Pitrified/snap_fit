@@ -3,6 +3,7 @@
 import cv2
 from pydantic import Field
 
+from snap_fit.config.aruco.aruco_board_config import ArucoBoardConfig
 from snap_fit.data_models.basemodel_kwargs import BaseModelKwargs
 
 
@@ -19,6 +20,9 @@ class ArucoDetectorConfig(BaseModelKwargs):
         default=10, description="Window size step for adaptive thresholding"
     )
     rect_margin: int = Field(default=50, description="Margin for the rectified image")
+    board: ArucoBoardConfig = Field(
+        default_factory=ArucoBoardConfig, description="Board configuration"
+    )
 
     def to_detector_parameters(self) -> cv2.aruco.DetectorParameters:
         """Convert config to cv2.aruco.DetectorParameters.
