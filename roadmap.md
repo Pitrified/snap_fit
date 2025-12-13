@@ -57,4 +57,7 @@ Add attribute enum
 - [ ] Move detector and board config values in params
 - [ ] Add a way to tell which side of the board is up when taking pictures
 - [ ] Draw contour should not draw closed loops
+- [ ] Add a method to `EdgePos.to_edge_ends()`
+- [ ] Add some kwargs to `show_image_mpl` to set title and similar
+- [ ] Add `show_images_mpl` which accepts a list of images and does the subplots
 
