@@ -29,7 +29,7 @@ Given a segment id, get
 
 ### SegmentMatcher (end overlapped version)
 
-#### Debug algo
+#### Debug algo :done:
 
 Check the algo cause the result are terrible
 * is the transform correct? and applied to the right things
@@ -45,6 +45,11 @@ Add attribute enum
 * OUT
 * EDGE
 * weird ???
+
+### Consistency check
+
+Build the map of where the pieces would be
+Might be in graph form is pieces are just squares
 
 ## Small tweaks
 
