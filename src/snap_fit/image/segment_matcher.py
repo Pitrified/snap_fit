@@ -63,7 +63,7 @@ class SegmentMatcher:
         for i1 in range(s1_len):
             i2 = floor(i1 * ratio)
             p1 = self.s1_points_transformed[i1][0]
-            p2 = self.s2.points[i2][0]
+            p2 = self.s2.points[s2_len - i2 - 1][0]
             dist = np.linalg.norm(p1 - p2)
             tot_dist += dist  # type: ignore - numpy floating to float
 
