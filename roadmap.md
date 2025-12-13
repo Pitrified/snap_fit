@@ -34,9 +34,28 @@ Given a segment id, get
 Check the algo cause the result are terrible
 * is the transform correct? and applied to the right things
 
-#### Pre shape check
+#### Pre shape check :done:
 
 Check the shape in/out/flat before even matching with transform
+
+#### Normalization
+
+We might normalize on `s1_len`, those are the number of partial dist we are adding.
+`similarity = tot_dist / max(s1_len, s2_len)`
+
+### SegmentMatcher no overlap
+
+#### Refactor away similarity computation
+
+The contour similarity is not really part of the segment matcher,
+that piece just receives two lists and matches them.
+--> move it to separate func.
+
+#### Implement SM no overlap
+
+1. get the two segments
+2. transform them on an axis, maintain the len between the ends
+3. match with the new func
 
 ### Segment :done:
 
