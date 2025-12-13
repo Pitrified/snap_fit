@@ -1,6 +1,7 @@
 """Types and aliases for snap-fit package."""
 
 from enum import Enum
+from enum import StrEnum
 
 
 class CornerPos(Enum):
@@ -27,3 +28,12 @@ EDGE_ENDS_TO_CORNER = {
     EdgePos.RIGHT: (CornerPos.BOTTOM_RIGHT, CornerPos.TOP_RIGHT),
     EdgePos.TOP: (CornerPos.TOP_RIGHT, CornerPos.TOP_LEFT),
 }
+
+
+class SegmentShape(StrEnum):
+    """Shape of a segment."""
+
+    IN = "in"
+    OUT = "out"
+    EDGE = "edge"
+    WEIRD = "weird"
