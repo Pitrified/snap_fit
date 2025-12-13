@@ -40,12 +40,12 @@ class SegmentMatcher:
         Returns:
             float: The similarity between the two segments.
         """
-        # TODO: check the shape in/out/flat
+        # check the shape in/out/flat of the two segments
+        if not self.s1.is_compatible(self.s2):
+            return 1e6
 
         # match the shape
-        shape_similarity = self.match_shape()
-
-        return shape_similarity
+        return self.match_shape()
 
     def match_shape(self) -> float:
         """Match the shape of the two segments.
