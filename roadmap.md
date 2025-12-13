@@ -38,7 +38,7 @@ Check the algo cause the result are terrible
 
 Check the shape in/out/flat before even matching with transform
 
-### Segment
+### Segment :done:
 
 Add attribute enum
 * IN
@@ -65,4 +65,5 @@ Might be in graph form is pieces are just squares
 - [ ] Add a method to `EdgePos.to_edge_ends()`
 - [ ] Add some kwargs to `show_image_mpl` to set title and similar
 - [ ] Add `show_images_mpl` which accepts a list of images and does the subplots
-
+- [ ] Remove `from __future__ import annotations`
+- [ ] Document segment/contour/coords/swap_coords
