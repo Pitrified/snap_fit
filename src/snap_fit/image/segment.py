@@ -105,3 +105,11 @@ class Segment:
     def __len__(self) -> int:
         """Return the number of points in the segment."""
         return self.points.shape[0]
+
+    def is_compatible(self, other: Segment) -> bool:
+        """Check if the two segments are compatible."""
+        s = SegmentShape
+        # shapes must be opposite in/out
+        return (self.shape == s.IN and other.shape == s.OUT) or (
+            self.shape == s.OUT and other.shape == s.IN
+        )
