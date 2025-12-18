@@ -65,6 +65,12 @@ Add attribute enum
 * EDGE
 * weird ???
 
+### PieceMatcher (planned 📋)
+
+Move the logic in `match_pieces` and `match_all_pieces` from `scratch_space/contour_/01_match_.ipynb` into dedicate `PieceMatcher` class.
+The `PieceMatcher` would use `SegmentMatcher` internally, and `SheetManager` to get pieces/segments by `SegmentId`.
+It will hold internally the results of piece matches, and provide methods to query them.
+
 ### Consistency check (planned 📋)
 
 Build the map of where the pieces would be
@@ -86,6 +92,10 @@ Might be in graph form is pieces are just squares
 - [ ] Add `show_images_mpl` which accepts a list of images and does the subplots
 - [ ] Remove `from __future__ import annotations`
 - [ ] Document segment/contour/coords/swap_coords
+
+## Docs
+
+Write some docs about the overall architecture of the puzzle solver.
 
 ## Meta agent
 
