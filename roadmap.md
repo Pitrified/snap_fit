@@ -2,26 +2,26 @@
 
 ## IDEAs
 
-### Scale invariant pictures
+### Scale invariant pictures (done ✅)
 
 We should create scale invariant pictures by adding a ruler to the image.
 Or a bunch of qr codes of known size and position.
 This will help with the calibration of the images.
 
-### OCR for piece labels
+### OCR for piece labels (planned 📋)
 
 Extract text
 some UI to check it?
 
-### SheetLoader ABC (SheetAruco.load_sheet)
+### SheetLoader ABC (SheetAruco.load_sheet) (planned 📋)
 
 Define ABC for sheet loading
 SheetAruco could implement it
 Let SheetManager accept that
 
-### SheetManager
+### SheetManager (planned 📋)
 
-Get a list of segment ids (sheet.piece.edge)
+Get a list of segment ids available in this manager (sheet.piece.edge)
 Given a segment id, get
 * segment
 * piece
@@ -29,35 +29,35 @@ Given a segment id, get
 
 ### SegmentMatcher (end overlapped version)
 
-#### Debug algo :done:
+#### Debug algo (done ✅)
 
 Check the algo cause the result are terrible
 * is the transform correct? and applied to the right things
 
-#### Pre shape check :done:
+#### Pre shape check (done ✅)
 
 Check the shape in/out/flat before even matching with transform
 
-#### Normalization
+#### Normalization (planned 📋)
 
 We might normalize on `s1_len`, those are the number of partial dist we are adding.
 `similarity = tot_dist / max(s1_len, s2_len)`
 
 ### SegmentMatcher no overlap
 
-#### Refactor away similarity computation
+#### Refactor away similarity computation (planned 📋)
 
 The contour similarity is not really part of the segment matcher,
 that piece just receives two lists and matches them.
 --> move it to separate func.
 
-#### Implement SM no overlap
+#### Implement SM no overlap (planned 📋)
 
 1. get the two segments
 2. transform them on an axis, maintain the len between the ends
 3. match with the new func
 
-### Segment :done:
+### Segment (done ✅)
 
 Add attribute enum
 * IN
@@ -65,7 +65,7 @@ Add attribute enum
 * EDGE
 * weird ???
 
-### Consistency check
+### Consistency check (planned 📋)
 
 Build the map of where the pieces would be
 Might be in graph form is pieces are just squares
@@ -86,3 +86,10 @@ Might be in graph form is pieces are just squares
 - [ ] Add `show_images_mpl` which accepts a list of images and does the subplots
 - [ ] Remove `from __future__ import annotations`
 - [ ] Document segment/contour/coords/swap_coords
+
+## Legend
+
+* ✅ done 
+* 🚧 doing
+* 📋 planned
+* ❌ rejected
