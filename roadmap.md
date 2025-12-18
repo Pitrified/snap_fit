@@ -19,7 +19,7 @@ Define ABC for sheet loading
 SheetAruco could implement it
 Let SheetManager accept that
 
-### SheetManager (planned 📋)
+### SheetManager getters (done ✅)
 
 Get a list of segment ids available in this manager (sheet.piece.edge)
 Given a segment id, get
@@ -76,7 +76,7 @@ Might be in graph form is pieces are just squares
     (eg `p2_img = p2.img_bw.copy() // 10`).
 - [ ] Cleaner segment match result func,
     not custom cell in `scratch_space/contour_/01_match_.ipynb`.
-- [ ] Basemodel for sheet/piece/edge instead of tuple
+- [x] Basemodel for sheet/piece/edge instead of tuple
 - [ ] Basemodel for match result + score
 - [ ] Move detector and board config values in params
 - [ ] Add a way to tell which side of the board is up when taking pictures

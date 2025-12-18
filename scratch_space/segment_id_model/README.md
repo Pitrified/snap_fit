@@ -25,7 +25,7 @@ We need to create a proper data model for identifying segments across sheets/pie
 
 ## Plan
 
-1. [ ] Create prototype notebook `01_segment_id.ipynb` to explore `SegmentId` model design
+1. [x] Create prototype notebook `01_segment_id.ipynb` to explore `SegmentId` model design
    - Follow structure from `scratch_space/feature_sample/01_sample.ipynb`:
      1. `# Title` - markdown cell with feature name
      2. `## Import` - markdown header
@@ -36,14 +36,14 @@ We need to create a proper data model for identifying segments across sheets/pie
      7. Load params cell
      8. `## Develop and prototype` - markdown header
      9. Prototype cells...
-2. [ ] Define `SegmentId` Pydantic model in `src/snap_fit/data_models/segment_id.py`
+2. [x] Define `SegmentId` Pydantic model in `src/snap_fit/data_models/segment_id.py`
    - Fields: `sheet_id: str`, `piece_id: int`, `edge_pos: EdgePos`
    - Use `frozen=True` for hashability
    - Add helper properties (e.g., `as_tuple`, `__str__`)
-3. [ ] Add `SheetManager.get_segment_ids_all()` → list of all `SegmentId` in manager
-4. [ ] Add `SheetManager.get_segment_ids_other_pieces(seg_id: SegmentId)` → list of `SegmentId` from other pieces (excluding current piece, across all sheets)
-5. [ ] Add `SheetManager.get_segment(seg_id: SegmentId)` → `Segment`
-6. [ ] Add `SheetManager.get_piece(seg_id: SegmentId)` → `Piece`
-7. [ ] Add `SheetManager.get_sheet(seg_id: SegmentId)` → `Sheet` (overload existing)
-8. [ ] Write unit tests for `SegmentId` and new `SheetManager` methods
-9. [ ] Update usage notebook demonstrating the new API
+3. [x] Add `SheetManager.get_segment_ids_all()` → list of all `SegmentId` in manager
+4. [x] Add `SheetManager.get_segment_ids_other_pieces(seg_id: SegmentId)` → list of `SegmentId` from other pieces (excluding current piece, across all sheets)
+5. [x] Add `SheetManager.get_segment(seg_id: SegmentId)` → `Segment`
+6. [x] Add `SheetManager.get_piece(seg_id: SegmentId)` → `Piece`
+7. [x] Add `SheetManager.get_sheet(seg_id: SegmentId)` → `Sheet` (overload existing)
+8. [x] Write unit tests for `SegmentId` and new `SheetManager` methods
+9. [x] Update usage notebook demonstrating the new API
