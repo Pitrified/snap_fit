@@ -5,6 +5,9 @@ from pathlib import Path
 
 from loguru import logger as lg
 
+from snap_fit.config.types import EdgePos
+from snap_fit.data_models.segment_id import SegmentId
+from snap_fit.image.segment import Segment
 from snap_fit.puzzle.piece import Piece
 from snap_fit.puzzle.sheet import Sheet
 
@@ -98,3 +101,82 @@ class SheetManager:
             else:
                 lg.warning(f"Sheet {sheet} has no 'pieces' attribute")
         return all_pieces
+
+    def get_segment_ids_all(self) -> list[SegmentId]:
+        """Get all segment IDs from all sheets in this manager.
+
+        Returns:
+            A list of all SegmentId objects across all sheets/pieces/edges.
+        """
+        segment_ids: list[SegmentId] = []
+        for sheet_id, sheet in self.sheets.items():
+            for piece in sheet.pieces:
+                segment_ids.extend(
+                    SegmentId(
+                        sheet_id=sheet_id,
+                        piece_id=piece.piece_id,
+                        edge_pos=edge_pos,
+                    )
+                    for edge_pos in EdgePos
+                )
+        return segment_ids
+
+    def get_segment_ids_other_pieces(self, seg_id: SegmentId) -> list[SegmentId]:
+        """Get segment IDs from all pieces except the one referenced by seg_id.
+
+        Args:
+            seg_id: The segment ID whose piece should be excluded.
+
+        Returns:
+            A list of SegmentId objects from all other pieces.
+        """
+        all_ids = self.get_segment_ids_all()
+        return [
+            sid
+            for sid in all_ids
+            if not (sid.sheet_id == seg_id.sheet_id and sid.piece_id == seg_id.piece_id)
+        ]
+
+    def get_segment(self, seg_id: SegmentId) -> Segment | None:
+        """Retrieve a segment by its SegmentId.
+
+        Args:
+            seg_id: The SegmentId identifying the segment.
+
+        Returns:
+            The Segment object if found, else None.
+        """
+        piece = self.get_piece_by_segment_id(seg_id)
+        if piece is None:
+            return None
+        return piece.segments.get(seg_id.edge_pos)
+
+    def get_piece_by_segment_id(self, seg_id: SegmentId) -> Piece | None:
+        """Retrieve a piece by a SegmentId.
+
+        Args:
+            seg_id: The SegmentId containing sheet_id and piece_id.
+
+        Returns:
+            The Piece object if found, else None.
+        """
+        sheet = self.sheets.get(seg_id.sheet_id)
+        if sheet is None:
+            lg.warning(f"Sheet not found: {seg_id.sheet_id}")
+            return None
+        for piece in sheet.pieces:
+            if piece.piece_id == seg_id.piece_id:
+                return piece
+        lg.warning(f"Piece not found: {seg_id.piece_id} in sheet {seg_id.sheet_id}")
+        return None
+
+    def get_sheet_by_segment_id(self, seg_id: SegmentId) -> Sheet | None:
+        """Retrieve a sheet by a SegmentId.
+
+        Args:
+            seg_id: The SegmentId containing sheet_id.
+
+        Returns:
+            The Sheet object if found, else None.
+        """
+        return self.sheets.get(seg_id.sheet_id)
