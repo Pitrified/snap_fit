@@ -87,6 +87,14 @@ Might be in graph form is pieces are just squares
 - [ ] Remove `from __future__ import annotations`
 - [ ] Document segment/contour/coords/swap_coords
 
+## Meta agent
+
+plan-prototype(in notebook)-implement is old school, notebooks are legacy workflow for manual implementation
+update the planning phase to be clear and comprehensive
+then implement directly in `src/` with tests
+only provide usage notebooks with finished features
+if a feature is complex to implement and plan, it should be planned more carefully and optionally split in several sub-features
+
 ## Legend
 
 * ✅ done 
