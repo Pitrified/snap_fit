@@ -27,6 +27,14 @@ Given a segment id, get
 * piece
 * segment from other pieces
 
+### PieceID data model (planned 📋)
+
+Create a PieceID data model to identify pieces across sheets.
+Fields:
+* sheet_id: str
+* piece_id: int
+then use it in SegmentId instead of (str, int)
+
 ### SegmentMatcher (end overlapped version)
 
 #### Debug algo (done ✅)
