@@ -119,6 +119,11 @@ if a feature is complex to implement and plan, it should be planned more careful
 Split the roadmap in planned/done/ideas
 in done add links to PRs/commits/notebooks/READMEs where the feature was implemented
 
+### better docs agent
+
+write good docs in __init__.py files
+then auto-generate markdown files from them
+
 ## Legend
 
 * ✅ done 
