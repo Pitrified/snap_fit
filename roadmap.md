@@ -65,10 +65,11 @@ Add attribute enum
 * EDGE
 * weird ???
 
-### PieceMatcher (planned 📋)
+### PieceMatcher (done ✅)
 
 Move the logic in `match_pieces` and `match_all_pieces` from `scratch_space/contour_/01_match_.ipynb` into dedicate `PieceMatcher` class.
 The `PieceMatcher` would use `SegmentMatcher` internally, and `SheetManager` to get pieces/segments by `SegmentId`.
+It handles symmetry (A, B) == (B, A) and stores results in a structured way.
 It will hold internally the results of piece matches, and provide methods to query them.
 
 ### Consistency check (planned 📋)
