@@ -106,11 +106,18 @@ Write some docs about the overall architecture of the puzzle solver.
 
 ## Meta agent
 
+### New dev flow (planned 📋)
+
 plan-prototype(in notebook)-implement is old school, notebooks are legacy workflow for manual implementation
 update the planning phase to be clear and comprehensive
 then implement directly in `src/` with tests
 only provide usage notebooks with finished features
 if a feature is complex to implement and plan, it should be planned more carefully and optionally split in several sub-features
+
+### roadmap split (planned 📋)
+
+Split the roadmap in planned/done/ideas
+in done add links to PRs/commits/notebooks/READMEs where the feature was implemented
 
 ## Legend
 
