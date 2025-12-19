@@ -98,7 +98,7 @@ include a aruco config version number, with aruco config manager class to handle
 - [ ] Cleaner segment match result func,
     not custom cell in `scratch_space/contour_/01_match_.ipynb`.
 - [x] Basemodel for sheet/piece/edge instead of tuple
-- [ ] Basemodel for match result + score
+- [x] Basemodel for match result + score
 - [ ] Move detector and board config values in params. Note that there must be some way to match configs to what was used to take the picture.
 - [ ] Add a way to tell which side of the board is up when taking pictures
 - [ ] Draw contour should not draw closed loops
