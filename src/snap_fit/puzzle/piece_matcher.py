@@ -17,6 +17,11 @@ class PieceMatcher:
         self._results: list[MatchResult] = []
         self._lookup: dict[frozenset[SegmentId], MatchResult] = {}
 
+    @property
+    def results(self) -> list[MatchResult]:
+        """Get the list of match results."""
+        return self._results
+
     def match_pair(self, id1: SegmentId, id2: SegmentId) -> MatchResult:
         """Match two segments and store the result."""
         pair = frozenset({id1, id2})
