@@ -76,6 +76,12 @@ It will hold internally the results of piece matches, and provide methods to que
 Build the map of where the pieces would be
 Might be in graph form is pieces are just squares
 
+### Aruco config management (planned 📋)
+
+qrcode printed on the aruco board with config info
+also print using words
+include a aruco config version number, with aruco config manager class to handle different versions and load old configs
+
 ## Small tweaks
 
 - [ ] `Piece.get_img(which='bw', faint=0.1)` to get a fainter copy of the image
