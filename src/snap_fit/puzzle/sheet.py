@@ -5,6 +5,7 @@ from pathlib import Path
 from cv2.typing import Rect
 import numpy as np
 
+from snap_fit.data_models.piece_id import PieceId
 from snap_fit.image.contour import Contour
 from snap_fit.image.process import apply_dilation
 from snap_fit.image.process import apply_erosion
@@ -25,10 +26,12 @@ class Sheet:
         img_fp: Path,
         min_area: int = 80_000,
         image: np.ndarray | None = None,
+        sheet_id: str | None = None,
     ) -> None:
         """Initialize the sheet with the image file path."""
         self.img_fp = img_fp
         self.min_area = min_area
+        self.sheet_id = sheet_id or img_fp.stem
 
         if image is not None:
             self.img_orig = image
@@ -82,7 +85,8 @@ class Sheet:
         pad = 30
 
         self.pieces: list[Piece] = []
-        for piece_id, contour in enumerate(self.contours):
+        for piece_id_int, contour in enumerate(self.contours):
+            piece_id = PieceId(sheet_id=self.sheet_id, piece_id=piece_id_int)
             piece = Piece.from_contour(
                 contour=contour,
                 full_img_orig=self.img_orig,

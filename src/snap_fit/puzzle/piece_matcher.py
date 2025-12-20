@@ -3,6 +3,7 @@
 from loguru import logger as lg
 
 from snap_fit.data_models.match_result import MatchResult
+from snap_fit.data_models.piece_id import PieceId
 from snap_fit.data_models.segment_id import SegmentId
 from snap_fit.image.segment_matcher import SegmentMatcher
 from snap_fit.puzzle.sheet_manager import SheetManager
@@ -63,11 +64,10 @@ class PieceMatcher:
         """Get the top N matches."""
         return self._results[:n]
 
-    def get_matches_for_piece(self, sheet_id: str, piece_id: int) -> list[MatchResult]:
+    def get_matches_for_piece(self, piece_id: PieceId) -> list[MatchResult]:
         """Get all matches involving a specific piece."""
         return [
             res
             for res in self._results
-            if (res.seg_id1.sheet_id == sheet_id and res.seg_id1.piece_id == piece_id)
-            or (res.seg_id2.sheet_id == sheet_id and res.seg_id2.piece_id == piece_id)
+            if piece_id in {res.seg_id1.piece_id, res.seg_id2.piece_id}
         ]

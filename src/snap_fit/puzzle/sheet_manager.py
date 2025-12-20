@@ -6,6 +6,7 @@ from pathlib import Path
 from loguru import logger as lg
 
 from snap_fit.config.types import EdgePos
+from snap_fit.data_models.piece_id import PieceId
 from snap_fit.data_models.segment_id import SegmentId
 from snap_fit.image.segment import Segment
 from snap_fit.puzzle.piece import Piece
@@ -28,6 +29,16 @@ class SheetManager:
         """
         if sheet_id in self.sheets:
             lg.warning(f"Overwriting sheet with ID: {sheet_id}")
+
+        # Ensure the sheet knows its ID
+        sheet.sheet_id = sheet_id
+        # Ensure all pieces in the sheet have the correct sheet_id in their PieceId
+        for piece in sheet.pieces:
+            if piece.piece_id.sheet_id != sheet_id:
+                piece.piece_id = PieceId(
+                    sheet_id=sheet_id, piece_id=piece.piece_id.piece_id
+                )
+
         self.sheets[sheet_id] = sheet
         lg.info(f"Added sheet: {sheet_id}")
 
@@ -109,11 +120,10 @@ class SheetManager:
             A list of all SegmentId objects across all sheets/pieces/edges.
         """
         segment_ids: list[SegmentId] = []
-        for sheet_id, sheet in self.sheets.items():
+        for sheet in self.sheets.values():
             for piece in sheet.pieces:
                 segment_ids.extend(
                     SegmentId(
-                        sheet_id=sheet_id,
                         piece_id=piece.piece_id,
                         edge_pos=edge_pos,
                     )
@@ -131,11 +141,7 @@ class SheetManager:
             A list of SegmentId objects from all other pieces.
         """
         all_ids = self.get_segment_ids_all()
-        return [
-            sid
-            for sid in all_ids
-            if not (sid.sheet_id == seg_id.sheet_id and sid.piece_id == seg_id.piece_id)
-        ]
+        return [sid for sid in all_ids if sid.piece_id != seg_id.piece_id]
 
     def get_segment(self, seg_id: SegmentId) -> Segment | None:
         """Retrieve a segment by its SegmentId.
@@ -155,19 +161,30 @@ class SheetManager:
         """Retrieve a piece by a SegmentId.
 
         Args:
-            seg_id: The SegmentId containing sheet_id and piece_id.
+            seg_id: The SegmentId containing the piece_id.
 
         Returns:
             The Piece object if found, else None.
         """
-        sheet = self.sheets.get(seg_id.sheet_id)
+        return self.get_piece(seg_id.piece_id)
+
+    def get_piece(self, piece_id: PieceId) -> Piece | None:
+        """Retrieve a piece by its PieceId.
+
+        Args:
+            piece_id: The PieceId identifying the piece.
+
+        Returns:
+            The Piece object if found, else None.
+        """
+        sheet = self.sheets.get(piece_id.sheet_id)
         if sheet is None:
-            lg.warning(f"Sheet not found: {seg_id.sheet_id}")
+            lg.warning(f"Sheet not found: {piece_id.sheet_id}")
             return None
         for piece in sheet.pieces:
-            if piece.piece_id == seg_id.piece_id:
+            if piece.piece_id == piece_id:
                 return piece
-        lg.warning(f"Piece not found: {seg_id.piece_id} in sheet {seg_id.sheet_id}")
+        lg.warning(f"Piece not found: {piece_id}")
         return None
 
     def get_sheet_by_segment_id(self, seg_id: SegmentId) -> Sheet | None:
@@ -179,4 +196,4 @@ class SheetManager:
         Returns:
             The Sheet object if found, else None.
         """
-        return self.sheets.get(seg_id.sheet_id)
+        return self.sheets.get(seg_id.piece_id.sheet_id)

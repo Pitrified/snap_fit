@@ -12,6 +12,7 @@ import numpy as np
 
 from snap_fit.config.types import CornerPos
 from snap_fit.config.types import EdgePos
+from snap_fit.data_models.piece_id import PieceId
 from snap_fit.image.contour import Contour
 from snap_fit.image.process import convert_to_grayscale
 from snap_fit.image.utils import cut_rect_from_image
@@ -37,7 +38,7 @@ class Piece:
 
     def __init__(
         self,
-        piece_id: int,
+        piece_id: PieceId,
         img_fp: Path,
         img_orig: np.ndarray,
         img_bw: np.ndarray,
@@ -46,7 +47,7 @@ class Piece:
         """Initialize the piece with the contour, region, and area.
 
         Args:
-            piece_id (int): The piece ID.
+            piece_id (PieceId): The piece ID.
             img_fp (Path): The image file path.
             img_orig (np.ndarray): The original image.
             img_bw (np.ndarray): The black and white image.
@@ -75,7 +76,7 @@ class Piece:
         full_img_orig: np.ndarray,
         full_img_bw: np.ndarray,
         img_fp: Path,
-        piece_id: int,
+        piece_id: PieceId,
         pad: int = 30,
     ) -> Self:
         """Create a piece from a contour and the full image.
@@ -87,7 +88,7 @@ class Piece:
             full_img_orig (np.ndarray): The original full image.
             full_img_bw (np.ndarray): The black and white full image.
             img_fp (Path): The image file path.
-            piece_id (int): The piece ID.
+            piece_id (PieceId): The piece ID.
             pad (int): The padding around the region of the contour.
 
         Returns:

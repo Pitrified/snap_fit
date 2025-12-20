@@ -7,6 +7,7 @@ import pytest
 
 from snap_fit.config.types import EdgePos
 from snap_fit.data_models.match_result import MatchResult
+from snap_fit.data_models.piece_id import PieceId
 from snap_fit.data_models.segment_id import SegmentId
 from snap_fit.puzzle.piece_matcher import PieceMatcher
 from snap_fit.puzzle.sheet_manager import SheetManager
@@ -22,13 +23,15 @@ def mock_manager() -> MagicMock:
 @pytest.fixture
 def id1() -> SegmentId:
     """Create a test SegmentId."""
-    return SegmentId(sheet_id="A", piece_id=1, edge_pos=EdgePos.TOP)
+    pid = PieceId(sheet_id="A", piece_id=1)
+    return SegmentId(piece_id=pid, edge_pos=EdgePos.TOP)
 
 
 @pytest.fixture
 def id2() -> SegmentId:
     """Create another test SegmentId."""
-    return SegmentId(sheet_id="B", piece_id=2, edge_pos=EdgePos.BOTTOM)
+    pid = PieceId(sheet_id="B", piece_id=2)
+    return SegmentId(piece_id=pid, edge_pos=EdgePos.BOTTOM)
 
 
 def test_piece_matcher_init(mock_manager: MagicMock) -> None:
@@ -107,18 +110,19 @@ def test_piece_matcher_get_matches_for_piece(
 ) -> None:
     """Test get_matches_for_piece method."""
     matcher = PieceMatcher(mock_manager)
-    id3 = SegmentId(sheet_id="C", piece_id=3, edge_pos=EdgePos.LEFT)
+    pid3 = PieceId(sheet_id="C", piece_id=3)
+    id3 = SegmentId(piece_id=pid3, edge_pos=EdgePos.LEFT)
     res1 = MatchResult(seg_id1=id1, seg_id2=id2, similarity=0.1)
     res2 = MatchResult(seg_id1=id2, seg_id2=id3, similarity=0.2)
     matcher.results.extend([res1, res2])
 
     # Matches for piece A-1
-    matches_a1 = matcher.get_matches_for_piece("A", 1)
+    matches_a1 = matcher.get_matches_for_piece(id1.piece_id)
     assert len(matches_a1) == 1
     assert matches_a1[0] == res1
 
     # Matches for piece B-2
-    matches_b2 = matcher.get_matches_for_piece("B", 2)
+    matches_b2 = matcher.get_matches_for_piece(id2.piece_id)
     assert len(matches_b2) == 2
     assert res1 in matches_b2
     assert res2 in matches_b2

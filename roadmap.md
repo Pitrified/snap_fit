@@ -27,7 +27,7 @@ Given a segment id, get
 * piece
 * segment from other pieces
 
-### PieceID data model (planned 📋)
+### PieceID data model (done ✅)
 
 Create a PieceID data model to identify pieces across sheets.
 Fields:

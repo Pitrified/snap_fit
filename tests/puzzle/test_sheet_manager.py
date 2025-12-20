@@ -7,6 +7,7 @@ from unittest.mock import patch
 import pytest
 
 from snap_fit.config.types import EdgePos
+from snap_fit.data_models.piece_id import PieceId
 from snap_fit.data_models.segment_id import SegmentId
 from snap_fit.image.segment import Segment
 from snap_fit.puzzle.piece import Piece
@@ -20,13 +21,13 @@ def sheet_manager() -> SheetManager:
     return SheetManager()
 
 
-@pytest.fixture
-def mock_sheet() -> MagicMock:
-    """Fixture for creating a mock Sheet."""
+def create_mock_sheet(sheet_id: str) -> MagicMock:
+    """Fixture to create a mock Sheet with pieces."""
     sheet = MagicMock(spec=Sheet)
+    sheet.sheet_id = sheet_id
     # Create mock pieces with piece_id attributes
     piece0 = MagicMock(spec=Piece)
-    piece0.piece_id = 0
+    piece0.piece_id = PieceId(sheet_id=sheet_id, piece_id=0)
     piece0.segments = {
         EdgePos.LEFT: MagicMock(spec=Segment),
         EdgePos.BOTTOM: MagicMock(spec=Segment),
@@ -34,7 +35,7 @@ def mock_sheet() -> MagicMock:
         EdgePos.TOP: MagicMock(spec=Segment),
     }
     piece1 = MagicMock(spec=Piece)
-    piece1.piece_id = 1
+    piece1.piece_id = PieceId(sheet_id=sheet_id, piece_id=1)
     piece1.segments = {
         EdgePos.LEFT: MagicMock(spec=Segment),
         EdgePos.BOTTOM: MagicMock(spec=Segment),
@@ -43,6 +44,12 @@ def mock_sheet() -> MagicMock:
     }
     sheet.pieces = [piece0, piece1]
     return sheet
+
+
+@pytest.fixture
+def mock_sheet() -> MagicMock:
+    """Fixture for creating a mock Sheet."""
+    return create_mock_sheet("test_sheet_1")
 
 
 def test_add_sheet(sheet_manager: SheetManager, mock_sheet: MagicMock) -> None:
@@ -69,14 +76,17 @@ def test_get_sheet_not_found(sheet_manager: SheetManager) -> None:
     assert retrieved_sheet is None
 
 
-def test_get_sheets_ls(sheet_manager: SheetManager, mock_sheet: MagicMock) -> None:
+def test_get_sheets_ls(sheet_manager: SheetManager) -> None:
     """Test retrieving all sheets as a list."""
-    sheet_manager.add_sheet(mock_sheet, "sheet1")
-    sheet_manager.add_sheet(mock_sheet, "sheet2")
+    sheet1 = create_mock_sheet("sheet1")
+    sheet2 = create_mock_sheet("sheet2")
+    sheet_manager.add_sheet(sheet1, "sheet1")
+    sheet_manager.add_sheet(sheet2, "sheet2")
 
     sheets_ls = sheet_manager.get_sheets_ls()
     assert len(sheets_ls) == 2
-    assert mock_sheet in sheets_ls
+    assert sheet1 in sheets_ls
+    assert sheet2 in sheets_ls
 
 
 def test_get_pieces_ls(sheet_manager: SheetManager, mock_sheet: MagicMock) -> None:
@@ -97,7 +107,9 @@ def test_add_sheets_glob(sheet_manager: SheetManager, tmp_path: Path) -> None:
     (tmp_path / "ignore.log").touch()
 
     mock_loader = MagicMock()
-    mock_loader.return_value = MagicMock(spec=Sheet)
+    mock_sheet = MagicMock(spec=Sheet)
+    mock_sheet.pieces = []
+    mock_loader.return_value = mock_sheet
 
     sheet_manager.add_sheets(
         folder_path=tmp_path,
@@ -156,21 +168,23 @@ def test_get_segment_ids_all(
     assert all(sid.sheet_id == "sheet_a" for sid in all_ids)
 
     # Check both piece_ids are present
-    piece_ids = {sid.piece_id for sid in all_ids}
+    piece_ids = {sid.piece_id_int for sid in all_ids}
     assert piece_ids == {0, 1}
 
     # Check all edge positions are present for each piece
-    for piece_id in [0, 1]:
-        piece_edges = {sid.edge_pos for sid in all_ids if sid.piece_id == piece_id}
+    for piece_id_int in [0, 1]:
+        piece_edges = {
+            sid.edge_pos for sid in all_ids if sid.piece_id_int == piece_id_int
+        }
         assert piece_edges == set(EdgePos)
 
 
-def test_get_segment_ids_all_multiple_sheets(
-    sheet_manager: SheetManager, mock_sheet: MagicMock
-) -> None:
+def test_get_segment_ids_all_multiple_sheets(sheet_manager: SheetManager) -> None:
     """Test retrieving all segment IDs from multiple sheets."""
-    sheet_manager.add_sheet(mock_sheet, "sheet_a")
-    sheet_manager.add_sheet(mock_sheet, "sheet_b")
+    sheet_a = create_mock_sheet("sheet_a")
+    sheet_b = create_mock_sheet("sheet_b")
+    sheet_manager.add_sheet(sheet_a, "sheet_a")
+    sheet_manager.add_sheet(sheet_b, "sheet_b")
 
     all_ids = sheet_manager.get_segment_ids_all()
 
@@ -193,7 +207,8 @@ def test_get_segment_ids_other_pieces(
     """Test retrieving segment IDs from other pieces."""
     sheet_manager.add_sheet(mock_sheet, "sheet_a")
 
-    query_id = SegmentId(sheet_id="sheet_a", piece_id=0, edge_pos=EdgePos.LEFT)
+    pid = PieceId(sheet_id="sheet_a", piece_id=0)
+    query_id = SegmentId(piece_id=pid, edge_pos=EdgePos.LEFT)
     other_ids = sheet_manager.get_segment_ids_other_pieces(query_id)
 
     # Should exclude all 4 edges of piece 0, leaving 4 edges of piece 1
@@ -201,21 +216,24 @@ def test_get_segment_ids_other_pieces(
 
     # None should be from piece 0 in sheet_a
     assert all(
-        not (sid.sheet_id == "sheet_a" and sid.piece_id == 0) for sid in other_ids
+        not (sid.sheet_id == "sheet_a" and sid.piece_id_int == 0) for sid in other_ids
     )
 
     # All should be from piece 1
-    assert all(sid.piece_id == 1 for sid in other_ids)
+    assert all(sid.piece_id_int == 1 for sid in other_ids)
 
 
 def test_get_segment_ids_other_pieces_multiple_sheets(
-    sheet_manager: SheetManager, mock_sheet: MagicMock
+    sheet_manager: SheetManager,
 ) -> None:
     """Test retrieving segment IDs from other pieces across multiple sheets."""
-    sheet_manager.add_sheet(mock_sheet, "sheet_a")
-    sheet_manager.add_sheet(mock_sheet, "sheet_b")
+    sheet_a = create_mock_sheet("sheet_a")
+    sheet_b = create_mock_sheet("sheet_b")
+    sheet_manager.add_sheet(sheet_a, "sheet_a")
+    sheet_manager.add_sheet(sheet_b, "sheet_b")
 
-    query_id = SegmentId(sheet_id="sheet_a", piece_id=0, edge_pos=EdgePos.LEFT)
+    pid = PieceId(sheet_id="sheet_a", piece_id=0)
+    query_id = SegmentId(piece_id=pid, edge_pos=EdgePos.LEFT)
     other_ids = sheet_manager.get_segment_ids_other_pieces(query_id)
 
     # Total 16, minus 4 edges of piece 0 in sheet_a = 12
@@ -230,7 +248,8 @@ def test_get_segment(sheet_manager: SheetManager, mock_sheet: MagicMock) -> None
     """Test retrieving a segment by SegmentId."""
     sheet_manager.add_sheet(mock_sheet, "sheet_a")
 
-    seg_id = SegmentId(sheet_id="sheet_a", piece_id=0, edge_pos=EdgePos.LEFT)
+    pid = PieceId(sheet_id="sheet_a", piece_id=0)
+    seg_id = SegmentId(piece_id=pid, edge_pos=EdgePos.LEFT)
     segment = sheet_manager.get_segment(seg_id)
 
     assert segment is not None
@@ -239,7 +258,8 @@ def test_get_segment(sheet_manager: SheetManager, mock_sheet: MagicMock) -> None
 
 def test_get_segment_not_found_sheet(sheet_manager: SheetManager) -> None:
     """Test retrieving a segment from a non-existent sheet."""
-    seg_id = SegmentId(sheet_id="non_existent", piece_id=0, edge_pos=EdgePos.LEFT)
+    pid = PieceId(sheet_id="non_existent", piece_id=0)
+    seg_id = SegmentId(piece_id=pid, edge_pos=EdgePos.LEFT)
     segment = sheet_manager.get_segment(seg_id)
     assert segment is None
 
@@ -250,7 +270,8 @@ def test_get_segment_not_found_piece(
     """Test retrieving a segment from a non-existent piece."""
     sheet_manager.add_sheet(mock_sheet, "sheet_a")
 
-    seg_id = SegmentId(sheet_id="sheet_a", piece_id=999, edge_pos=EdgePos.LEFT)
+    pid = PieceId(sheet_id="sheet_a", piece_id=999)
+    seg_id = SegmentId(piece_id=pid, edge_pos=EdgePos.LEFT)
     segment = sheet_manager.get_segment(seg_id)
     assert segment is None
 
@@ -261,7 +282,8 @@ def test_get_piece_by_segment_id(
     """Test retrieving a piece by SegmentId."""
     sheet_manager.add_sheet(mock_sheet, "sheet_a")
 
-    seg_id = SegmentId(sheet_id="sheet_a", piece_id=1, edge_pos=EdgePos.TOP)
+    pid = PieceId(sheet_id="sheet_a", piece_id=1)
+    seg_id = SegmentId(piece_id=pid, edge_pos=EdgePos.TOP)
     piece = sheet_manager.get_piece_by_segment_id(seg_id)
 
     assert piece is not None
@@ -270,7 +292,8 @@ def test_get_piece_by_segment_id(
 
 def test_get_piece_by_segment_id_not_found(sheet_manager: SheetManager) -> None:
     """Test retrieving a piece from a non-existent sheet."""
-    seg_id = SegmentId(sheet_id="non_existent", piece_id=0, edge_pos=EdgePos.LEFT)
+    pid = PieceId(sheet_id="non_existent", piece_id=0)
+    seg_id = SegmentId(piece_id=pid, edge_pos=EdgePos.LEFT)
     piece = sheet_manager.get_piece_by_segment_id(seg_id)
     assert piece is None
 
@@ -281,7 +304,8 @@ def test_get_sheet_by_segment_id(
     """Test retrieving a sheet by SegmentId."""
     sheet_manager.add_sheet(mock_sheet, "sheet_a")
 
-    seg_id = SegmentId(sheet_id="sheet_a", piece_id=0, edge_pos=EdgePos.LEFT)
+    pid = PieceId(sheet_id="sheet_a", piece_id=0)
+    seg_id = SegmentId(piece_id=pid, edge_pos=EdgePos.LEFT)
     sheet = sheet_manager.get_sheet_by_segment_id(seg_id)
 
     assert sheet is not None
@@ -290,6 +314,7 @@ def test_get_sheet_by_segment_id(
 
 def test_get_sheet_by_segment_id_not_found(sheet_manager: SheetManager) -> None:
     """Test retrieving a sheet from a non-existent SegmentId."""
-    seg_id = SegmentId(sheet_id="non_existent", piece_id=0, edge_pos=EdgePos.LEFT)
+    pid = PieceId(sheet_id="non_existent", piece_id=0)
+    seg_id = SegmentId(piece_id=pid, edge_pos=EdgePos.LEFT)
     sheet = sheet_manager.get_sheet_by_segment_id(seg_id)
     assert sheet is None
