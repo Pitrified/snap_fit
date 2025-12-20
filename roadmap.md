@@ -35,6 +35,10 @@ Fields:
 * piece_id: int
 then use it in SegmentId instead of (str, int)
 
+### Piece object update (planned 📋)
+
+remove img_fp, now info is in piece_id
+
 ### SegmentMatcher (end overlapped version)
 
 #### Debug algo (done ✅)
