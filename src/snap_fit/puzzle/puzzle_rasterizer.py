@@ -11,6 +11,9 @@ import numpy as np
 RGBA_CHANNELS = 4
 RGB_CHANNELS = 3
 
+# conversion factor: 1 inch = 25.4 mm
+INCH_TO_MM = 25.4
+
 
 class PuzzleRasterizer:
     """Rasterizes SVG puzzles to numpy arrays."""
@@ -23,7 +26,7 @@ class PuzzleRasterizer:
         """
         self.dpi = dpi
         # Conversion factor: 1 inch = 25.4 mm
-        self.scale = dpi / 25.4  # pixels per mm
+        self.scale = dpi / INCH_TO_MM  # pixels per mm
 
     def rasterize(self, svg: str, *, background_color: str = "white") -> np.ndarray:
         """Rasterize an SVG string to a numpy array.
@@ -68,12 +71,11 @@ class PuzzleRasterizer:
         # Convert PNG bytes to numpy array
         nparr = np.frombuffer(png_bytes, np.uint8)
         img = cv2.imdecode(nparr, cv2.IMREAD_UNCHANGED)
-
-        # Convert RGBA to BGR if needed
         if img is None:
             msg = "Failed to decode PNG image"
             raise ValueError(msg)
 
+        # Convert RGBA to BGR if needed
         if img.shape[2] == RGBA_CHANNELS:
             # Composite alpha onto white background
             alpha = img[:, :, 3:4] / 255.0
