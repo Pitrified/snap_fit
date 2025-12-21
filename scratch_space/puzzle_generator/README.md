@@ -6,50 +6,16 @@ Port the JavaScript jigsaw puzzle generator from `libs/jigsaw/` to Python with a
 
 **Goal:** Generate synthetic jigsaw puzzles with identifiable pieces that can be photographed on ArUco boards for testing the puzzle solver pipeline.
 
-### Option A: Pure SVG Output (Minimal Dependencies)
+### Chosen Approach: Hybrid (SVG + Rasterization)
 
-Generate puzzles as SVG files using Python's `svgwrite` or raw XML string building.
+Generate puzzle geometry as SVG, then rasterize using `cairosvg` for image output.
 
-**Pros:**
-- Lightweight, no heavy dependencies
-- Direct port of the JS logic
-- Easy to integrate with laser cutters / printing
-- Clean vector output
+**Why this approach:**
 
-**Cons:**
-- Text rendering may vary across SVG viewers
-- Need separate rasterization step for image-based workflows
-
-### Option B: OpenCV/PIL Rasterized Output
-
-Generate puzzles directly as raster images using OpenCV or PIL.
-
-**Pros:**
-- Consistent output across platforms
-- Direct integration with existing `snap_fit` image pipeline
-- Easy to add text labels with `cv2.putText`
-
-**Cons:**
-- Heavier dependencies
-- Need to implement Bézier curve rendering
-- Fixed resolution (vs scalable SVG)
-
-### Option C: Hybrid Approach (SVG + Rasterization)
-
-Generate puzzle geometry as SVG, then rasterize using `cairosvg` or `svglib` for image output.
-
-**Pros:**
-- Best of both worlds: vector source, raster output
-- Can export both formats
-- Cleaner separation of concerns
-
-**Cons:**
-- Additional dependency (`cairosvg`)
-- Two-step process
-
----
-
-**Recommendation:** Start with **Option A** (Pure SVG) for the core geometry generation, then add rasterization as needed.
+- Vector source allows clean geometry definition and optional laser cutter export
+- Raster output integrates directly with existing `snap_fit` OpenCV loaders
+- `cairosvg` provides reliable, consistent rasterization
+- Both SVG and PNG/raster outputs available from same source
 
 ---
 
@@ -57,75 +23,124 @@ Generate puzzle geometry as SVG, then rasterize using `cairosvg` or `svglib` for
 
 ### Phase 1: Core Puzzle Geometry
 
-1. [ ] Create `PuzzleConfig` dataclass with parameters:
+1. [ ] Create `PuzzleConfig` Pydantic model with parameters:
+
    - `width`, `height` (mm)
    - `tiles_x`, `tiles_y`
-   - `tab_size` (0.1-0.3)
-   - `jitter` (0.0-0.13)
-   - `corner_radius`
-   - `seed`
+   - `tab_size` (0.1-0.3, default 0.2)
+   - `jitter` (0.0-0.13, default 0.04)
+   - `corner_radius` (mm)
+   - `seed` (int)
 
-2. [ ] Port random number generator with seed support (deterministic puzzles)
+2. [ ] Port random number generator with seed support:
 
-3. [ ] Implement edge generation:
-   - Bézier curve control points for tabs (in/out)
-   - Horizontal edges generator
-   - Vertical edges generator
-   - Border (rounded rectangle) generator
+   - Deterministic PRNG using `sin(seed) * 10000` approach
+   - `random()`, `uniform(min, max)`, `rbool()` helpers
 
-4. [ ] Create `PuzzlePiece` dataclass:
-   - `piece_id` (row, col)
-   - `edges` (top, right, bottom, left) with Bézier paths
-   - `bounds` (x, y, width, height)
+3. [ ] Create `BezierEdge` Pydantic model:
 
-5. [ ] Implement `PuzzleGenerator` class:
-   - `generate()` → returns list of `PuzzlePiece`
-   - `to_svg()` → full puzzle SVG
-   - `piece_to_svg(piece_id)` → individual piece SVG
+   - List of control points for cubic Bézier segments
+   - `flip` direction (tab in/out)
+   - Method to generate SVG path string
+
+4. [ ] Implement edge generation:
+
+   - 10-point Bézier curves with jitter offsets (p0-p9)
+   - `generate_horizontal_edges()` → 2D list of `BezierEdge`
+   - `generate_vertical_edges()` → 2D list of `BezierEdge`
+
+5. [ ] Create `PuzzlePiece` Pydantic model:
+
+   - `row`, `col` (grid position)
+   - `label` (str, e.g., "A1", "BC12")
+   - `edges`: top, right, bottom, left (`BezierEdge | None` for border)
+   - `bounds` (x, y, width, height in mm)
+
+6. [ ] Implement `PuzzleGenerator` class:
+   - `__init__(config: PuzzleConfig)`
+   - `generate() → list[PuzzlePiece]`
+   - `to_svg() → str` (full puzzle SVG)
+   - `piece_to_svg(row, col) → str` (individual piece SVG)
 
 ### Phase 2: Text Labels
 
-6. [ ] Add text label config:
-   - Font size (auto-scale based on piece size)
-   - Label format (e.g., `"{row}-{col}"`, `"A1"`, `"001"`)
-   - Position (center, corner)
+7. [ ] Implement label generation with `LLNN` format:
 
-7. [ ] Implement `add_label_to_piece()`:
+   - Letters for columns: A-Z, then AA-AZ, BA-BZ, etc.
+   - Numbers for rows: 1-9, then 01-99, 001-999, etc.
+   - Auto-calculate required digits based on `tiles_x`, `tiles_y`
+   - Examples:
+     - 5x5 puzzle: A1, A2, ..., E5
+     - 10x10 puzzle: A01, A02, ..., J10
+     - 30x30 puzzle: AA01, AA02, ..., BD30
+
+8. [ ] Add label config to `PuzzleConfig`:
+
+   - `font_size` (auto-scale if None)
+   - `font_family` (default: monospace)
+   - `label_position` (center)
+
+9. [ ] Implement `add_label_to_svg(piece_svg, label)`:
    - Render text at piece center
-   - Ensure text fits within piece bounds
+   - Auto-scale font to fit within piece bounds
 
-8. [ ] Add label rendering to SVG export
+### Phase 3: Rasterization
 
-### Phase 3: ArUco Board Integration
+10. [ ] Implement `PuzzleRasterizer`:
 
-9. [ ] Create `SheetLayout` config:
-   - Sheet size (A4, A3, custom)
-   - Margins for ArUco markers
-   - Pieces per sheet
-   - Piece spacing
+    - `__init__(dpi: int = 300)`
+    - `rasterize_puzzle(svg: str) → np.ndarray`
+    - `rasterize_piece(piece_svg: str) → np.ndarray`
+    - Uses `cairosvg` for SVG → PNG conversion
+    - Returns OpenCV-compatible BGR numpy array
 
-10. [ ] Implement `PuzzleSheetGenerator`:
-    - Takes list of `PuzzlePiece` and `SheetLayout`
-    - Arranges pieces on sheets with spacing
-    - Integrates with existing `ArucoBoardGenerator`
+11. [ ] Add convenience methods to `PuzzleGenerator`:
+    - `to_image() → np.ndarray` (full puzzle raster)
+    - `piece_to_image(row, col) → np.ndarray`
 
-11. [ ] Generate combined output:
-    - SVG with pieces + ArUco markers
-    - PDF export for printing (optional)
+### Phase 4: Sheet Composition with ArUco
 
-### Phase 4: Validation & Testing
+12. [ ] Generate ArUco board images using existing `ArucoBoardGenerator`:
 
-12. [ ] Create prototype notebook `01_puzzle_generator.ipynb`:
+    - Create blank board with markers at edges
+    - Output as raster image (PNG/numpy array)
+
+13. [ ] Create `SheetLayout` Pydantic model:
+
+- `sheet_width`, `sheet_height` (mm)
+- `margin` (mm, space for ArUco markers)
+- `piece_spacing` (mm, gap between pieces)
+- `pieces_per_row`, `pieces_per_col` (auto-calculate from available space)
+
+14. [ ] Implement `PuzzleSheetComposer`:
+
+    - `__init__(layout: SheetLayout, aruco_board_image: np.ndarray)`
+    - `place_pieces(pieces: list[PuzzlePiece], start_idx: int) → np.ndarray`
+    - Paint rasterized pieces onto ArUco board image
+    - Return composed sheet image
+
+15. [ ] Implement `generate_all_sheets()`:
+    - Distribute all pieces across multiple sheets
+    - Return list of composed sheet images
+
+### Phase 5: Validation & Testing
+
+16. [ ] Create prototype notebook `01_puzzle_generator.ipynb`:
+
     - Test geometry generation
-    - Visualize pieces
-    - Verify tab shapes
+    - Visualize SVG output
+    - Test rasterization pipeline
+    - Verify tab shapes match reference
 
-13. [ ] Create usage notebook `02_usage.ipynb`:
+17. [ ] Create usage notebook `02_usage.ipynb`:
+
     - End-to-end workflow
-    - Generate puzzle → add labels → create sheets
+    - Generate puzzle → add labels → rasterize → compose sheets
+    - Save output images
 
-14. [ ] Add unit tests for:
-    - Deterministic seed output
+18. [ ] Add unit tests for:
+    - Deterministic seed output (same seed → same puzzle)
+    - Label generation (correct format for various grid sizes)
     - Edge continuity between adjacent pieces
     - Piece bounds calculation
 
@@ -140,22 +155,38 @@ The original JavaScript implementation in `libs/jigsaw/jigsaw.html` uses:
 - **Edge directions:** `flip` boolean determines tab in/out
 - **Key control points:**
   - `p0-p1`: Entry to tab
-  - `p2-p6`: Tab shape (3 Bézier segments)
+  - `p2-p6`: Tab shape (3 cubic Bézier segments)
   - `p7-p9`: Exit from tab
+
+## Label Format
+
+Labels follow the `LLNN` pattern (letters for columns, numbers for rows):
+
+| Grid Size | Letter Digits | Number Digits | Example Labels |
+| --------- | ------------- | ------------- | -------------- |
+| 5×5       | 1 (A-E)       | 1 (1-5)       | A1, B3, E5     |
+| 10×10     | 1 (A-J)       | 2 (01-10)     | A01, J10       |
+| 26×26     | 1 (A-Z)       | 2 (01-26)     | A01, Z26       |
+| 30×30     | 2 (AA-BD)     | 2 (01-30)     | AA01, BD30     |
+| 100×100   | 2 (AA-CV)     | 3 (001-100)   | AA001, CV100   |
+
+Letter sequence: A, B, ..., Z, AA, AB, ..., AZ, BA, BB, ...
 
 ## Dependencies
 
-- `svgwrite` or built-in XML (Phase 1-2)
-- `cairosvg` for rasterization (optional)
-- Existing `snap_fit.aruco` for board generation (Phase 3)
+- `cairosvg` for SVG → raster conversion
+- `pydantic` for data models (already in project)
+- `numpy`, `opencv-python` for image handling (already in project)
+- Existing `snap_fit.aruco` for board generation
 
 ## File Structure
 
 ```
 src/snap_fit/puzzle/
-├── puzzle_generator.py    # Core geometry generation
-├── puzzle_config.py       # Config dataclasses
-└── puzzle_sheet.py        # Sheet layout with ArUco
+├── puzzle_generator.py    # Core geometry generation + SVG
+├── puzzle_config.py       # Pydantic config models
+├── puzzle_rasterizer.py   # SVG → numpy array conversion
+└── puzzle_sheet.py        # Sheet composition with ArUco
 
 scratch_space/puzzle_generator/
 ├── README.md              # This file
