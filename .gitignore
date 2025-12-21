@@ -4,6 +4,9 @@ credential.py
 .env
 secrets/
 
+# external libs
+libs/
+
 # data
 cache/
 data/
