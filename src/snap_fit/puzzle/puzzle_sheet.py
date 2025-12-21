@@ -85,7 +85,7 @@ class PuzzleSheetComposer:
 
         # Calculate piece dimensions in pixels
         # Include tab extension
-        tab_extend = piece_width * generator.config.tab_size * 1.5
+        tab_extend = piece_width * generator.config.tab_size * 2
         piece_total_width = piece_width + 2 * tab_extend
         piece_total_height = piece_height + 2 * tab_extend
 
