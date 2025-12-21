@@ -39,6 +39,13 @@ then use it in SegmentId instead of (str, int)
 
 remove img_fp, now info is in piece_id
 
+### Puzzle generator (planned 📋)
+
+this but in python: https://github.com/Draradech/jigsaw/tree/master
+1. generate pieces
+2. write texts on them to recognize them
+3. generate aruco board with the pieces spaced in a few sheets
+
 ### SegmentMatcher (end overlapped version)
 
 #### Debug algo (done ✅)
