@@ -42,6 +42,7 @@ remove img_fp, now info is in piece_id
 ### Puzzle generator (planned 📋)
 
 this but in python: https://github.com/Draradech/jigsaw/tree/master
+(cloned in libs/jigsaw for reference)
 1. generate pieces
 2. write texts on them to recognize them
 3. generate aruco board with the pieces spaced in a few sheets
