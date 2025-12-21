@@ -27,7 +27,7 @@ class PuzzleConfig(BaseModel):
         default=0.2, ge=0.1, le=0.3, description="Tab size as fraction of piece"
     )
     jitter: float = Field(
-        default=0.04, ge=0.0, le=0.13, description="Random jitter amount"
+        default=0.04, ge=0.0, le=0.25, description="Random jitter amount"
     )
 
     # Border

@@ -491,7 +491,7 @@ class PuzzleGenerator:
 
         # Calculate viewBox with padding
         # The piece might extend beyond its bounds due to tabs
-        tab_extend = self.config.piece_width * self.config.tab_size * 1.5
+        tab_extend = self.config.piece_width * self.config.tab_size * 2
         vb_x = piece.x - tab_extend - padding
         vb_y = piece.y - tab_extend - padding
         vb_w = piece.width + 2 * tab_extend + 2 * padding
