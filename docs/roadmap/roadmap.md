@@ -39,7 +39,7 @@ then use it in SegmentId instead of (str, int)
 
 remove img_fp, now info is in piece_id
 
-### Puzzle generator (planned 📋)
+### Puzzle generator (done ✅)
 
 this but in python: https://github.com/Draradech/jigsaw/tree/master
 (cloned in libs/jigsaw for reference)
@@ -92,20 +92,30 @@ The `PieceMatcher` would use `SegmentMatcher` internally, and `SheetManager` to 
 It handles symmetry (A, B) == (B, A) and stores results in a structured way.
 It will hold internally the results of piece matches, and provide methods to query them.
 
-### Config for sheet preprocess/contour
-
-eg min_area is 5k or 80k?
-
 ### Consistency check (planned 📋)
 
 Build the map of where the pieces would be
 Might be in graph form is pieces are just squares
 
-### Aruco config management (planned 📋)
+### Config management
+
+#### Aruco config management (planned 📋)
 
 qrcode printed on the aruco board with config info
 also print using words
 include a aruco config version number, with aruco config manager class to handle different versions and load old configs
+
+#### Config for sheet preprocess/contour (planned 📋)
+
+eg min_area is 5k or 80k?
+
+#### Sheet loader config
+
+attach aruco configs?
+
+#### SheetLayout
+
+what is that?
 
 ## Small tweaks
 
