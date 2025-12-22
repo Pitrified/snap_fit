@@ -92,10 +92,28 @@ The `PieceMatcher` would use `SegmentMatcher` internally, and `SheetManager` to 
 It handles symmetry (A, B) == (B, A) and stores results in a structured way.
 It will hold internally the results of piece matches, and provide methods to query them.
 
-### Consistency check (planned 📋)
+### Puzzle solver
 
 Build the map of where the pieces would be
-Might be in graph form is pieces are just squares
+<!-- Might be in graph form is pieces are just squares -->
+
+assign some smart scores based on actual flat edges
+
+pieces have positions (x,y) in the grid and orientations (enum cardinal)
+
+#### Iterative solver (planned 📋)
+
+build the best guess of the puzzle layout iteratively
+1. start from best matches
+2. add pieces that fit with already placed pieces
+3. repeat until no more pieces can be placed
+create some sort of GroupPiece class to hold placed pieces and their relative positions
+
+#### Random grid swapper (planned 📋)
+
+start from a random grid of pieces (respecting actual edge/corner pieces)
+then swap pieces to improve the overall match score
+repeat until no more improvement
 
 ### Config management
 
@@ -133,6 +151,7 @@ what is that?
 - [ ] Add `show_images_mpl` which accepts a list of images and does the subplots
 - [ ] Remove `from __future__ import annotations`
 - [ ] Document segment/contour/coords/swap_coords
+- [ ] Unify edge types EdgePos EdgeType
 
 ## Docs
 
