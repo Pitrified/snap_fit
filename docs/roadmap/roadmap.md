@@ -92,6 +92,10 @@ The `PieceMatcher` would use `SegmentMatcher` internally, and `SheetManager` to 
 It handles symmetry (A, B) == (B, A) and stores results in a structured way.
 It will hold internally the results of piece matches, and provide methods to query them.
 
+### Config for sheet preprocess/contour
+
+eg min_area is 5k or 80k?
+
 ### Consistency check (planned 📋)
 
 Build the map of where the pieces would be
