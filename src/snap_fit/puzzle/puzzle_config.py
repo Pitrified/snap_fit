@@ -11,6 +11,15 @@ ALPHABET_SIZE = 26
 SINGLE_DIGIT_MAX = 9
 
 
+class PieceStyle(BaseModel):
+    """Style configuration for puzzle piece rendering."""
+
+    fill: str = Field(default="white", description="Fill color for the piece")
+    stroke: str = Field(default="black", description="Stroke color for piece outline")
+    stroke_width: float = Field(default=0.2, description="Stroke width in mm")
+    label_color: str = Field(default="black", description="Color for the piece label")
+
+
 class PuzzleConfig(BaseModel):
     """Configuration for puzzle generation."""
 
@@ -41,6 +50,11 @@ class PuzzleConfig(BaseModel):
         default=None, description="Font size in mm, auto-scale if None"
     )
     font_family: str = Field(default="monospace", description="Font family for labels")
+
+    # Style config
+    piece_style: PieceStyle = Field(
+        default_factory=PieceStyle, description="Style for piece rendering"
+    )
 
     @computed_field  # type: ignore[prop-decorator]
     @property

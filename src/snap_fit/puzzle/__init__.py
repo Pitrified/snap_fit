@@ -1,5 +1,6 @@
 """Puzzle management, matching, and generation."""
 
+from snap_fit.puzzle.puzzle_config import PieceStyle
 from snap_fit.puzzle.puzzle_config import PuzzleConfig
 from snap_fit.puzzle.puzzle_config import SheetLayout
 from snap_fit.puzzle.puzzle_generator import BezierEdge
@@ -16,6 +17,7 @@ __all__ = [
     "BezierEdge",
     "BezierSegment",
     "EdgeType",
+    "PieceStyle",
     "PuzzleConfig",
     "PuzzleGenerator",
     "PuzzlePiece",

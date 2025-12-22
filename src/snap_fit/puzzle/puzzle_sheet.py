@@ -7,6 +7,7 @@ import cv2
 from loguru import logger as lg
 import numpy as np
 
+from snap_fit.puzzle.puzzle_config import PieceStyle
 from snap_fit.puzzle.puzzle_config import SheetLayout
 from snap_fit.puzzle.puzzle_generator import PuzzleGenerator
 from snap_fit.puzzle.puzzle_generator import PuzzlePiece
@@ -20,6 +21,7 @@ class PuzzleSheetComposer:
         self,
         layout: SheetLayout,
         aruco_board_image: np.ndarray | None = None,
+        piece_style: PieceStyle | None = None,
     ) -> None:
         """Initialize the sheet composer.
 
@@ -27,7 +29,9 @@ class PuzzleSheetComposer:
             layout: Sheet layout configuration.
             aruco_board_image: Pre-generated ArUco board image.
                 If None, uses blank white.
+            piece_style: Optional style override for pieces on this sheet.
         """
+        self.piece_style = piece_style
         self.layout = layout
         self.rasterizer = PuzzleRasterizer(dpi=layout.dpi)
 
@@ -98,7 +102,9 @@ class PuzzleSheetComposer:
             y_mm = self.layout.margin + row * (piece_height + self.layout.piece_spacing)
 
             # Generate piece SVG and rasterize
-            piece_svg = generator.piece_to_svg(piece.row, piece.col, include_label=True)
+            piece_svg = generator.piece_to_svg(
+                piece.row, piece.col, include_label=True, style=self.piece_style
+            )
             piece_img = self.rasterizer.rasterize(piece_svg)
 
             # Calculate pixel positions

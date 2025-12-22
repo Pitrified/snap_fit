@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from pydantic import Field
 
 from snap_fit.puzzle.puzzle_config import ALPHABET_SIZE
+from snap_fit.puzzle.puzzle_config import PieceStyle
 from snap_fit.puzzle.puzzle_config import PuzzleConfig
 
 # Threshold for random boolean generation
@@ -474,6 +475,7 @@ class PuzzleGenerator:
         *,
         include_label: bool = True,
         padding: float = 0.0,
+        style: PieceStyle | None = None,
     ) -> str:
         """Generate SVG for a single piece.
 
@@ -482,10 +484,14 @@ class PuzzleGenerator:
             col: Column index.
             include_label: Whether to include the label.
             padding: Extra padding around the piece.
+            style: Optional style override for fill, stroke, and label color.
+                If None, uses the style from config.
 
         Returns:
             SVG string for the piece.
         """
+        # Use provided style or fall back to config default
+        piece_style = style if style is not None else self.config.piece_style
         pieces = self.generate()
         piece = next(p for p in pieces if p.row == row and p.col == col)
 
@@ -530,7 +536,8 @@ class PuzzleGenerator:
         path_d = " ".join(path_parts)
 
         svg_parts.append(
-            f'<path fill="white" stroke="black" stroke-width="0.2" d="{path_d}"/>'
+            f'<path fill="{piece_style.fill}" stroke="{piece_style.stroke}" '
+            f'stroke-width="{piece_style.stroke_width}" d="{path_d}"/>'
         )
 
         # Add label
@@ -543,7 +550,7 @@ class PuzzleGenerator:
                 f'font-family="{self.config.font_family}" '
                 f'font-size="{font_size:.2f}" '
                 f'text-anchor="middle" dominant-baseline="middle" '
-                f'fill="black">{piece.label}</text>'
+                f'fill="{piece_style.label_color}">{piece.label}</text>'
             )
 
         svg_parts.append("</svg>")
