@@ -71,10 +71,83 @@ Lean on Pydantic models for `GridCell`, `PlacedPiece`, `GridState`. Keep mutatio
 
 ---
 
-**Please select an approach (A, B, or C)** so I can flesh out the detailed plan.
+**Selected: Option B** – Layered composition optimized for heavy pairwise swapping during solving.
 
 ---
 
 ## Plan
 
-_To be populated after approach selection._
+### Phase 1: Core Enums & Types
+
+1. [ ] Create `Orientation` enum (0, 90, 180, 270) with rotation arithmetic (`__add__`, `__sub__`)
+2. [ ] Create `PlaceType` enum (CORNER, EDGE, INNER)
+3. [ ] Create `EdgeSide` enum (TOP, RIGHT, BOTTOM, LEFT) for desired edge orientation on grid boundary
+4. [ ] Create `PieceType` enum mirroring `PlaceType` (derived from flat-edge count)
+
+### Phase 2: Orientation Utilities (`orientation_utils.py`)
+
+5. [ ] `get_piece_type(flat_edge_count: int) -> PieceType` – classify piece
+6. [ ] `get_base_edge_orientation(piece: Piece) -> EdgeSide` – detect which side has the flat edge(s)
+7. [ ] `compute_rotation(base: EdgeSide, target: EdgeSide) -> Orientation` – rotation needed to align
+8. [ ] `rotate_segments(segments: list[SegID], orientation: Orientation) -> list[SegID]` – reorder segment list for rotated piece (index shift)
+
+### Phase 3: Grid Structure (`GridModel`)
+
+9. [ ] `GridModel.__init__(rows: int, cols: int)` – store dimensions
+10. [ ] Internal structures:
+    - `_place_types: dict[tuple[int,int], PlaceType]` – computed once from position
+    - `_edge_sides: dict[tuple[int,int], EdgeSide | None]` – boundary cells only
+    - Pre-built lists: `corners`, `edges`, `inners` for fast iteration
+11. [ ] `get_place_type(row, col) -> PlaceType`
+12. [ ] `get_required_edge_side(row, col) -> EdgeSide | None` – which side must be flat (for edge/corner cells)
+13. [ ] `neighbors(row, col) -> list[tuple[int,int]]` – adjacent positions (up to 4)
+14. [ ] `neighbor_pairs() -> Iterator[((r1,c1),(r2,c2))]` – all adjacent pairs for scoring
+
+### Phase 4: Placement State (`PlacementState`)
+
+Mutable container optimized for swaps.
+
+15. [ ] `PlacementState.__init__(grid: GridModel)`
+16. [ ] Internal structures:
+    - `_grid: GridModel` (reference)
+    - `_placements: dict[tuple[int,int], tuple[PieceID, Orientation]]` – position → (piece, rot)
+    - `_positions: dict[PieceID, tuple[int,int]]` – piece → position (reverse lookup)
+17. [ ] `place(piece_id, row, col, orientation)` – assign piece
+18. [ ] `remove(row, col) -> tuple[PieceID, Orientation] | None`
+19. [ ] `swap(pos1, pos2)` – swap two placements in O(1), keep orientations
+20. [ ] `swap_and_reorient(pos1, pos2)` – swap and auto-compute new orientations for boundary fit
+21. [ ] `get_placement(row, col) -> tuple[PieceID, Orientation] | None`
+22. [ ] `get_position(piece_id) -> tuple[int,int] | None`
+23. [ ] `is_complete() -> bool` – all cells filled
+24. [ ] `clone() -> PlacementState` – shallow copy for branching (if needed)
+
+### Phase 5: Scoring Integration
+
+Leverage existing `PieceMatcher._lookup` cache.
+
+25. [ ] Add `PieceMatcher.get_cached_score(seg_a: SegID, seg_b: SegID) -> float | None` – public getter for cached pair score
+26. [ ] `score_edge(state, pos1, pos2, piece_registry, matcher) -> float` – score one adjacency using rotated segments
+27. [ ] `score_grid(state, piece_registry, matcher) -> float` – sum over all neighbor pairs
+28. [ ] Optional: `ScoreCache` wrapper to memoize per-placement scores and invalidate on swap
+
+### Phase 6: Prototype Notebook
+
+29. [ ] `01_grid_model.ipynb` – build & validate `GridModel`, `PlacementState`
+30. [ ] `02_scoring.ipynb` – end-to-end scoring with real pieces
+
+### Phase 7: Promote to `src/`
+
+31. [ ] Move validated modules to `src/snap_fit/grid/`
+32. [ ] Add unit tests in `tests/grid/`
+
+---
+
+## Open Questions
+
+- **Orientation storage:** Store rotation per piece, or store already-rotated segment order? (Propose: store rotation, compute segments on demand)
+- **Flat-edge detection:** Is flat-edge info already on `Piece`/`Segment`, or needs derivation from contour? (Need to check existing code)
+- **Score invalidation:** On swap, only two rows of edges change. Worth tracking dirty pairs, or just recompute full grid? (Depends on grid size; start simple, optimize later)
+
+---
+
+Let me know if you'd like to refine any tasks or add detail to specific phases.
