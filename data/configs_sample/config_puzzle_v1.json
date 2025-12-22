@@ -1,0 +1,50 @@
+{
+    "tag_name": "sample_puzzle_v1",
+    "puzzle_config": {
+        "width": 600.0,
+        "height": 450.0,
+        "tiles_x": 8,
+        "tiles_y": 6,
+        "tab_size": 0.2,
+        "jitter": 0.14,
+        "corner_radius": 1.5,
+        "seed": 42,
+        "font_size": 3.0,
+        "font_family": "monospace",
+        "piece_style": {
+            "fill": "white",
+            "stroke": "black",
+            "stroke_width": 0.2,
+            "label_color": "black"
+        },
+        "piece_width": 75.0,
+        "piece_height": 75.0,
+        "letter_digits": 1,
+        "number_digits": 1,
+        "auto_font_size": 3.0
+    },
+    "aruco_config": {
+        "markers_x": 7,
+        "markers_y": 5,
+        "marker_length": 100,
+        "marker_separation": 100,
+        "dictionary_id": 10,
+        "margin": 20,
+        "border_bits": 1
+    },
+    "sheet_layout": {
+        "sheet_width": 297.0,
+        "sheet_height": 210.0,
+        "margin": 40.0,
+        "piece_spacing": 100.0,
+        "dpi": 300,
+        "usable_width": 217.0,
+        "usable_height": 130.0
+    },
+    "sheet_style": {
+        "fill": "black",
+        "stroke": "red",
+        "stroke_width": 0.0,
+        "label_color": "white"
+    }
+}
