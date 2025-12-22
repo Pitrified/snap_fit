@@ -3,6 +3,7 @@
 from pathlib import Path
 
 from cv2.typing import Rect
+from loguru import logger as lg
 import numpy as np
 
 from snap_fit.data_models.piece_id import PieceId
@@ -79,6 +80,7 @@ class Sheet:
     def filter_contours(self) -> None:
         """Filter the contours based on the area."""
         self.contours = [p for p in self.contours if p.area > self.min_area]
+        lg.debug(f"kept {len(self.contours)} contours with {self.min_area}")
 
     def build_pieces(self) -> None:
         """Build the pieces from the contours."""
