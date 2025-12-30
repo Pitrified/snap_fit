@@ -112,12 +112,13 @@ Lean on Pydantic models for `GridCell`, `PlacedPiece`, `GridState`. Keep mutatio
 8. [x] `get_rotated_edge_pos(original_pos: EdgePos, rotation: Orientation) -> EdgePos` – compute effective edge position after rotation
    - Also added `get_original_edge_pos()` for inverse operation
 
-### Phase 3: Piece Integration
+### Phase 3: Piece Integration ✅
 
-9. [ ] During `Piece` init (or post-processing), derive and store `OrientedPieceType`:
+9. [x] During `Piece` init (or post-processing), derive and store `OrientedPieceType`:
    - Count flat edges → `PieceType`
    - Detect flat edge positions → base `Orientation`
-10. [ ] Add method `Piece.get_segment_at(edge_pos: EdgePos, rotation: Orientation) -> Segment` – returns segment considering rotation
+   - Added `flat_edges` property for direct access
+10. [x] Add method `Piece.get_segment_at(edge_pos: EdgePos, rotation: Orientation) -> Segment` – returns segment considering rotation
 
 ### Phase 4: Grid Structure (`GridModel`) ✅
 
