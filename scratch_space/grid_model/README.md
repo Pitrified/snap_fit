@@ -75,96 +75,95 @@ Lean on Pydantic models for `GridCell`, `PlacedPiece`, `GridState`. Keep mutatio
 
 ---
 
-## changes requested:
+## Design Decisions
 
-1. `EdgeSide` should not exists, desired edge orientation can be expressed via `Orientation` directly,
-   after deciding which is a canonical side for each piece type (eg flat on top for edge pieces, flats on top+left for corner pieces).
-2. keep `PieceType` enum but remove `PlaceType`, as they are redundant.
-3. create a more complex `OrientedPieceType` (base model) that has as attributes both `PieceType` and the `Orientation` for that photographed piece or grid slot.
-4. in orientation utils for the grid, the dict mapping grid positions to desired orientations should map to `OrientedPieceType` instead of `EdgeSide`. Only one dict is needed, mapping (row,col) to desired `OrientedPieceType`.
-5. during `Piece` init, derive and store its `OrientedPieceType` based on flat edge count and detected flat edge sides.
-6. `compute_rotation` should take two `OrientedPieceType` instead of `EdgeSide`, then compute the rotation (as orientation) needed to align the piece's base orientation to the target orientation.
-7. `rotate_segments` should not exist, instead provide either
-  - a method on `Piece` that returns the requested segment (as `EdgePos`) considering a target orientation
-  - a segment id builder that computes the right EdgePos based on target orientation and requested EdgePos in original orientation.
-8. exclude `swap` and `swap_and_reorient(pos1, pos2)` from `PlacementState`
+1. **No `EdgeSide` enum** – desired edge orientation expressed via `Orientation` directly, using canonical flat-side conventions:
+   - Edge pieces: flat on TOP (canonical)
+   - Corner pieces: flats on TOP + LEFT (canonical)
+2. **No `PlaceType` enum** – redundant with `PieceType`; use `PieceType` for both pieces and grid slots.
+3. **`OrientedPieceType` model** – combines `PieceType` + `Orientation` to describe both photographed pieces and grid slot requirements.
+4. **Single grid dict** – maps `(row, col)` → `OrientedPieceType` (desired type & orientation for that slot).
+5. **Piece stores its `OrientedPieceType`** – derived at init from flat edge count and detected flat edge positions.
+6. **Segment access via rotation** – no `rotate_segments` function; instead provide:
+   - Method on `Piece` to get segment at a given `EdgePos` considering a target orientation, OR
+   - Segment ID builder that computes the correct `EdgePos` given target orientation and requested position.
+7. **No swap helpers on `PlacementState`** – swapping logic handled externally by solver.
+
+---
 
 ## Plan
 
 ### Phase 1: Core Enums & Types
 
-1. [ ] Create `Orientation` enum (0, 90, 180, 270) with rotation arithmetic (`__add__`, `__sub__`)
-2. [ ] Create `PlaceType` enum (CORNER, EDGE, INNER)
-3. [ ] Create `EdgeSide` enum (TOP, RIGHT, BOTTOM, LEFT) for desired edge orientation on grid boundary
-4. [ ] Create `PieceType` enum mirroring `PlaceType` (derived from flat-edge count)
+1. [ ] Create `Orientation` enum (0, 90, 180, 270) with rotation arithmetic (`__add__`, `__sub__`, modular)
+2. [ ] Create `PieceType` enum (CORNER, EDGE, INNER) – used for both pieces and grid slots
+3. [ ] Create `OrientedPieceType` Pydantic model with:
+   - `piece_type: PieceType`
+   - `orientation: Orientation` (canonical flat-side orientation)
 
 ### Phase 2: Orientation Utilities (`orientation_utils.py`)
 
-5. [ ] `get_piece_type(flat_edge_count: int) -> PieceType` – classify piece
-6. [ ] `get_base_edge_orientation(piece: Piece) -> EdgeSide` – detect which side has the flat edge(s)
-7. [ ] `compute_rotation(base: EdgeSide, target: EdgeSide) -> Orientation` – rotation needed to align
-8. [ ] `rotate_segments(segments: list[SegID], orientation: Orientation) -> list[SegID]` – reorder segment list for rotated piece (index shift)
+4. [ ] `get_piece_type(flat_edge_count: int) -> PieceType` – classify piece (0 flat → INNER, 1 flat → EDGE, 2 flat → CORNER)
+5. [ ] `detect_base_orientation(flat_edge_positions: list[EdgePos]) -> Orientation` – determine piece's photographed orientation relative to canonical
+6. [ ] `compute_rotation(piece: OrientedPieceType, target: OrientedPieceType) -> Orientation` – rotation needed to align piece's base orientation to target slot orientation
+7. [ ] `get_rotated_edge_pos(original_pos: EdgePos, rotation: Orientation) -> EdgePos` – compute effective edge position after rotation
 
-### Phase 3: Grid Structure (`GridModel`)
+### Phase 3: Piece Integration
 
-9. [ ] `GridModel.__init__(rows: int, cols: int)` – store dimensions
-10. [ ] Internal structures:
-    - `_place_types: dict[tuple[int,int], PlaceType]` – computed once from position
-    - `_edge_sides: dict[tuple[int,int], EdgeSide | None]` – boundary cells only
-    - Pre-built lists: `corners`, `edges`, `inners` for fast iteration
-11. [ ] `get_place_type(row, col) -> PlaceType`
-12. [ ] `get_required_edge_side(row, col) -> EdgeSide | None` – which side must be flat (for edge/corner cells)
+8. [ ] During `Piece` init (or post-processing), derive and store `OrientedPieceType`:
+   - Count flat edges → `PieceType`
+   - Detect flat edge positions → base `Orientation`
+9. [ ] Add method `Piece.get_segment_at(edge_pos: EdgePos, rotation: Orientation) -> Segment` – returns segment considering rotation
+
+### Phase 4: Grid Structure (`GridModel`)
+
+10. [ ] `GridModel.__init__(rows: int, cols: int)` – store dimensions
+11. [ ] Internal structures:
+    - `_slot_types: dict[tuple[int,int], OrientedPieceType]` – computed once from position
+    - Pre-built position lists: `corners: list[tuple[int,int]]`, `edges: list[...]`, `inners: list[...]`
+12. [ ] `get_slot_type(row, col) -> OrientedPieceType` – returns required piece type and orientation for slot
 13. [ ] `neighbors(row, col) -> list[tuple[int,int]]` – adjacent positions (up to 4)
-14. [ ] `neighbor_pairs() -> Iterator[((r1,c1),(r2,c2))]` – all adjacent pairs for scoring
+14. [ ] `neighbor_pairs() -> Iterator[tuple[tuple[int,int], tuple[int,int]]]` – all adjacent pairs for scoring
 
-### Phase 4: Placement State (`PlacementState`)
+### Phase 5: Placement State (`PlacementState`)
 
-Mutable container optimized for swaps.
+Mutable container for piece assignments.
 
 15. [ ] `PlacementState.__init__(grid: GridModel)`
 16. [ ] Internal structures:
     - `_grid: GridModel` (reference)
-    - `_placements: dict[tuple[int,int], tuple[PieceID, Orientation]]` – position → (piece, rot)
+    - `_placements: dict[tuple[int,int], tuple[PieceID, Orientation]]` – position → (piece, rotation)
     - `_positions: dict[PieceID, tuple[int,int]]` – piece → position (reverse lookup)
-17. [ ] `place(piece_id, row, col, orientation)` – assign piece
-18. [ ] `remove(row, col) -> tuple[PieceID, Orientation] | None`
-19. [ ] `swap(pos1, pos2)` – swap two placements in O(1), keep orientations
-20. [ ] `swap_and_reorient(pos1, pos2)` – swap and auto-compute new orientations for boundary fit
-21. [ ] `get_placement(row, col) -> tuple[PieceID, Orientation] | None`
-22. [ ] `get_position(piece_id) -> tuple[int,int] | None`
-23. [ ] `is_complete() -> bool` – all cells filled
-24. [ ] `clone() -> PlacementState` – shallow copy for branching (if needed)
+17. [ ] `place(piece_id: PieceID, row: int, col: int, orientation: Orientation)` – assign piece to slot
+18. [ ] `remove(row: int, col: int) -> tuple[PieceID, Orientation] | None` – remove and return placement
+19. [ ] `get_placement(row, col) -> tuple[PieceID, Orientation] | None`
+20. [ ] `get_position(piece_id) -> tuple[int,int] | None`
+21. [ ] `is_complete() -> bool` – all cells filled
+22. [ ] `clone() -> PlacementState` – shallow copy for branching (if needed)
 
-### Phase 5: Scoring Integration
+### Phase 6: Scoring Integration
 
 Leverage existing `PieceMatcher._lookup` cache.
 
-25. [ ] Add `PieceMatcher.get_cached_score(seg_a: SegID, seg_b: SegID) -> float | None` – public getter for cached pair score
-26. [ ] `score_edge(state, pos1, pos2, piece_registry, matcher) -> float` – score one adjacency using rotated segments
-27. [ ] `score_grid(state, piece_registry, matcher) -> float` – sum over all neighbor pairs
-28. [ ] Optional: `ScoreCache` wrapper to memoize per-placement scores and invalidate on swap
+23. [ ] Add `PieceMatcher.get_cached_score(seg_a: SegID, seg_b: SegID) -> float | None` – public getter for cached pair score
+24. [ ] `score_edge(state, pos1, pos2, piece_registry, matcher) -> float` – score one adjacency using rotated segment access
+25. [ ] `score_grid(state, piece_registry, matcher) -> float` – sum over all neighbor pairs
+26. [ ] Optional: `ScoreCache` wrapper to memoize per-placement scores and invalidate on changes
 
-### Phase 6: Prototype Notebook
+### Phase 7: Prototype Notebook
 
-29. [ ] `01_grid_model.ipynb` – build & validate `GridModel`, `PlacementState`
-30. [ ] `02_scoring.ipynb` – end-to-end scoring with real pieces
+27. [ ] `01_grid_model.ipynb` – build & validate `Orientation`, `OrientedPieceType`, `GridModel`, `PlacementState`
+28. [ ] `02_scoring.ipynb` – end-to-end scoring with real pieces
 
-### Phase 7: Promote to `src/`
+### Phase 8: Promote to `src/`
 
-31. [ ] Move validated modules to `src/snap_fit/grid/`
-32. [ ] Add unit tests in `tests/grid/`
-
----
-
-## Open Questions
-
-- **Orientation storage:** Store rotation per piece, or store already-rotated segment order? (Propose: store rotation, compute segments on demand)
-  answer: store rotation, compute segments on demand
-- **Flat-edge detection:** Is flat-edge info already on `Piece`/`Segment`, or needs derivation from contour? (Need to check existing code)
-  answer: already derived during piece processing
-- **Score invalidation:** On swap, only two rows of edges change. Worth tracking dirty pairs, or just recompute full grid? (Depends on grid size; start simple, optimize later)
-  answer: start simple, optimize later
+29. [ ] Move validated modules to `src/snap_fit/grid/`
+30. [ ] Add unit tests in `tests/grid/`
 
 ---
 
-Let me know if you'd like to refine any tasks or add detail to specific phases.
+## Resolved Questions
+
+- **Orientation storage:** Store rotation per placement, compute segment access on demand ✓
+- **Flat-edge detection:** Already derived during piece processing ✓
+- **Score invalidation:** Start simple (recompute full grid), optimize later ✓
