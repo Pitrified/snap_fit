@@ -71,3 +71,18 @@ class PieceMatcher:
             for res in self._results
             if piece_id in {res.seg_id1.piece_id, res.seg_id2.piece_id}
         ]
+
+    def get_cached_score(self, seg_a: SegmentId, seg_b: SegmentId) -> float | None:
+        """Get cached match score for a segment pair if available.
+
+        Args:
+            seg_a: First segment ID.
+            seg_b: Second segment ID.
+
+        Returns:
+            The similarity score if cached, None otherwise.
+        """
+        pair = frozenset({seg_a, seg_b})
+        if pair in self._lookup:
+            return self._lookup[pair].similarity
+        return None

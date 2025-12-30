@@ -93,23 +93,24 @@ Lean on Pydantic models for `GridCell`, `PlacedPiece`, `GridState`. Keep mutatio
 
 ## Plan
 
-### Phase 1: Core Enums & Types
+### Phase 1: Core Enums & Types ✅
 
-1. [ ] Create `Orientation` enum (0, 90, 180, 270) with rotation arithmetic (`__add__`, `__sub__`, modular)
-2. [ ] Create `PieceType` enum (CORNER, EDGE, INNER) – used for both pieces and grid slots
-3. [ ] Create `GridPos` Pydantic model with:
+1. [x] Create `Orientation` enum (0, 90, 180, 270) with rotation arithmetic (`__add__`, `__sub__`, modular)
+2. [x] Create `PieceType` enum (CORNER, EDGE, INNER) – used for both pieces and grid slots
+3. [x] Create `GridPos` Pydantic model with:
    - `ro: int` (row)
    - `co: int` (column)
-4. [ ] Create `OrientedPieceType` Pydantic model with:
+4. [x] Create `OrientedPieceType` Pydantic model with:
    - `piece_type: PieceType`
    - `orientation: Orientation` (canonical flat-side orientation)
 
-### Phase 2: Orientation Utilities (`orientation_utils.py`)
+### Phase 2: Orientation Utilities (`orientation_utils.py`) ✅
 
-5. [ ] `get_piece_type(flat_edge_count: int) -> PieceType` – classify piece (0 flat → INNER, 1 flat → EDGE, 2 flat → CORNER)
-6. [ ] `detect_base_orientation(flat_edge_positions: list[EdgePos]) -> Orientation` – determine piece's photographed orientation relative to canonical
-7. [ ] `compute_rotation(piece: OrientedPieceType, target: OrientedPieceType) -> Orientation` – rotation needed to align piece's base orientation to target slot orientation
-8. [ ] `get_rotated_edge_pos(original_pos: EdgePos, rotation: Orientation) -> EdgePos` – compute effective edge position after rotation
+5. [x] `get_piece_type(flat_edge_count: int) -> PieceType` – classify piece (0 flat → INNER, 1 flat → EDGE, 2 flat → CORNER)
+6. [x] `detect_base_orientation(flat_edge_positions: list[EdgePos]) -> Orientation` – determine piece's photographed orientation relative to canonical
+7. [x] `compute_rotation(piece: OrientedPieceType, target: OrientedPieceType) -> Orientation` – rotation needed to align piece's base orientation to target slot orientation
+8. [x] `get_rotated_edge_pos(original_pos: EdgePos, rotation: Orientation) -> EdgePos` – compute effective edge position after rotation
+   - Also added `get_original_edge_pos()` for inverse operation
 
 ### Phase 3: Piece Integration
 
@@ -118,39 +119,42 @@ Lean on Pydantic models for `GridCell`, `PlacedPiece`, `GridState`. Keep mutatio
    - Detect flat edge positions → base `Orientation`
 10. [ ] Add method `Piece.get_segment_at(edge_pos: EdgePos, rotation: Orientation) -> Segment` – returns segment considering rotation
 
-### Phase 4: Grid Structure (`GridModel`)
+### Phase 4: Grid Structure (`GridModel`) ✅
 
-11. [ ] `GridModel.__init__(rows: int, cols: int)` – store dimensions
-12. [ ] Internal structures:
+11. [x] `GridModel.__init__(rows: int, cols: int)` – store dimensions
+12. [x] Internal structures:
     - `_slot_types: dict[GridPos, OrientedPieceType]` – computed once from position
     - Pre-built position lists: `corners: list[GridPos]`, `edges: list[GridPos]`, `inners: list[GridPos]`
-13. [ ] `get_slot_type(pos: GridPos) -> OrientedPieceType` – returns required piece type and orientation for slot
-14. [ ] `neighbors(pos: GridPos) -> list[GridPos]` – adjacent positions (up to 4)
-15. [ ] `neighbor_pairs() -> Iterator[tuple[GridPos, GridPos]]` – all adjacent pairs for scoring
+13. [x] `get_slot_type(pos: GridPos) -> OrientedPieceType` – returns required piece type and orientation for slot
+14. [x] `neighbors(pos: GridPos) -> list[GridPos]` – adjacent positions (up to 4)
+15. [x] `neighbor_pairs() -> Iterator[tuple[GridPos, GridPos]]` – all adjacent pairs for scoring
+    - Also added `all_positions()`, `total_cells`, `total_edges`
 
-### Phase 5: Placement State (`PlacementState`)
+### Phase 5: Placement State (`PlacementState`) ✅
 
 Mutable container for piece assignments.
 
-16. [ ] `PlacementState.__init__(grid: GridModel)`
-17. [ ] Internal structures:
+16. [x] `PlacementState.__init__(grid: GridModel)`
+17. [x] Internal structures:
     - `_grid: GridModel` (reference)
     - `_placements: dict[GridPos, tuple[PieceID, Orientation]]` – position → (piece, rotation)
     - `_positions: dict[PieceID, GridPos]` – piece → position (reverse lookup)
-18. [ ] `place(piece_id: PieceID, pos: GridPos, orientation: Orientation)` – assign piece to slot
-19. [ ] `remove(pos: GridPos) -> tuple[PieceID, Orientation] | None` – remove and return placement
-20. [ ] `get_placement(pos: GridPos) -> tuple[PieceID, Orientation] | None`
-21. [ ] `get_position(piece_id: PieceID) -> GridPos | None`
-22. [ ] `is_complete() -> bool` – all cells filled
-23. [ ] `clone() -> PlacementState` – shallow copy for branching (if needed)
+18. [x] `place(piece_id: PieceID, pos: GridPos, orientation: Orientation)` – assign piece to slot
+19. [x] `remove(pos: GridPos) -> tuple[PieceID, Orientation] | None` – remove and return placement
+20. [x] `get_placement(pos: GridPos) -> tuple[PieceID, Orientation] | None`
+21. [x] `get_position(piece_id: PieceID) -> GridPos | None`
+22. [x] `is_complete() -> bool` – all cells filled
+23. [x] `clone() -> PlacementState` – shallow copy for branching (if needed)
+    - Also added `placed_count`, `empty_count`, `empty_positions()`, `placed_pieces()`
 
-### Phase 6: Scoring Integration
+### Phase 6: Scoring Integration ✅
 
 Leverage existing `PieceMatcher._lookup` cache.
 
-24. [ ] Add `PieceMatcher.get_cached_score(seg_a: SegID, seg_b: SegID) -> float | None` – public getter for cached pair score
-25. [ ] `score_edge(state: PlacementState, pos1: GridPos, pos2: GridPos, piece_registry, matcher) -> float` – score one adjacency using rotated segment access
-26. [ ] `score_grid(state: PlacementState, piece_registry, matcher) -> float` – sum over all neighbor pairs
+24. [x] Add `PieceMatcher.get_cached_score(seg_a: SegID, seg_b: SegID) -> float | None` – public getter for cached pair score
+25. [x] `score_edge(state: PlacementState, pos1: GridPos, pos2: GridPos, matcher) -> float` – score one adjacency using rotated segment access
+26. [x] `score_grid(state: PlacementState, matcher) -> float` – sum over all neighbor pairs
+    - Also added `score_grid_with_details()` for per-edge breakdown
 27. [ ] Optional: `ScoreCache` wrapper to memoize per-placement scores and invalidate on changes
 
 ### Phase 7: Prototype Notebook
@@ -158,10 +162,10 @@ Leverage existing `PieceMatcher._lookup` cache.
 28. [ ] `01_grid_model.ipynb` – build & validate `Orientation`, `GridPos`, `OrientedPieceType`, `GridModel`, `PlacementState`
 29. [ ] `02_scoring.ipynb` – end-to-end scoring with real pieces
 
-### Phase 8: Promote to `src/`
+### Phase 8: Promote to `src/` ✅
 
-30. [ ] Move validated modules to `src/snap_fit/grid/`
-31. [ ] Add unit tests in `tests/grid/`
+30. [x] Move validated modules to `src/snap_fit/grid/`
+31. [x] Add unit tests in `tests/grid/` (71 tests passing)
 
 ---
 
