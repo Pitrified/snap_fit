@@ -60,108 +60,133 @@ The Naive Linear Solver will implement a straightforward row-by-row puzzle assem
 
 ### Selected Approach: Option A - Greedy Best-Match Strategy
 
-This plan implements a simple row-by-row assembly using greedy best-match selection. The solver will make locally optimal choices at each position without backtracking.
+This plan implements a simple row-by-row assembly using greedy best-match selection. The solver leverages existing classes from the codebase for grid management and piece positioning.
 
 ### Phase 1: Core Solver Class
 
 1. [ ] **Define `NaiveLinearSolver` Class**
 
    - Create `src/snap_fit/puzzle/naive_linear_solver.py`.
-   - `__init__(self, manager: SheetManager, matcher: PieceMatcher)`: Store references to manager and matcher.
-   - Store puzzle dimensions: `self.rows`, `self.cols` (inferred from piece count or configured).
-   - Track placement state: `self.grid: dict[tuple[int, int], PieceId]` for (row, col) → placed piece.
-   - Track available pieces: `self.available: set[PieceId]` (initially all pieces from manager).
+   - `__init__(self, manager: SheetManager, matcher: PieceMatcher, puzzle_config: PuzzleConfig)`:
+     - Store references to manager, matcher, and puzzle_config.
+     - Use `puzzle_config.tiles_x` and `puzzle_config.tiles_y` for grid dimensions.
+   - Use `PuzzleGenerator`'s row/col positioning model internally:
+     - `self.solution: dict[tuple[int, int], PieceId]` maps (row, col) → placed piece.
+     - `self.available: set[PieceId]` tracks unplaced pieces.
 
-2. [ ] **Implement Piece Selection Methods**
+2. [ ] **Implement Piece Type Identification**
 
-   - `get_corner_pieces(self) -> list[PieceId]`: Return pieces with 2 edge segments.
-   - `get_edge_pieces(self) -> list[PieceId]`: Return pieces with 1 edge segment.
-   - `get_inner_pieces(self) -> list[PieceId]`: Return pieces with 0 edge segments.
-   - Use `SheetManager` to query segment information for each piece.
+   - `count_edge_segments(self, piece: Piece) -> int`:
+     - Count segments where `segment.shape == SegmentShape.EDGE`.
+     - Use `piece.segments` dict (keyed by `EdgePos`) from the `Piece` class.
+   - `is_corner_piece(self, piece: Piece) -> bool`: Returns `True` if edge count == 2.
+   - `is_edge_piece(self, piece: Piece) -> bool`: Returns `True` if edge count == 1.
+   - `is_inner_piece(self, piece: Piece) -> bool`: Returns `True` if edge count == 0.
 
-3. [ ] **Implement Position Constraint Checking**
+3. [ ] **Implement Position Validation**
 
-   - `is_valid_for_position(self, piece_id: PieceId, row: int, col: int) -> bool`:
-     - Check if piece has correct number of edges for the position (corner/edge/inner).
-     - Corner positions (0,0), (0, cols-1), (rows-1, 0), (rows-1, cols-1): Need 2 edge segments.
-     - Edge positions (row=0, row=rows-1, col=0, col=cols-1): Need 1 edge segment.
-     - Inner positions: Need 0 edge segments.
+   - `get_required_edge_count(self, row: int, col: int) -> int`:
+     - Use `puzzle_config.tiles_x` and `puzzle_config.tiles_y` for bounds.
+     - Corner positions: Return 2.
+     - Edge positions: Return 1.
+     - Inner positions: Return 0.
+   - `is_valid_for_position(self, piece: Piece, row: int, col: int) -> bool`:
+     - Check if `count_edge_segments(piece) == get_required_edge_count(row, col)`.
 
 ### Phase 2: Match Scoring
 
-4. [ ] **Implement Match Scoring for Position**
+4. [ ] **Implement Neighbor Segment Retrieval**
 
-   - `score_piece_for_position(self, piece_id: PieceId, row: int, col: int) -> float`:
-     - If piece doesn't satisfy position constraints, return -inf.
-     - Calculate combined similarity score considering:
-       - **Left neighbor**: If col > 0, get match score between piece's left segment and placed neighbor's right segment.
-       - **Top neighbor**: If row > 0, get match score between piece's top segment and placed neighbor's bottom segment.
-     - Return average of available neighbor scores (or 0.0 if no neighbors yet).
-   - Use `PieceMatcher.get_match(seg_id1, seg_id2)` to retrieve precomputed scores.
+   - `get_neighbor_segment_id(self, row: int, col: int, direction: EdgePos) -> SegmentId | None`:
+     - Given current position and direction (LEFT or TOP), return the segment ID of the neighbor.
+     - For LEFT neighbor: Get piece at (row, col-1), return its RIGHT segment.
+     - For TOP neighbor: Get piece at (row-1, col), return its BOTTOM segment.
+     - Use `SegmentId(piece_id=neighbor_piece_id, edge_pos=edge_pos)`.
 
-5. [ ] **Implement Best Piece Selection**
+5. [ ] **Implement Match Scoring for Position**
 
-   - `find_best_piece_for_position(self, row: int, col: int) -> PieceId | None`:
-     - Iterate over all `self.available` pieces.
-     - Score each piece using `score_piece_for_position`.
-     - Return piece with highest score (or None if no valid pieces).
+   - `score_piece_for_position(self, piece: Piece, row: int, col: int) -> float`:
+     - If not `is_valid_for_position`, return `float('inf')` (poor match).
+     - Collect neighbor scores:
+       - If col > 0: Get LEFT neighbor's segment, query `matcher._lookup` for match with piece's LEFT segment.
+       - If row > 0: Get TOP neighbor's segment, query `matcher._lookup` for match with piece's TOP segment.
+     - Return average similarity of available neighbors (lower is better).
+     - If no neighbors yet (first piece), return 0.0.
+
+6. [ ] **Implement Best Piece Selection**
+
+   - `find_best_piece_for_position(self, row: int, col: int) -> Piece | None`:
+     - Iterate over `self.available` piece IDs.
+     - Use `manager.get_piece(piece_id)` to retrieve each piece.
+     - Score each using `score_piece_for_position`.
+     - Return piece with lowest score (best match).
 
 ### Phase 3: Assembly Algorithm
 
-6. [ ] **Implement Row-by-Row Assembly**
+7. [ ] **Implement Row-by-Row Assembly**
 
    - `solve(self) -> bool`:
-     - **Step 1**: Randomly select a corner piece for position (0, 0).
-     - **Step 2**: For each position in row-major order (row 0 → rows-1, col 0 → cols-1):
+     - **Step 1**: Randomly select a corner piece for position (0, 0):
+       - Filter `available` pieces by `is_corner_piece`.
+       - Select one randomly.
+     - **Step 2**: Iterate positions row-major order (row 0 → tiles_y-1, col 0 → tiles_x-1):
        - Find best piece using `find_best_piece_for_position`.
-       - If no valid piece found, return False (failure).
-       - Place piece: Update `self.grid[(row, col)]` and remove from `self.available`.
+       - If no valid piece found, return False (unsolvable).
+       - Place piece: Update `self.solution[(row, col)]` and remove from `self.available`.
      - **Step 3**: Return True when all positions filled.
 
-7. [ ] **Implement Result Retrieval**
+8. [ ] **Implement Result Access**
 
-   - `get_solution(self) -> dict[tuple[int, int], PieceId]`: Return copy of `self.grid`.
-   - `get_solution_as_list(self) -> list[list[PieceId]]`: Return 2D list representation of solution.
+   - `get_solution(self) -> dict[tuple[int, int], PieceId]`: Return copy of solution dict.
+   - `get_solution_grid(self) -> list[list[PieceId | None]]`:
+     - Return 2D list representation for visualization.
+     - Consistent with `PuzzleGenerator`'s row/col indexing.
 
 ### Phase 4: Validation & Testing
 
-8. [ ] **Create Prototype Notebook**
+9. [ ] **Create Prototype Notebook**
 
    - Create `scratch_space/naive_linear_solver/01_naive_solver.ipynb`:
-     - Load test puzzle sheets using `SheetManager`.
-     - Compute matches using `PieceMatcher`.
-     - Initialize and run `NaiveLinearSolver`.
-     - Visualize solution grid.
-     - Report success rate and quality metrics.
+     - Generate synthetic puzzle using `PuzzleGenerator` with known solution.
+     - Use `PuzzleRasterizer` to rasterize pieces to images.
+     - Load pieces into `SheetManager`.
+     - Compute matches using `PieceMatcher.match_all()`.
+     - Initialize solver with `PuzzleConfig` from generator.
+     - Run `solve()` and compare with ground truth.
+     - Report accuracy metrics.
 
-9. [ ] **Create Usage Notebook**
+10. [ ] **Create Usage Notebook**
 
-   - Create `scratch_space/naive_linear_solver/02_usage.ipynb`:
-     - End-to-end workflow demonstration.
-     - Load puzzle from generated sheets.
-     - Run solver and display results.
-     - Compare with ground truth if available.
+    - Create `scratch_space/naive_linear_solver/02_usage.ipynb`:
+      - End-to-end demonstration with photographed puzzle sheets.
+      - Load using `SheetAruco` → `SheetManager`.
+      - Estimate puzzle dimensions (or accept as input).
+      - Run solver and visualize results.
 
-10. [ ] **Add Unit Tests**
+11. [ ] **Add Unit Tests**
+
     - Create `tests/puzzle/test_naive_linear_solver.py`:
-      - Test piece type identification (corner/edge/inner).
-      - Test position constraint validation.
-      - Test scoring logic with mock matches.
-      - Test small puzzle (3×3) with perfect match data.
-      - Test failure handling when no valid pieces available.
+      - Test piece type identification using mock pieces with varying edge counts.
+      - Test position validation logic.
+      - Test small 2×2 puzzle with perfect match data.
+      - Test failure handling when no valid pieces remain.
 
-### Phase 5: Integration
+### Phase 5: Integration & Documentation
 
-11. [ ] **Document Dependencies**
+12. [ ] **Integration with Existing Models**
 
-    - Depends on `SheetManager` for piece access.
-    - Depends on `PieceMatcher` for precomputed match scores.
-    - Uses `SegmentId` and `PieceId` for identification.
+    - Leverages `PuzzleConfig` for grid dimensions and piece sizing.
+    - Uses `PuzzlePiece.row` and `PuzzlePiece.col` for reference positioning.
+    - Integrates with `SheetManager` for piece access via `PieceId`.
+    - Uses `PieceMatcher` precomputed results via `_lookup` dict.
+    - Respects `EdgePos` enum for direction handling.
 
-12. [ ] **Add Example Usage to README**
-    - Include code snippet showing typical usage pattern.
-    - Document expected inputs and outputs.
-    - Note limitations of greedy approach.
+13. [ ] **Add Usage Documentation**
+
+    - Document constructor parameters and their purpose.
+    - Provide example showing full pipeline from generation to solving.
+    - Note assumptions: requires `PuzzleConfig` matching actual puzzle dimensions.
+    - Document limitations of greedy approach.
 
 ---
 
@@ -173,17 +198,38 @@ src/snap_fit/puzzle/
 
 scratch_space/naive_linear_solver/
 ├── README.md                  # This file
-├── 01_naive_solver.ipynb     # Prototype and testing
-└── 02_usage.ipynb            # End-to-end demonstration
+├── 01_naive_solver.ipynb     # Prototype with synthetic puzzles
+└── 02_usage.ipynb            # Real puzzle solving workflow
 
 tests/puzzle/
 └── test_naive_linear_solver.py
 ```
 
+## Integration Points
+
+**Reuses Existing Classes:**
+
+- `PuzzleConfig`: Provides `tiles_x`, `tiles_y` for grid dimensions
+- `PuzzleGenerator`: Reference model for row/col positioning
+- `PuzzlePiece`: Has `row`, `col` attributes for ground truth comparison
+- `SheetManager`: Provides piece access and segment retrieval
+- `PieceMatcher`: Supplies precomputed match scores via `_lookup`
+- `Piece`: Has `segments` dict with `EdgePos` → `Segment` mapping
+- `SegmentShape.EDGE`: Identifies border segments
+- `EdgePos`: Enum for directional navigation (LEFT, RIGHT, TOP, BOTTOM)
+
+**Key Design Decisions:**
+
+- Grid coordinates match `PuzzleGenerator` convention: (0, 0) is top-left
+- Edge identification uses `SegmentShape.EDGE` from existing `Segment` class
+- Match scores retrieved from `PieceMatcher._lookup` (frozenset-based symmetry)
+- Solution representation uses (row, col) tuples for consistency
+
 ## Implementation Notes
 
-- **Greedy Nature**: This solver makes irrevocable placement decisions. Once a piece is placed, it's never reconsidered.
-- **Match Quality Dependency**: Success heavily depends on `PieceMatcher` producing accurate similarity scores.
-- **Failure Mode**: If the greedy approach places wrong pieces early, it may be unable to complete the puzzle (no valid pieces for later positions).
-- **Performance**: Fast execution - O(n²) for n pieces (each position evaluates remaining pieces once).
-- **Baseline**: This serves as a baseline to compare against more sophisticated solvers (Options B and C).
+- **Greedy Nature**: Makes irrevocable placement decisions without backtracking.
+- **Match Quality Dependency**: Success depends on `PieceMatcher` accuracy.
+- **Failure Mode**: May fail to complete if wrong pieces placed early.
+- **Performance**: O(n²) for n pieces—each position evaluates remaining pieces once.
+- **Baseline Purpose**: Establishes performance baseline for Options B and C.
+- **Ground Truth Validation**: Can compare solution to `PuzzlePiece.row`, `PuzzlePiece.col` when using generated puzzles.
