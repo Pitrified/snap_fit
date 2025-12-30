@@ -84,7 +84,10 @@ Lean on Pydantic models for `GridCell`, `PlacedPiece`, `GridState`. Keep mutatio
 4. in orientation utils for the grid, the dict mapping grid positions to desired orientations should map to `OrientedPieceType` instead of `EdgeSide`. Only one dict is needed, mapping (row,col) to desired `OrientedPieceType`.
 5. during `Piece` init, derive and store its `OrientedPieceType` based on flat edge count and detected flat edge sides.
 6. `compute_rotation` should take two `OrientedPieceType` instead of `EdgeSide`, then compute the rotation (as orientation) needed to align the piece's base orientation to the target orientation.
-7. `rotate_segments` should not exist, instead provide a method on `Piece` that returns the requested segment (as `EdgePos`) considering a target orientation. Or consider just a segment id builder that computes the right EdgePos based on target orientation and requested EdgePos in original orientation.
+7. `rotate_segments` should not exist, instead provide either
+  - a method on `Piece` that returns the requested segment (as `EdgePos`) considering a target orientation
+  - a segment id builder that computes the right EdgePos based on target orientation and requested EdgePos in original orientation.
+8. exclude `swap` and `swap_and_reorient(pos1, pos2)` from `PlacementState`
 
 ## Plan
 
