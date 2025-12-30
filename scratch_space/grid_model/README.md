@@ -158,15 +158,17 @@ Leverage existing `PieceMatcher._lookup` cache.
     - Also added `score_grid_with_details()` for per-edge breakdown
 27. [ ] Optional: `ScoreCache` wrapper to memoize per-placement scores and invalidate on changes
 
-### Phase 7: Prototype Notebook
+### Phase 7: Prototype Notebook ✅
 
-28. [ ] `01_grid_model.ipynb` – build & validate `Orientation`, `GridPos`, `OrientedPieceType`, `GridModel`, `PlacementState`
-29. [ ] `02_scoring.ipynb` – end-to-end scoring with real pieces
+Use scratch_space/feature_sample/01_sample.ipynb as reference for structuring a notebook.
+
+28. [x] `01_grid_model.ipynb` – build & validate `Orientation`, `GridPos`, `OrientedPieceType`, `GridModel`, `PlacementState`
+29. [x] `02_scoring.ipynb` – end-to-end scoring with real pieces
 
 ### Phase 8: Promote to `src/` ✅
 
 30. [x] Move validated modules to `src/snap_fit/grid/`
-31. [x] Add unit tests in `tests/grid/` (71 tests passing)
+31. [x] Add unit tests in `tests/grid/` (78 tests passing)
 
 ---
 
