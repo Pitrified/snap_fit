@@ -2,7 +2,6 @@
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING
 from typing import Self
 
 import cv2
@@ -12,16 +11,20 @@ import numpy as np
 
 from snap_fit.config.types import CornerPos
 from snap_fit.config.types import EdgePos
+from snap_fit.config.types import SegmentShape
 from snap_fit.data_models.piece_id import PieceId
+from snap_fit.grid.orientation import Orientation
+from snap_fit.grid.orientation import OrientedPieceType
+from snap_fit.grid.orientation_utils import detect_base_orientation
+from snap_fit.grid.orientation_utils import get_original_edge_pos
+from snap_fit.grid.orientation_utils import get_piece_type
 from snap_fit.image.contour import Contour
 from snap_fit.image.process import convert_to_grayscale
+from snap_fit.image.segment import Segment
 from snap_fit.image.utils import cut_rect_from_image
 from snap_fit.image.utils import draw_line
 from snap_fit.image.utils import find_corner
 from snap_fit.image.utils import pad_rect
-
-if TYPE_CHECKING:
-    from snap_fit.image.segment import Segment
 
 
 @dataclass
@@ -148,6 +151,56 @@ class Piece:
         self.contour.build_segments(self.corners)
         # for ease of access, store the segments as attributes
         self.segments: dict[EdgePos, Segment] = self.contour.segments
+
+        # Derive OrientedPieceType after segments are built
+        self._derive_oriented_piece_type()
+
+    def _derive_oriented_piece_type(self) -> None:
+        """Derive and store the OrientedPieceType based on flat edges."""
+        # Find which edges are flat (EDGE shape)
+        flat_edges: list[EdgePos] = [
+            edge_pos
+            for edge_pos, segment in self.segments.items()
+            if segment.shape == SegmentShape.EDGE
+        ]
+
+        # Get piece type from flat edge count
+        piece_type = get_piece_type(len(flat_edges))
+
+        # Get base orientation from flat edge positions
+        orientation = detect_base_orientation(flat_edges)
+
+        self.oriented_piece_type = OrientedPieceType(
+            piece_type=piece_type, orientation=orientation
+        )
+
+        # Store flat edges for reference
+        self.flat_edges = flat_edges
+
+    def get_segment_at(
+        self, edge_pos: EdgePos, rotation: Orientation = Orientation.DEG_0
+    ) -> Segment:
+        """Get the segment at a given edge position, considering rotation.
+
+        When a piece is rotated, its edges move to new positions. This method
+        returns the segment that would be at the given edge position after
+        the piece is rotated by the specified amount.
+
+        Args:
+            edge_pos: The edge position to get (in the rotated frame).
+            rotation: The rotation applied to the piece (default: no rotation).
+
+        Returns:
+            The segment at the requested position after rotation.
+
+        Example:
+            If rotation is 90° and edge_pos is TOP, this returns the segment
+            that was originally at LEFT (since rotating 90° clockwise moves
+            LEFT to TOP).
+        """
+        # Get the original edge position before rotation
+        original_pos = get_original_edge_pos(edge_pos, rotation)
+        return self.segments[original_pos]
 
     @property
     def region(self) -> Rect:
