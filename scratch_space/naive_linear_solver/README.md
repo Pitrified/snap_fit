@@ -340,12 +340,12 @@ class NaiveLinearSolver:
 
 ### Migration Steps
 
-1. [ ] Create `src/snap_fit/solver/` directory
-2. [ ] Create `__init__.py` with exports
-3. [ ] Port `NaiveLinearSolver` class to `naive_linear_solver.py`
-4. [ ] Extract helper functions to `utils.py`
-5. [ ] Add type hints and docstrings (Pyright compliance)
-6. [ ] Create `tests/solver/test_naive_linear_solver.py`
-7. [ ] Run `uv run pyright` and fix any type errors
-8. [ ] Run `uv run pytest tests/solver/` to verify
+1. [x] Create `src/snap_fit/solver/` directory
+2. [x] Create `__init__.py` with exports
+3. [x] Port `NaiveLinearSolver` class to `naive_linear_solver.py`
+4. [x] Extract helper functions to `utils.py`
+5. [x] Add type hints and docstrings (Pyright compliance)
+6. [x] Create `tests/solver/test_naive_linear_solver.py`
+7. [x] Run `uv run pyright` and fix any type errors
+8. [x] Run `uv run pytest tests/solver/` to verify (29 tests passing)
 
