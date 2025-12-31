@@ -205,6 +205,14 @@ in done add links to PRs/commits/notebooks/READMEs where the feature was impleme
 write good docs in `__init__.py` files
 then auto-generate markdown files from them
 
+### multiprocess (planned 📋)
+
+run piece matching in parallel
+
+### Shape Classification Fix (planned 📋)
+
+Current shape classification for segments is leading to too many "WEIRD" shapes, causing many valid piece matches to be rejected. We need to improve the shape classification logic to reduce false WEIRD classifications.
+
 ## Legend
 
 - ✅ done
