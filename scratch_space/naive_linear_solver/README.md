@@ -191,12 +191,6 @@ class NaiveLinearSolver:
 - Total score (sum of all edge similarities; lower = better)
 - Optional: per-edge score breakdown via `score_grid_with_details()`
 
-### Testing Strategy
-
-1. **Unit tests** for `_find_best_piece` with mock matcher scores
-2. **Integration test** with a small 3×3 puzzle (known solution)
-3. **Regression test** comparing solver output against hand-verified placements
-
 ### Success Criteria
 
 - Solver completes without errors on valid input
@@ -204,3 +198,154 @@ class NaiveLinearSolver:
 - Each piece used exactly once
 - Score is computed and returned
 - Baseline accuracy established for comparison with future solvers
+
+---
+
+## Prototype Validation Results
+
+The prototype in `01_prototype.ipynb` has been validated:
+
+| Metric | Value |
+|--------|-------|
+| Total Score | **2,581.52** (lower is better) |
+| Pieces Placed | 48/48 |
+| Edges Scored | 82/82 |
+| Max Edge Score | 155.98 |
+| Mean Edge Score | 31.48 |
+| Execution Time | ~3 seconds |
+
+### Known Issue: Weird Edge Shape Detection
+
+During prototyping, 110/192 segments were classified as `WEIRD` shape, which originally caused 1e6 incompatibility penalties. This was resolved by patching `segment.py` to treat `WEIRD` shapes as compatible with `IN`/`OUT` shapes.
+
+See [weird_edge_shape_detection/README.md](../weird_edge_shape_detection/README.md) for full analysis.
+
+Will be solved in later iterations, not now.
+
+---
+
+## Porting Plan to `src/`
+
+### Target Location
+
+```
+src/snap_fit/solver/
+├── __init__.py
+├── naive_linear_solver.py   # Main solver class
+└── utils.py                  # Support functions
+```
+
+### Classes to Port
+
+| Class | Source (Notebook) | Target (src/) | Notes |
+|-------|-------------------|---------------|-------|
+| `NaiveLinearSolver` | `01_prototype.ipynb` | `solver/naive_linear_solver.py` | Main class |
+
+### Support Functions to Extract
+
+These utility functions should be placed in `solver/utils.py`:
+
+| Function | Purpose | Port Strategy |
+|----------|---------|---------------|
+| `get_candidate_orientation()` | Determine valid orientations for a slot | Move to utils |
+| `score_placement()` | Score a piece placement against neighbors | Move to utils |
+| `partition_pieces()` | Split pieces into corners/edges/inners | Already exists in notebook, extract |
+
+### Visualization Functions (Do NOT Port)
+
+Keep these in notebooks only:
+
+| Function | Reason |
+|----------|--------|
+| `render_solved_puzzle()` | Visualization-only, depends on matplotlib |
+| Debug/analysis cells | Interactive exploration |
+
+### Dependencies to Verify
+
+Ensure these imports work in `src/`:
+
+```python
+from snap_fit.grid.grid_model import GridModel
+from snap_fit.grid.placement_state import PlacementState
+from snap_fit.grid.orientation import Orientation, ALL_ORIENTATIONS
+from snap_fit.grid.types import GridPos
+from snap_fit.puzzle.piece_matcher import PieceMatcher
+from snap_fit.data_models.piece_id import PieceId
+from snap_fit.config.types import EdgePos, PieceType
+```
+
+### API Design
+
+```python
+# src/snap_fit/solver/naive_linear_solver.py
+
+from snap_fit.grid.grid_model import GridModel
+from snap_fit.grid.placement_state import PlacementState
+from snap_fit.puzzle.piece_matcher import PieceMatcher
+from snap_fit.data_models.piece_id import PieceId
+
+class NaiveLinearSolver:
+    """Greedy row-by-row puzzle solver using best-match strategy."""
+
+    def __init__(
+        self,
+        grid: GridModel,
+        matcher: PieceMatcher,
+        corners: list[PieceId],
+        edges: list[PieceId],
+        inners: list[PieceId],
+    ) -> None:
+        """Initialize solver with grid model, matcher, and piece partitions.
+        
+        Args:
+            grid: Grid model defining puzzle structure.
+            matcher: Pre-computed piece matcher with cached scores.
+            corners: List of corner piece IDs.
+            edges: List of edge piece IDs.
+            inners: List of inner piece IDs.
+        """
+        ...
+
+    def solve(self) -> PlacementState:
+        """Execute solver and return placement state.
+        
+        Returns:
+            PlacementState with all pieces placed and their orientations.
+        """
+        ...
+
+    def score_solution(self, state: PlacementState) -> float:
+        """Compute total score for a placement state.
+        
+        Args:
+            state: Placement state to score.
+            
+        Returns:
+            Total similarity score (lower is better).
+        """
+        ...
+```
+
+### Testing Strategy for `src/`
+
+1. **Unit Tests** (`tests/solver/test_naive_linear_solver.py`)
+   - Test `_find_best_piece()` with mock scores
+   - Test orientation selection for each slot type
+   - Test piece partitioning validation
+
+2. **Integration Tests**
+   - Test with sample_puzzle_v1 dataset
+   - Verify all pieces placed, no duplicates
+   - Verify score matches prototype results
+
+### Migration Steps
+
+1. [ ] Create `src/snap_fit/solver/` directory
+2. [ ] Create `__init__.py` with exports
+3. [ ] Port `NaiveLinearSolver` class to `naive_linear_solver.py`
+4. [ ] Extract helper functions to `utils.py`
+5. [ ] Add type hints and docstrings (Pyright compliance)
+6. [ ] Create `tests/solver/test_naive_linear_solver.py`
+7. [ ] Run `uv run pyright` and fix any type errors
+8. [ ] Run `uv run pytest tests/solver/` to verify
+
