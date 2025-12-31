@@ -107,9 +107,31 @@ class Segment:
         return self.points.shape[0]
 
     def is_compatible(self, other: Segment) -> bool:
-        """Check if the two segments are compatible."""
+        """Check if the two segments are compatible.
+
+        Compatibility rules:
+        - IN + OUT = compatible (standard puzzle tab/slot fit)
+        - WEIRD + IN/OUT = compatible (allow matching despite classification issues)
+        - WEIRD + WEIRD = compatible (both have uncertain classification)
+        - EDGE + anything = incompatible (flat edges don't interlock)
+        - IN + IN or OUT + OUT = incompatible (same polarity doesn't fit)
+        """
         s = SegmentShape
-        # shapes must be opposite in/out
-        return (self.shape == s.IN and other.shape == s.OUT) or (
+
+        # EDGE segments (flat boundaries) are never compatible with anything
+        if self.shape == s.EDGE or other.shape == s.EDGE:
+            return False
+
+        # Standard IN/OUT compatibility
+        if (self.shape == s.IN and other.shape == s.OUT) or (
             self.shape == s.OUT and other.shape == s.IN
-        )
+        ):
+            return True
+
+        # WEIRD segments are treated as potentially compatible
+        # This allows matching to proceed even when shape classification fails
+        if self.shape == s.WEIRD or other.shape == s.WEIRD:
+            return True
+
+        # Same polarity (IN+IN or OUT+OUT) is incompatible
+        return False
