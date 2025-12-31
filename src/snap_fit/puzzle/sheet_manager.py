@@ -65,7 +65,7 @@ class SheetManager:
             lg.error(f"Folder not found: {folder}")
             return
 
-        files = list(folder.glob(pattern))
+        files = sorted(folder.glob(pattern))
         lg.info(f"Found {len(files)} files matching '{pattern}' in {folder}")
 
         for file_path in files:
