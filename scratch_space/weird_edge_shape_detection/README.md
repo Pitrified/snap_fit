@@ -1,8 +1,44 @@
 # Weird Edge Shape Detection Issue
 
-## Problem Summary
+## Overview
 
 During development of the Naive Linear Solver, we discovered that **110 out of 192 segments (57%)** in the sample puzzle were classified as `WEIRD` shape, causing the `SegmentMatcher` to return `1e6` (incompatible) scores for most edge comparisons.
+
+### Goal
+
+Fix the shape classification algorithm so that most segments are correctly classified as `IN`, `OUT`, or `EDGE` instead of `WEIRD`.
+
+### Proposed Approaches
+
+**Option A: Adaptive Thresholds**
+- Calculate `flat_th` and `count_th` based on segment statistics (std dev, percentile)
+- Pros: Self-adjusting to different puzzle scales and image resolutions
+- Cons: May still fail on genuinely ambiguous shapes
+
+**Option B: Net Displacement / Area-Based Classification**
+- Use signed area or mean displacement from center line instead of counting points
+- Pros: More robust to noise; single metric instead of two thresholds
+- Cons: Needs tuning of area threshold
+
+**Option C: Improved Corner Detection (Upstream Fix)**
+- Fix corner detection so segments don't bisect tabs/slots
+- Pros: Addresses root cause; cleaner segments
+- Cons: More invasive change; may require reprocessing all data
+
+## Plan
+
+1. [x] Create feature branch and planning doc
+2. [ ] Data exploration notebook: load v1 and v2 puzzle data, visualize segment point distributions
+3. [ ] Quantify WEIRD vs IN/OUT/EDGE counts across both datasets
+4. [ ] Visualize problematic segments to understand failure modes
+5. [ ] **USER DECISION**: Select approach (A, B, or C)
+6. [ ] Implement chosen solution in prototype notebook
+7. [ ] Validate fix reduces WEIRD count significantly
+8. [ ] Port fix to `src/snap_fit/image/segment.py`
+
+---
+
+## Problem Details
 
 ## Root Cause
 
