@@ -8,6 +8,18 @@ During development of the Naive Linear Solver, we discovered that **110 out of 1
 
 Fix the shape classification algorithm so that most segments are correctly classified as `IN`, `OUT`, or `EDGE` instead of `WEIRD`.
 
+### ⚠️ Critical Constraint: WEIRD is Safer Than Misclassification
+
+**Misclassifying a segment is WORSE than classifying it as WEIRD.**
+
+- **Wrong IN/OUT**: The matcher computes similarity assuming wrong polarity → bad matches propagate errors
+- **WEIRD fallback**: Triggers more flexible matching methods that don't rely on shape assumption
+
+Therefore, the classification algorithm should:
+1. **Prefer WEIRD over uncertain IN/OUT** - when evidence is ambiguous, default to WEIRD
+2. **Minimize false IN/OUT** - only classify as IN/OUT when confident
+3. **Accept some WEIRD** - a small WEIRD rate is acceptable if it prevents misclassification
+
 ### Proposed Approaches
 
 **Option A: Adaptive Thresholds**
