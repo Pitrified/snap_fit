@@ -13,7 +13,11 @@ sheet = SheetAruco(detector)
 Desired:
 ```python
 # Ideally simpler
-sheet = SheetAruco(config)
+# Build a SheetArucoConfig and pass it to SheetAruco
+from snap_fit.config.aruco.sheet_aruco_config import SheetArucoConfig
+
+sheet_config = SheetArucoConfig(detector=detector_config, min_area=80_000)
+sheet = SheetAruco(sheet_config)
 ```
 
 We need to analyze the configuration structure to support this.

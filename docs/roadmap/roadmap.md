@@ -162,6 +162,10 @@ include a aruco config version number, with aruco config manager class to handle
   - SheetAruco use the new config class
   - load_sheet will not accept min_area anymore
 
+Migration note: introduce `SheetArucoConfig` and update all call sites to
+construct and pass that config to `SheetAruco`. `min_area` is now stored on
+the config and `SheetAruco.load_sheet` no longer accepts a `min_area` argument.
+
 #### Sheet loader config
 
 attach aruco configs?

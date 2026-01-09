@@ -67,11 +67,13 @@ from snap_fit.puzzle.sheet_manager import SheetManager
 manager = SheetManager()
 
 # 1. Define a loader adapter
+from snap_fit.config.aruco.sheet_aruco_config import SheetArucoConfig
+
 def aruco_loader(path: Path) -> Sheet:
-    # Use default config
-    config = ArucoDetectorConfig()
-    # SheetAruco processes the image and extracts the Sheet
-    return SheetAruco(config).load_sheet(path)
+    # Use default detector + sheet config
+    detector_cfg = ArucoDetectorConfig()
+    sheet_cfg = SheetArucoConfig(detector=detector_cfg)
+    return SheetAruco(sheet_cfg).load_sheet(path)
 
 # 2. Batch load images
 manager.add_sheets(

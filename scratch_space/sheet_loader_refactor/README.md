@@ -37,6 +37,7 @@ for sheet in sheets:
 ## Plan
 
 1. [ ] Define `SheetArucoLoaderConfig` (Pydantic).
+    - Use `SheetArucoConfig` for sheet-level params (min_area, crop_margin) and embed `ArucoDetectorConfig` for detector settings.
 2. [ ] Create `SheetArucoLoader` class.
 3. [ ] Implement folder iteration and `SheetAruco` creation logic.
 4. [ ] Remove `add_sheets` from `SheetManager`.
