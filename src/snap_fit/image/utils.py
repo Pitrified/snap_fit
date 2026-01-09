@@ -65,6 +65,29 @@ def show_image_mpl(image: np.ndarray, figsize: tuple[int, int] = (10, 10)) -> No
     plt.show()
 
 
+def show_images_mpl(
+    images: list[np.ndarray],
+    figsize: tuple[int, int] = (10, 10),
+    columns: int = 2,
+) -> None:
+    """Display multiple images using Matplotlib.
+
+    Args:
+        images (list[np.ndarray]): The list of images to display.
+        figsize (tuple[int, int]): The size of the output plot (default is (10, 10)).
+            Measured in inches.
+        columns (int): The number of columns to arrange the images in.
+            Default is 2.
+    """
+    rows = (len(images) + columns - 1) // columns
+    plt.figure(figsize=figsize)
+    for i, image in enumerate(images):
+        plt.subplot(rows, columns, i + 1)
+        plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+        plt.axis("off")
+    plt.show()
+
+
 def save_image(image: np.ndarray, output_path: Path) -> None:
     """Save the given image to the specified file path.
 
