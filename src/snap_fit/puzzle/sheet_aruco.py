@@ -5,7 +5,7 @@ from pathlib import Path
 from loguru import logger as lg
 
 from snap_fit.aruco.aruco_detector import ArucoDetector
-from snap_fit.config.aruco.aruco_detector_config import ArucoDetectorConfig
+from snap_fit.config.aruco.sheet_aruco_config import SheetArucoConfig
 from snap_fit.image.utils import load_image
 from snap_fit.puzzle.sheet import Sheet
 
@@ -13,40 +13,35 @@ from snap_fit.puzzle.sheet import Sheet
 class SheetAruco:
     """A sheet that uses ArUco markers for perspective correction."""
 
-    def __init__(
-        self,
-        detector_config: ArucoDetectorConfig,
-        crop_margin: int | None = None,
-    ) -> None:
-        """Initialize the SheetAruco.
+    def __init__(self, config: SheetArucoConfig) -> None:
+        """Initialize the SheetAruco with a `SheetArucoConfig`.
 
         Args:
-            detector_config: The ArucoDetector configuration.
-            crop_margin: Margin to crop from the rectified image (to remove markers).
-                If None, it is calculated from the detector configuration.
+            config: `SheetArucoConfig` containing `detector`, `min_area`, and
+                optional `crop_margin`.
         """
-        self.detector_config = detector_config
-        self.aruco_detector = ArucoDetector(detector_config)
+        self.config = config
+        self.aruco_detector = ArucoDetector(config.detector)
 
-        if crop_margin is None:
-            board_config = detector_config.board
+        if config.crop_margin is None:
+            board_config = config.detector.board
             self.crop_margin = (
                 board_config.marker_length
                 + board_config.margin
-                + detector_config.rect_margin
+                + config.detector.rect_margin
             )
         else:
-            self.crop_margin = crop_margin
+            self.crop_margin = config.crop_margin
 
-    def load_sheet(self, img_fp: Path, min_area: int = 80_000) -> Sheet:
+    def load_sheet(self, img_fp: Path) -> Sheet:
         """Load and rectify the image, then return a Sheet instance.
 
         Args:
             img_fp: Path to the image file.
-            min_area: Minimum area for pieces.
 
         Returns:
-            A Sheet instance with the rectified image.
+            A Sheet instance with the rectified image. `min_area` is read from
+            `self.config.min_area`.
         """
         lg.info(f"Loading image from {img_fp}")
         img_orig = load_image(img_fp)
@@ -68,4 +63,4 @@ class SheetAruco:
             lg.warning("Perspective correction failed. Using original image.")
             img_final = img_orig
 
-        return Sheet(img_fp=img_fp, min_area=min_area, image=img_final)
+        return Sheet(img_fp=img_fp, min_area=self.config.min_area, image=img_final)
