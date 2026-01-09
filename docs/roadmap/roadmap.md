@@ -151,7 +151,7 @@ qrcode printed on the aruco board with config info
 also print using words
 include a aruco config version number, with aruco config manager class to handle different versions and load old configs
 
-#### Config for sheet preprocess/contour (planned 📋)
+#### Config for sheet preprocess/contour (done ✅)
 
 - SheetAruco changes name to SheetArucoLoader (manual filename change)
 - SheetArucoConfig
