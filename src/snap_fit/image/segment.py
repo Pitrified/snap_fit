@@ -8,6 +8,7 @@ import numpy as np
 
 from snap_fit.config.types import SegmentShape
 from snap_fit.image.shape_detector import ShapeDetector
+from snap_fit.image.shape_detector import ShapeDetectorStrategy
 
 if TYPE_CHECKING:
     from snap_fit.image.contour import Contour
@@ -42,7 +43,7 @@ class Segment:
         self.coords = np.vstack((self.start_coord, self.end_coord))
         self.swap_coords = np.flip(self.coords, axis=0)
 
-        sd = ShapeDetector()
+        sd = ShapeDetector(ShapeDetectorStrategy.ADAPTIVE)
         self.shape = sd.detect_shape(self.coords, self.points)
 
     def get_points(self) -> None:
