@@ -232,6 +232,17 @@ Consider using it as a softer constraint, applying a penalty to the similarity s
 Eg a multiplier to the score if shapes are incompatible.
 Return a float instead of a bool from `is_compatible()`.
 
+### Sheet preprocess config (planned 📋)
+
+The preprocess steps before aruco detection (eg blurring, thresholding) should be configurable via a Pydantic config class.
+Each preprocess step would have its own config model, and the overall config would hold a list of steps to apply in order.
+This would allow tuning the preprocess pipeline for different types of images.
+
+### Color based thresholding (planned 📋)
+
+Add color based thresholding options to the sheet preprocess config.
+E.g. use green background to segment pieces from the sheet.
+
 ## Legend
 
 - ✅ done
