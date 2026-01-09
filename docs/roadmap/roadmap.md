@@ -213,20 +213,17 @@ run piece matching in parallel
 
 Current shape classification for segments is leading to too many "WEIRD" shapes, causing many valid piece matches to be rejected. We need to improve the shape classification logic to reduce false WEIRD classifications.
 
-### Contour from Segment attribute (planned 📋)
+### Virtual border (planned 📋)
 
-The whole
+When building a puzzle in a grid, consider adding a virtual border of EDGE segments around the puzzle to simplify edge matching logic.
+With the softer shape constraint, this should help pieces fit better at the borders without needing to special-case edge and pieces.
 
+### Softer matching constraint (planned 📋)
 
-```python
-# get the end points of the segment
-self.start_coord = self.points[0][0]
-self.end_coord = self.points[-1][0]
-self.coords = np.vstack((self.start_coord, self.end_coord))
-self.swap_coords = np.flip(self.coords, axis=0)
-```
-
-thing that we do in Segment could be moved to Contour, since it's more of a contour property than a segment one.
+Shape compatibility is currently a hard gate in piece matching.
+Consider using it as a softer constraint, applying a penalty to the similarity score instead of outright rejecting incompatible shapes.
+Eg a multiplier to the score if shapes are incompatible.
+Return a float instead of a bool from `is_compatible()`.
 
 ## Legend
 
