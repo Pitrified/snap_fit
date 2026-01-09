@@ -213,6 +213,21 @@ run piece matching in parallel
 
 Current shape classification for segments is leading to too many "WEIRD" shapes, causing many valid piece matches to be rejected. We need to improve the shape classification logic to reduce false WEIRD classifications.
 
+### Contour from Segment attribute (planned 📋)
+
+The whole
+
+
+```python
+# get the end points of the segment
+self.start_coord = self.points[0][0]
+self.end_coord = self.points[-1][0]
+self.coords = np.vstack((self.start_coord, self.end_coord))
+self.swap_coords = np.flip(self.coords, axis=0)
+```
+
+thing that we do in Segment could be moved to Contour, since it's more of a contour property than a segment one.
+
 ## Legend
 
 - ✅ done
