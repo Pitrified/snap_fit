@@ -1,0 +1,9 @@
+{
+    "markers_x": 5,
+    "markers_y": 7,
+    "marker_length": 100,
+    "marker_separation": 100,
+    "dictionary_id": 10,
+    "margin": 20,
+    "border_bits": 1
+}
