@@ -153,7 +153,14 @@ include a aruco config version number, with aruco config manager class to handle
 
 #### Config for sheet preprocess/contour (planned 📋)
 
-eg min_area is 5k or 80k?
+- SheetAruco changes name to SheetArucoLoader (manual filename change)
+- SheetArucoConfig
+  - min_area
+  - crop_margin
+  - ArucoDetectorConfig
+- update all users
+  - SheetAruco use the new config class
+  - load_sheet will not accept min_area anymore
 
 #### Sheet loader config
 
