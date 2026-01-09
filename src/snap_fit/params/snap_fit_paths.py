@@ -28,6 +28,9 @@ class SnapFitPaths:
         self.cache_fol = self.root_fol / "cache"
         # data
         self.data_fol = self.root_fol / "data"
+        # aruco boards
+        self.aruco_board_fol = self.data_fol / "aruco_boards"
+        # sample images
         self.sample_img_fol = self.data_fol / "sample"
         # static
         self.static_fol = self.root_fol / "static"
@@ -35,9 +38,11 @@ class SnapFitPaths:
     def __str__(self) -> str:
         """Get the string representation of the SnapFit paths."""
         s = "SnapFitPaths:\n"
-        s += f"   src_fol: {self.src_fol}\n"
-        s += f"  root_fol: {self.root_fol}\n"
-        s += f" cache_fol: {self.cache_fol}\n"
-        s += f"  data_fol: {self.data_fol}\n"
-        s += f"static_fol: {self.static_fol}\n"
+        s += f"        src_fol: {self.src_fol}\n"
+        s += f"       root_fol: {self.root_fol}\n"
+        s += f"      cache_fol: {self.cache_fol}\n"
+        s += f"       data_fol: {self.data_fol}\n"
+        s += f"aruco_board_fol: {self.aruco_board_fol}\n"
+        s += f" sample_img_fol: {self.sample_img_fol}\n"
+        s += f"     static_fol: {self.static_fol}\n"
         return s
