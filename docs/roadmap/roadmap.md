@@ -247,6 +247,11 @@ This would allow tuning the preprocess pipeline for different types of images.
 Add color based thresholding options to the sheet preprocess config.
 E.g. use green background to segment pieces from the sheet.
 
+### Piece locating in the sheet (planned 📋)
+
+If we use a sheet which is a screen we can generate as many gridlines and labels as we want.
+With very precise positioning as we have the aruco markers.
+
 ## Legend
 
 - ✅ done
