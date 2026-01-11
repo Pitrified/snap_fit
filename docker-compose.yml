@@ -1,0 +1,23 @@
+services:
+  webapp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./src:/app/src:ro
+      - ./webapp_resources:/app/webapp_resources:ro
+    command: >
+      uvicorn snap_fit.webapp.main:app
+      --host 0.0.0.0
+      --port 8000
+      --reload
+      --reload-dir /app/src
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/debug/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
