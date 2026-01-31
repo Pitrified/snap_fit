@@ -1,9 +1,9 @@
 # FastAPI Scaffold — Feature Plan
 
-> **Status:** ✅ Approach selected (Option A)  
+> **Status:** ✅ Phase 0 complete (Data Layer); Phase 1 ready  
 > **Branch:** `feat/fastapi-scaffold`  
 > **Author:** dev_plan_agent  
-> **Last updated:** 2026-01-12
+> **Last updated:** 2025-01-12
 
 ---
 
@@ -13,11 +13,11 @@ Add a production-ready FastAPI application to the `snap_fit` repository. The web
 
 ### Evaluated Approaches
 
-| Option | Summary | Trade-offs |
-|--------|---------|------------|
-| **A — Minimal Starter** | Single app, modular routers, settings via `pydantic-settings`, CORS, Docker | Fast to ship; extend later for scale |
-| **B — Sub-apps + DI** | Versioned sub-applications, full dependency injection | Better isolation; more boilerplate |
-| **C — Container-First** | Gunicorn workers, Nginx reverse proxy, health probes | Production-hardened; overkill for MVP |
+| Option                  | Summary                                                                     | Trade-offs                            |
+| ----------------------- | --------------------------------------------------------------------------- | ------------------------------------- |
+| **A — Minimal Starter** | Single app, modular routers, settings via `pydantic-settings`, CORS, Docker | Fast to ship; extend later for scale  |
+| **B — Sub-apps + DI**   | Versioned sub-applications, full dependency injection                       | Better isolation; more boilerplate    |
+| **C — Container-First** | Gunicorn workers, Nginx reverse proxy, health probes                        | Production-hardened; overkill for MVP |
 
 **Decision:** Proceed with **Option A** — minimal starter with quality-of-life conveniences (hot reload, Swagger UI, typed settings, path utilities).
 
@@ -25,29 +25,90 @@ Add a production-ready FastAPI application to the `snap_fit` repository. The web
 
 ## Implementation Plan
 
+### Phase 0 — Data Layer (✅ COMPLETE)
+
+> **See:** [01_ingestion_db.md](01_ingestion_db.md) for full design rationale
+
+The persistence layer is implemented and tested. The API will leverage:
+
+| Component                  | Location                                   | Purpose                                                                                                   |
+| -------------------------- | ------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
+| `SheetRecord`              | `src/snap_fit/data_models/sheet_record.py` | Pydantic model for sheet metadata                                                                         |
+| `PieceRecord`              | `src/snap_fit/data_models/piece_record.py` | Pydantic model for piece geometry metadata                                                                |
+| `SheetManager` persistence | `src/snap_fit/puzzle/sheet_manager.py`     | `to_records()`, `save_metadata()`, `save_contour_cache()`, `load_metadata()`, `load_contour_for_piece()`  |
+| `PieceMatcher` persistence | `src/snap_fit/puzzle/piece_matcher.py`     | `save_matches_json()`, `load_matches_json()`, `get_matched_pair_keys()`, `match_incremental()`, `clear()` |
+
+**Storage Strategy:**
+
+- **Metadata:** JSON files for sheets/pieces (small, human-readable)
+- **Contours:** Binary `.npz` files per sheet (efficient, ~12 MB total for 1,500 pieces)
+- **Matches:** JSON for small scale; SQLite planned for Phase 2+ (4.5M matches)
+
 ### Phase 1 — Scaffold Structure
 
-| # | Task | Artifact |
-|---|------|----------|
-| 1 | Create feature branch | `git checkout -b feat/fastapi-scaffold` |
-| 2 | Scaffold `src/snap_fit/webapp/` package | Directory tree below |
-| 3 | Add `webapp_resources/` at repo root | Templates + static assets |
-| 4 | Wire up `main.py` entrypoint | App factory, middleware, router mounts |
+| #   | Task                                    | Status | Artifact                                |
+| --- | --------------------------------------- | ------ | --------------------------------------- |
+| 1   | Create feature branch                   | ⬜     | `git checkout -b feat/fastapi-scaffold` |
+| 2   | Scaffold `src/snap_fit/webapp/` package | ⬜     | Directory tree below                    |
+| 3   | Add `webapp_resources/` at repo root    | ⬜     | Templates + static assets               |
+| 4   | Wire up `main.py` entrypoint            | ⬜     | App factory, middleware, router mounts  |
 
 ### Phase 2 — Configuration & Infra
 
-| # | Task | Artifact |
-|---|------|----------|
-| 5 | Add `.env.example` | Environment variable template |
-| 6 | Add `Dockerfile` (uv-based) | Multi-stage build |
-| 7 | Add `docker-compose.yml` | Local dev orchestration |
+| #   | Task                        | Status | Artifact                      |
+| --- | --------------------------- | ------ | ----------------------------- |
+| 5   | Add `.env.example`          | ⬜     | Environment variable template |
+| 6   | Add `Dockerfile` (uv-based) | ⬜     | Multi-stage build             |
+| 7   | Add `docker-compose.yml`    | ⬜     | Local dev orchestration       |
 
 ### Phase 3 — Docs & Tests
 
-| # | Task | Artifact |
-|---|------|----------|
-| 8 | Create `docs/fastapi.md` | Install, run, extend guide |
-| 9 | Add `tests/webapp/` | Smoke tests for each router |
+| #   | Task                     | Status | Artifact                    |
+| --- | ------------------------ | ------ | --------------------------- |
+| 8   | Create `docs/fastapi.md` | ⬜     | Install, run, extend guide  |
+| 9   | Add `tests/webapp/`      | ⬜     | Smoke tests for each router |
+
+---
+
+## Data Flow Architecture
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                            FastAPI Layer                               │
+├────────────────────────────────────────────────────────────────────────┤
+│  Routers           │  Services              │  Schemas                 │
+│  ────────          │  ────────              │  ────────                │
+│  piece_ingestion   │  piece_service         │  SheetRecord (response)  │
+│  puzzle_solve      │  puzzle_service        │  PieceRecord (response)  │
+│  interactive       │                        │  MatchResult  (response) │
+│  debug             │                        │                          │
+└────────────────────┴────────────────────────┴──────────────────────────┘
+                                    │
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                         Data Layer (✅ Complete)                       │
+├────────────────────────────────────────────────────────────────────────┤
+│  SheetManager                    │  PieceMatcher                       │
+│  ─────────────                   │  ────────────                       │
+│  to_records()                    │  save_matches_json()                │
+│  save_metadata(path)             │  load_matches_json()                │
+│  save_contour_cache(dir)         │  get_matched_pair_keys()            │
+│  load_metadata(path)             │  match_incremental()                │
+│  load_contour_for_piece()        │  clear()                            │
+└──────────────────────────────────┴─────────────────────────────────────┘
+                                    │
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                           Storage Layer                                │
+├────────────────────────────────────────────────────────────────────────┤
+│  JSON Files                      │  Binary Cache         │  (Future)   │
+│  ──────────                      │  ────────────         │  ────────   │
+│  metadata.json                   │  {sheet_id}.npz       │  SQLite     │
+│    └─ sheets: SheetRecord[]      │    └─ contour_{id}    │    └─ match │
+│    └─ pieces: PieceRecord[]      │  {sheet_id}_corners   │      results│
+│  matches.json (small scale)      │      .json            │             │
+└──────────────────────────────────┴───────────────────────┴─────────────┘
+```
 
 ---
 
@@ -301,43 +362,185 @@ def cache_path(*parts: str) -> Path:
 ### `src/snap_fit/webapp/routers/piece_ingestion.py`
 
 ```python
-"""Router: piece ingestion endpoints."""
+"""Router: piece ingestion and query endpoints.
 
-from fastapi import APIRouter
+Uses the existing data layer (SheetManager, PieceMatcher) for persistence.
+"""
 
-from snap_fit.webapp.schemas.piece import PieceIn, PieceOut
+from pathlib import Path
+
+from fastapi import APIRouter, HTTPException
+
+from snap_fit.data_models.piece_record import PieceRecord
+from snap_fit.data_models.sheet_record import SheetRecord
+from snap_fit.puzzle.sheet_manager import SheetManager
+from snap_fit.webapp.utils.paths import cache_path
 
 router = APIRouter()
 
 
-@router.post("/", response_model=PieceOut, summary="Ingest a puzzle piece")
-async def ingest_piece(payload: PieceIn) -> PieceOut:
-    """Accept piece metadata; return created resource. Business logic TBD."""
-    return PieceOut(id="placeholder", **payload.model_dump())
+@router.get("/", response_model=list[PieceRecord], summary="List all pieces")
+async def list_pieces() -> list[PieceRecord]:
+    """Return all piece records from cached metadata."""
+    metadata_path = cache_path("metadata.json")
+    if not metadata_path.exists():
+        return []
+    data = SheetManager.load_metadata(metadata_path)
+    return [PieceRecord.model_validate(p) for p in data.get("pieces", [])]
 
 
-@router.get("/{piece_id}", response_model=PieceOut, summary="Get piece by ID")
-async def get_piece(piece_id: str) -> PieceOut:
-    """Retrieve piece details. Placeholder implementation."""
-    return PieceOut(id=piece_id, name="unknown", image_path=None)
+@router.get("/sheets", response_model=list[SheetRecord], summary="List all sheets")
+async def list_sheets() -> list[SheetRecord]:
+    """Return all sheet records from cached metadata."""
+    metadata_path = cache_path("metadata.json")
+    if not metadata_path.exists():
+        return []
+    data = SheetManager.load_metadata(metadata_path)
+    return [SheetRecord.model_validate(s) for s in data.get("sheets", [])]
+
+
+@router.get("/{piece_id}", response_model=PieceRecord, summary="Get piece by ID")
+async def get_piece(piece_id: str) -> PieceRecord:
+    """Retrieve piece details by piece ID (format: sheet_id-piece_idx)."""
+    metadata_path = cache_path("metadata.json")
+    if not metadata_path.exists():
+        raise HTTPException(status_code=404, detail="No metadata found")
+
+    data = SheetManager.load_metadata(metadata_path)
+    for p in data.get("pieces", []):
+        record = PieceRecord.model_validate(p)
+        if str(record.piece_id) == piece_id:
+            return record
+    raise HTTPException(status_code=404, detail=f"Piece {piece_id} not found")
+
+
+@router.post("/ingest", summary="Ingest sheets from directory")
+async def ingest_sheets(
+    sheet_dir: str,
+    threshold: int = 130,
+    min_area: int = 80_000,
+) -> dict:
+    """Load sheets from a directory, compute pieces, and persist metadata.
+
+    Args:
+        sheet_dir: Path to directory containing sheet images.
+        threshold: Threshold for image preprocessing.
+        min_area: Minimum contour area for piece detection.
+
+    Returns:
+        Summary of ingested data.
+    """
+    from snap_fit.puzzle.sheet_manager import SheetManager as SM
+
+    sheet_path = Path(sheet_dir)
+    if not sheet_path.is_dir():
+        raise HTTPException(status_code=400, detail=f"Invalid directory: {sheet_dir}")
+
+    manager = SM()
+    # Note: add_sheet() processes the image and detects pieces
+    for img_file in sorted(sheet_path.glob("*.png")):
+        manager.add_sheet(img_file, threshold=threshold, min_area=min_area)
+
+    # Persist to cache
+    cache_dir = cache_path()
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    manager.save_metadata(cache_dir / "metadata.json")
+    manager.save_contour_cache(cache_dir / "contours")
+
+    records = manager.to_records()
+    return {
+        "sheets_ingested": len(records["sheets"]),
+        "pieces_detected": len(records["pieces"]),
+        "cache_path": str(cache_dir),
+    }
 ```
 
 ### `src/snap_fit/webapp/routers/puzzle_solve.py`
 
 ```python
-"""Router: puzzle solving endpoints."""
+"""Router: puzzle solving and match query endpoints."""
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 
-from snap_fit.webapp.schemas.puzzle import PuzzleSolveRequest, PuzzleSolveResponse
+from snap_fit.data_models.match_result import MatchResult
+from snap_fit.puzzle.piece_matcher import PieceMatcher
+from snap_fit.webapp.utils.paths import cache_path
 
 router = APIRouter()
 
 
-@router.post("/solve", response_model=PuzzleSolveResponse, summary="Solve a puzzle")
-async def solve_puzzle(request: PuzzleSolveRequest) -> PuzzleSolveResponse:
-    """Trigger puzzle solve. Returns solution or status. Business logic TBD."""
-    return PuzzleSolveResponse(success=False, message="Not implemented")
+@router.get("/matches", response_model=list[MatchResult], summary="List all matches")
+async def list_matches(
+    limit: int = 100,
+    min_similarity: float | None = None,
+) -> list[MatchResult]:
+    """Return match results from cached matches.
+
+    Args:
+        limit: Maximum number of matches to return (default 100).
+        min_similarity: Filter to matches with similarity >= this value.
+    """
+    matches_path = cache_path("matches.json")
+    if not matches_path.exists():
+        return []
+
+    matcher = PieceMatcher(manager=None)  # Load-only mode
+    matcher.load_matches_json(matches_path)
+
+    results = matcher._results
+    if min_similarity is not None:
+        results = [r for r in results if r.similarity >= min_similarity]
+
+    # Sort by similarity ascending (best matches have lowest similarity)
+    results.sort(key=lambda r: r.similarity)
+    return results[:limit]
+
+
+@router.get(
+    "/matches/{piece_id}",
+    response_model=list[MatchResult],
+    summary="Get matches for piece",
+)
+async def get_piece_matches(piece_id: str, limit: int = 10) -> list[MatchResult]:
+    """Return top matches involving a specific piece.
+
+    Args:
+        piece_id: The piece ID (format: sheet_id-piece_idx).
+        limit: Maximum number of matches to return.
+    """
+    matches_path = cache_path("matches.json")
+    if not matches_path.exists():
+        raise HTTPException(status_code=404, detail="No matches found")
+
+    matcher = PieceMatcher(manager=None)
+    matcher.load_matches_json(matches_path)
+
+    # Filter matches involving this piece
+    results = [
+        r for r in matcher._results
+        if str(r.seg_id1.piece_id) == piece_id or str(r.seg_id2.piece_id) == piece_id
+    ]
+    results.sort(key=lambda r: r.similarity)
+    return results[:limit]
+
+
+@router.post("/solve", summary="Solve a puzzle")
+async def solve_puzzle(piece_ids: list[str] | None = None) -> dict:
+    """Trigger puzzle solve using the linear solver.
+
+    Args:
+        piece_ids: Optional list of piece IDs to include in solve.
+            If None, uses all pieces.
+
+    Returns:
+        Solution status and layout (when implemented).
+    """
+    # Placeholder - will integrate with snap_fit.solver
+    return {
+        "success": False,
+        "message": "Solver integration pending",
+        "piece_count": len(piece_ids) if piece_ids else 0,
+    }
 ```
 
 ### `src/snap_fit/webapp/routers/interactive.py`
@@ -388,47 +591,63 @@ async def info() -> dict:
 ### `src/snap_fit/webapp/schemas/piece.py`
 
 ```python
-"""Pydantic schemas for piece endpoints."""
+"""Pydantic schemas for piece endpoints.
+
+NOTE: The primary schemas are the existing data models:
+- snap_fit.data_models.sheet_record.SheetRecord
+- snap_fit.data_models.piece_record.PieceRecord
+
+This file contains any additional request/response wrappers needed
+by the API that are not covered by the core data models.
+"""
 
 from pydantic import BaseModel
 
 
-class PieceIn(BaseModel):
-    """Input schema for piece ingestion."""
+class IngestRequest(BaseModel):
+    """Request to ingest sheets from a directory."""
 
-    name: str
-    image_path: str | None = None
+    sheet_dir: str
+    threshold: int = 130
+    min_area: int = 80_000
 
 
-class PieceOut(BaseModel):
-    """Output schema for piece resources."""
+class IngestResponse(BaseModel):
+    """Response from sheet ingestion."""
 
-    id: str
-    name: str
-    image_path: str | None = None
+    sheets_ingested: int
+    pieces_detected: int
+    cache_path: str
 ```
 
 ### `src/snap_fit/webapp/schemas/puzzle.py`
 
 ```python
-"""Pydantic schemas for puzzle endpoints."""
+"""Pydantic schemas for puzzle endpoints.
+
+NOTE: Match data uses the existing data model:
+- snap_fit.data_models.match_result.MatchResult
+
+This file contains request/response schemas specific to the API.
+"""
 
 from pydantic import BaseModel
 
 
-class PuzzleSolveRequest(BaseModel):
+class SolveRequest(BaseModel):
     """Request to solve a puzzle."""
 
-    piece_ids: list[str]
+    piece_ids: list[str] | None = None
     config_path: str | None = None
 
 
-class PuzzleSolveResponse(BaseModel):
+class SolveResponse(BaseModel):
     """Response from puzzle solve."""
 
     success: bool
     message: str | None = None
     layout: dict | None = None
+    piece_count: int = 0
 ```
 
 ### `src/snap_fit/webapp/schemas/interactive.py`
@@ -608,6 +827,22 @@ def test_openapi_available(client: TestClient) -> None:
     response = client.get("/api/openapi.json")
     assert response.status_code == 200
     assert "paths" in response.json()
+
+
+def test_list_pieces_empty(client: TestClient, tmp_path: Path) -> None:
+    """List pieces returns empty when no cache exists."""
+    # Assuming cache_path returns tmp_path in test config
+    response = client.get("/api/v1/pieces/")
+    assert response.status_code == 200
+    # May be empty list if no metadata cached
+    assert isinstance(response.json(), list)
+
+
+def test_list_sheets_empty(client: TestClient) -> None:
+    """List sheets returns empty when no cache exists."""
+    response = client.get("/api/v1/pieces/sheets")
+    assert response.status_code == 200
+    assert isinstance(response.json(), list)
 ```
 
 ---
@@ -625,9 +860,113 @@ Follow the existing patterns — routers handle HTTP concerns, services wrap dom
 
 ## Open Questions
 
-- [ ] Should we mount Jinja2 templates for an admin UI?
-- [ ] Add rate limiting middleware?
-- [ ] WebSocket support for real-time puzzle feedback?
+- [ ] Should we mount Jinja2 templates for an admin UI? --> answer: yes, prepare ui to navigate cached data
+- [ ] Add rate limiting middleware? --> answer: no
+- [ ] WebSocket support for real-time puzzle feedback? --> answer: not yet
+- [x] ~~How to persist piece/sheet metadata?~~ → JSON via `SheetManager.save_metadata()`
+- [x] ~~How to handle heavy contour data?~~ → Binary `.npz` via `save_contour_cache()`
+- [x] ~~How to persist match results?~~ → JSON via `PieceMatcher.save_matches_json()`
+- [ ] SQLite for matches at scale (4.5M records)? --> yes
+- [ ] Incremental matching when adding new sheets? --> not yet
+
+---
+
+## Implemented Data Layer Reference
+
+The following persistence methods are available for API services to use:
+
+### SheetManager Methods
+
+```python
+from snap_fit.puzzle.sheet_manager import SheetManager
+
+manager = SheetManager()
+manager.add_sheet(img_path)  # Load and process a sheet image
+
+# Export metadata
+records = manager.to_records()  # {'sheets': [...], 'pieces': [...]}
+
+# Persist
+manager.save_metadata(Path("cache/metadata.json"))
+manager.save_contour_cache(Path("cache/contours/"))
+
+# Reload (metadata only, no object reconstruction)
+data = SheetManager.load_metadata(Path("cache/metadata.json"))
+# data['sheets'] → list of SheetRecord dicts
+# data['pieces'] → list of PieceRecord dicts
+
+# Load contour for re-matching
+contour, corners = SheetManager.load_contour_for_piece(piece_id, cache_dir)
+```
+
+### PieceMatcher Methods
+
+```python
+from snap_fit.puzzle.piece_matcher import PieceMatcher
+
+matcher = PieceMatcher(manager)
+matcher.match_all()  # Compute all segment matches
+
+# Persist matches
+matcher.save_matches_json(Path("cache/matches.json"))
+
+# Reload matches
+matcher.load_matches_json(Path("cache/matches.json"))
+
+# Query
+matched_pairs = matcher.get_matched_pair_keys()  # set of frozenset[SegmentId]
+
+# Incremental (add new pieces without re-matching all)
+new_count = matcher.match_incremental(new_piece_ids)
+
+# Reset
+matcher.clear()
+```
+
+### Data Models
+
+```python
+from snap_fit.data_models import SheetRecord, PieceRecord, MatchResult
+
+# SheetRecord fields
+record = SheetRecord(
+    sheet_id="sheet_01",
+    img_path=Path("data/sheets/sheet_01.png"),
+    piece_count=12,
+    threshold=130,
+    min_area=80_000,
+    created_at=datetime.now(),
+)
+
+# PieceRecord fields
+piece = PieceRecord(
+    piece_id=PieceId(sheet_id="sheet_01", piece_idx=0),
+    corners={"TL": (10, 20), "TR": (100, 20), ...},
+    segment_shapes={"TOP": "OUT", "RIGHT": "IN", ...},
+    oriented_piece_type=OrientedPieceType(...),
+    flat_edges=["TOP"],
+    contour_point_count=512,
+    contour_region=(0, 0, 150, 150),
+)
+
+# MatchResult - already Pydantic, used as-is
+match = MatchResult(seg_id1=..., seg_id2=..., similarity=0.123)
+match.model_dump(mode="json")  # Serialize
+```
+
+---
+
+## Next Steps
+
+With the data layer complete, the API scaffold can be built with real persistence:
+
+1. **Create scaffold** — Run Phase 1 tasks to set up directory structure
+2. **Wire data layer** — Import `SheetManager`, `PieceMatcher`, `SheetRecord`, `PieceRecord` in services
+3. **Configure cache path** — Add `CACHE_DIR` to settings, expose via `paths.py`
+4. **Implement routers** — Use provided router templates that already call the data layer
+5. **Add integration tests** — Test round-trip: ingest → persist → query via API
+
+**Estimated effort:** ~2-3 hours for scaffold + basic endpoints
 
 ---
 
