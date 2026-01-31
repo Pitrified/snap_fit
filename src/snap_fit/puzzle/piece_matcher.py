@@ -1,7 +1,11 @@
 """Piece matching logic."""
 
+import json
+from pathlib import Path
+
 from loguru import logger as lg
 
+from snap_fit.config.types import EdgePos
 from snap_fit.data_models.match_result import MatchResult
 from snap_fit.data_models.piece_id import PieceId
 from snap_fit.data_models.segment_id import SegmentId
@@ -86,3 +90,78 @@ class PieceMatcher:
         if pair in self._lookup:
             return self._lookup[pair].similarity
         return None
+
+    # -------------------------------------------------------------------------
+    # Persistence Methods
+    # -------------------------------------------------------------------------
+
+    def save_matches_json(self, path: Path) -> None:
+        """Save all match results to a JSON file.
+
+        Uses by_alias=True to properly serialize similarity_manual_ field.
+
+        Args:
+            path: Output path for the JSON file.
+        """
+        data = [r.model_dump(mode="json", by_alias=True) for r in self._results]
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(data, indent=2))
+        lg.info(f"Saved {len(self._results)} matches to {path}")
+
+    def load_matches_json(self, path: Path) -> None:
+        """Load match results from a JSON file and rebuild lookup.
+
+        Args:
+            path: Path to the JSON file containing match results.
+
+        Raises:
+            FileNotFoundError: If the file doesn't exist.
+        """
+        data = json.loads(path.read_text())
+        self._results = [MatchResult.model_validate(d) for d in data]
+        self._lookup = {r.pair: r for r in self._results}
+        lg.info(f"Loaded {len(self._results)} matches from {path}")
+
+    def get_matched_pair_keys(self) -> set[frozenset[SegmentId]]:
+        """Get all matched pairs for incremental matching support.
+
+        Returns:
+            Set of frozensets, each containing two SegmentIds that have been matched.
+        """
+        return set(self._lookup.keys())
+
+    def match_incremental(self, new_piece_ids: list[PieceId]) -> int:
+        """Match only new pieces against existing ones.
+
+        Useful when adding new sheets—avoids re-matching all existing pairs.
+
+        Args:
+            new_piece_ids: Piece IDs from newly added sheets.
+
+        Returns:
+            Number of new matches computed.
+        """
+        existing_keys = self.get_matched_pair_keys()
+        new_count = 0
+
+        for piece_id in new_piece_ids:
+            for edge_pos in EdgePos:
+                new_seg_id = SegmentId(piece_id=piece_id, edge_pos=edge_pos)
+                other_ids = self.manager.get_segment_ids_other_pieces(new_seg_id)
+
+                for other_id in other_ids:
+                    pair = frozenset({new_seg_id, other_id})
+                    if pair not in existing_keys:
+                        self.match_pair(new_seg_id, other_id)
+                        new_count += 1
+
+        # Re-sort results by similarity (lower is better)
+        self._results.sort(key=lambda x: x.similarity)
+        lg.info(f"Incremental matching added {new_count} new matches")
+        return new_count
+
+    def clear(self) -> None:
+        """Clear all match results and lookup cache."""
+        self._results.clear()
+        self._lookup.clear()
+        lg.info("Cleared all match results")

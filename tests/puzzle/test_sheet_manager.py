@@ -1,14 +1,21 @@
 """Tests for the SheetManager class."""
 
+import json
 from pathlib import Path
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
+import numpy as np
 import pytest
 
+from snap_fit.config.types import CornerPos
 from snap_fit.config.types import EdgePos
+from snap_fit.config.types import SegmentShape
 from snap_fit.data_models.piece_id import PieceId
 from snap_fit.data_models.segment_id import SegmentId
+from snap_fit.grid.orientation import Orientation
+from snap_fit.grid.orientation import OrientedPieceType
+from snap_fit.grid.orientation import PieceType
 from snap_fit.image.segment import Segment
 from snap_fit.puzzle.piece import Piece
 from snap_fit.puzzle.sheet import Sheet
@@ -318,3 +325,240 @@ def test_get_sheet_by_segment_id_not_found(sheet_manager: SheetManager) -> None:
     seg_id = SegmentId(piece_id=pid, edge_pos=EdgePos.LEFT)
     sheet = sheet_manager.get_sheet_by_segment_id(seg_id)
     assert sheet is None
+
+
+# -----------------------------------------------------------------------------
+# Persistence Tests
+# -----------------------------------------------------------------------------
+
+
+def create_mock_sheet_for_persistence(sheet_id: str) -> MagicMock:
+    """Create a mock sheet with full attributes for persistence testing."""
+    sheet = MagicMock(spec=Sheet)
+    sheet.sheet_id = sheet_id
+    sheet.img_fp = Path(f"/data/images/{sheet_id}.jpg")
+    sheet.threshold = 130
+    sheet.min_area = 80_000
+
+    # Create mock pieces with all required attributes
+    pieces = []
+    for i in range(2):
+        piece = MagicMock(spec=Piece)
+        piece.piece_id = PieceId(sheet_id=sheet_id, piece_id=i)
+        piece.corners = {
+            CornerPos.TOP_LEFT: (10 + i * 100, 20),
+            CornerPos.TOP_RIGHT: (90 + i * 100, 25),
+            CornerPos.BOTTOM_LEFT: (15 + i * 100, 110),
+            CornerPos.BOTTOM_RIGHT: (95 + i * 100, 115),
+        }
+        piece.flat_edges = [EdgePos.TOP] if i == 0 else []
+        piece.oriented_piece_type = OrientedPieceType(
+            piece_type=PieceType.EDGE if i == 0 else PieceType.INNER,
+            orientation=Orientation.DEG_0,
+        )
+
+        # Mock segments
+        segments = {}
+        shapes = [SegmentShape.IN, SegmentShape.OUT, SegmentShape.EDGE, SegmentShape.IN]
+        for ep, shape in zip(EdgePos, shapes):
+            seg = MagicMock(spec=Segment)
+            seg.shape = shape
+            segments[ep] = seg
+        piece.segments = segments
+
+        # Mock contour
+        contour = MagicMock()
+        contour.cv_contour = np.array([[[10, 20]], [[30, 40]], [[50, 60]]])
+        contour.region = (5, 10, 100, 120)
+        contour.corner_idxs = {
+            CornerPos.TOP_LEFT: 0,
+            CornerPos.TOP_RIGHT: 1,
+            CornerPos.BOTTOM_LEFT: 2,
+            CornerPos.BOTTOM_RIGHT: 0,
+        }
+        piece.contour = contour
+
+        pieces.append(piece)
+
+    sheet.pieces = pieces
+    return sheet
+
+
+def test_to_records(sheet_manager: SheetManager) -> None:
+    """Test exporting sheets to records."""
+    sheet = create_mock_sheet_for_persistence("test_sheet")
+    sheet_manager.add_sheet(sheet, "test_sheet")
+
+    records = sheet_manager.to_records()
+
+    assert "sheets" in records
+    assert "pieces" in records
+    assert len(records["sheets"]) == 1
+    assert len(records["pieces"]) == 2
+    assert records["sheets"][0]["sheet_id"] == "test_sheet"
+    assert records["pieces"][0]["piece_id"]["sheet_id"] == "test_sheet"
+
+
+def test_to_records_with_data_root(sheet_manager: SheetManager) -> None:
+    """Test exporting with relative paths."""
+    sheet = create_mock_sheet_for_persistence("test_sheet")
+    sheet.img_fp = Path("/data/root/images/test_sheet.jpg")
+    sheet_manager.add_sheet(sheet, "test_sheet")
+
+    data_root = Path("/data/root")
+    records = sheet_manager.to_records(data_root=data_root)
+
+    assert records["sheets"][0]["img_path"] == "images/test_sheet.jpg"
+
+
+def test_save_metadata(sheet_manager: SheetManager, tmp_path: Path) -> None:
+    """Test saving metadata to JSON."""
+    sheet = create_mock_sheet_for_persistence("sheet_a")
+    sheet_manager.add_sheet(sheet, "sheet_a")
+
+    output_path = tmp_path / "metadata.json"
+    sheet_manager.save_metadata(output_path)
+
+    assert output_path.exists()
+    data = json.loads(output_path.read_text())
+    assert len(data["sheets"]) == 1
+    assert len(data["pieces"]) == 2
+
+
+def test_save_metadata_creates_parent_dirs(
+    sheet_manager: SheetManager, tmp_path: Path
+) -> None:
+    """Test that save_metadata creates parent directories."""
+    sheet = create_mock_sheet_for_persistence("sheet_a")
+    sheet_manager.add_sheet(sheet, "sheet_a")
+
+    output_path = tmp_path / "nested" / "dir" / "metadata.json"
+    sheet_manager.save_metadata(output_path)
+
+    assert output_path.exists()
+
+
+def test_save_contour_cache(sheet_manager: SheetManager, tmp_path: Path) -> None:
+    """Test saving contour cache."""
+    sheet = create_mock_sheet_for_persistence("test_sheet")
+    sheet_manager.add_sheet(sheet, "test_sheet")
+
+    cache_dir = tmp_path / "cache"
+    sheet_manager.save_contour_cache(cache_dir)
+
+    # Check files were created
+    npz_file = cache_dir / "test_sheet_contours.npz"
+    json_file = cache_dir / "test_sheet_corners.json"
+    assert npz_file.exists()
+    assert json_file.exists()
+
+    # Verify npz content
+    with np.load(npz_file) as data:
+        keys = list(data.keys())
+        assert len(keys) == 2  # Two pieces
+
+    # Verify json content
+    corners_data = json.loads(json_file.read_text())
+    assert len(corners_data) == 2  # Two pieces
+
+
+def test_load_metadata(sheet_manager: SheetManager, tmp_path: Path) -> None:
+    """Test loading metadata from JSON."""
+    # Create a metadata file
+    metadata = {
+        "sheets": [
+            {
+                "sheet_id": "sheet_x",
+                "img_path": "images/sheet_x.jpg",
+                "piece_count": 3,
+                "threshold": 140,
+                "min_area": 90000,
+                "created_at": "2024-01-15T10:00:00",
+            }
+        ],
+        "pieces": [
+            {
+                "piece_id": {"sheet_id": "sheet_x", "piece_id": 0},
+                "corners": {"top_left": [10, 20]},
+                "segment_shapes": {"left": "in"},
+                "oriented_piece_type": None,
+                "flat_edges": [],
+                "contour_point_count": 100,
+                "contour_region": [0, 0, 50, 50],
+            }
+        ],
+    }
+    input_path = tmp_path / "metadata.json"
+    input_path.write_text(json.dumps(metadata))
+
+    loaded = SheetManager.load_metadata(input_path)
+
+    assert len(loaded["sheets"]) == 1
+    assert len(loaded["pieces"]) == 1
+    assert loaded["sheets"][0]["sheet_id"] == "sheet_x"
+
+
+def test_load_contour_for_piece(sheet_manager: SheetManager, tmp_path: Path) -> None:
+    """Test loading contour for a specific piece."""
+    # Create cache files
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+
+    piece_id = PieceId(sheet_id="sheet_a", piece_id=0)
+    contour_points = np.array([[[10, 20]], [[30, 40]], [[50, 60]]])
+
+    # Save npz
+    np.savez_compressed(
+        cache_dir / "sheet_a_contours.npz", **{f"contour_{piece_id}": contour_points}
+    )
+
+    # Save corners json
+    corners = {
+        str(piece_id): {
+            "top_left": 0,
+            "top_right": 1,
+            "bottom_left": 2,
+            "bottom_right": 0,
+        }
+    }
+    (cache_dir / "sheet_a_corners.json").write_text(json.dumps(corners))
+
+    # Load and verify
+    loaded_contour, loaded_corners = SheetManager.load_contour_for_piece(
+        piece_id, cache_dir
+    )
+
+    np.testing.assert_array_equal(loaded_contour, contour_points)
+    assert loaded_corners["top_left"] == 0
+    assert loaded_corners["bottom_left"] == 2
+
+
+def test_load_contour_for_piece_not_found(tmp_path: Path) -> None:
+    """Test loading contour when file doesn't exist."""
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+
+    piece_id = PieceId(sheet_id="nonexistent", piece_id=0)
+
+    with pytest.raises(FileNotFoundError):
+        SheetManager.load_contour_for_piece(piece_id, cache_dir)
+
+
+def test_save_load_metadata_round_trip(
+    sheet_manager: SheetManager, tmp_path: Path
+) -> None:
+    """Test full round-trip of save and load metadata."""
+    sheet = create_mock_sheet_for_persistence("round_trip_sheet")
+    sheet_manager.add_sheet(sheet, "round_trip_sheet")
+
+    output_path = tmp_path / "metadata.json"
+    sheet_manager.save_metadata(output_path)
+
+    loaded = SheetManager.load_metadata(output_path)
+
+    # Verify structure
+    assert len(loaded["sheets"]) == 1
+    assert len(loaded["pieces"]) == 2
+    assert loaded["sheets"][0]["sheet_id"] == "round_trip_sheet"
+    assert loaded["sheets"][0]["piece_count"] == 2
+    assert loaded["pieces"][0]["contour_point_count"] == 3  # From mock contour

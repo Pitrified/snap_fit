@@ -1,13 +1,19 @@
 """Manager for handling multiple puzzle sheets."""
 
 from collections.abc import Callable
+import json
 from pathlib import Path
+from typing import Any
 
 from loguru import logger as lg
+import numpy as np
 
+from snap_fit.config.types import CornerPos
 from snap_fit.config.types import EdgePos
 from snap_fit.data_models.piece_id import PieceId
+from snap_fit.data_models.piece_record import PieceRecord
 from snap_fit.data_models.segment_id import SegmentId
+from snap_fit.data_models.sheet_record import SheetRecord
 from snap_fit.image.segment import Segment
 from snap_fit.puzzle.piece import Piece
 from snap_fit.puzzle.sheet import Sheet
@@ -197,3 +203,121 @@ class SheetManager:
             The Sheet object if found, else None.
         """
         return self.sheets.get(seg_id.piece_id.sheet_id)
+
+    # -------------------------------------------------------------------------
+    # Persistence Methods
+    # -------------------------------------------------------------------------
+
+    def to_records(self, data_root: Path | None = None) -> dict[str, Any]:
+        """Export all sheet and piece data to JSON-serializable records.
+
+        Args:
+            data_root: Base path for making image paths relative.
+
+        Returns:
+            Dict with 'sheets' and 'pieces' lists of serialized records.
+        """
+        return {
+            "sheets": [
+                SheetRecord.from_sheet(s, data_root).model_dump(mode="json")
+                for s in self.sheets.values()
+            ],
+            "pieces": [
+                PieceRecord.from_piece(p).model_dump(mode="json")
+                for s in self.sheets.values()
+                for p in s.pieces
+            ],
+        }
+
+    def save_metadata(self, path: Path, data_root: Path | None = None) -> None:
+        """Save sheet and piece metadata to a JSON file.
+
+        Args:
+            path: Output path for the JSON file.
+            data_root: Base path for making image paths relative.
+        """
+        data = self.to_records(data_root)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(data, indent=2, default=str))
+        lg.info(
+            f"Saved metadata for {len(data['sheets'])} sheets, "
+            f"{len(data['pieces'])} pieces to {path}"
+        )
+
+    def save_contour_cache(self, cache_dir: Path) -> None:
+        """Save contour points to binary .npz files (one per sheet).
+
+        Also saves corner indices as JSON for segment reconstruction.
+
+        Args:
+            cache_dir: Directory to store cache files.
+        """
+        cache_dir.mkdir(parents=True, exist_ok=True)
+
+        for sheet_id, sheet in self.sheets.items():
+            contours: dict[str, np.ndarray] = {}
+            corner_indices: dict[str, dict[str, int]] = {}
+
+            for piece in sheet.pieces:
+                key = str(piece.piece_id)
+                contours[f"contour_{key}"] = piece.contour.cv_contour
+                corner_indices[key] = {
+                    pos.value: int(piece.contour.corner_idxs[pos]) for pos in CornerPos
+                }
+
+            # Save contour points as compressed numpy archive
+            # ~500 pts x 12 pieces x 8 bytes = ~48 KB per sheet
+            npz_path = cache_dir / f"{sheet_id}_contours.npz"
+            np.savez_compressed(npz_path, **contours)
+
+            # Save corner indices as JSON (~1 KB per sheet)
+            json_path = cache_dir / f"{sheet_id}_corners.json"
+            json_path.write_text(json.dumps(corner_indices, indent=2))
+
+        lg.info(f"Saved contour cache for {len(self.sheets)} sheets to {cache_dir}")
+
+    @staticmethod
+    def load_metadata(path: Path) -> dict[str, Any]:
+        """Load metadata from a JSON file (records only, no object reconstruction).
+
+        Args:
+            path: Path to the JSON metadata file.
+
+        Returns:
+            Dict with 'sheets' and 'pieces' lists of record dicts.
+        """
+        data = json.loads(path.read_text())
+        lg.info(
+            f"Loaded metadata: {len(data.get('sheets', []))} sheets, "
+            f"{len(data.get('pieces', []))} pieces from {path}"
+        )
+        return data
+
+    @staticmethod
+    def load_contour_for_piece(
+        piece_id: PieceId, cache_dir: Path
+    ) -> tuple[np.ndarray, dict[str, int]]:
+        """Load contour points and corner indices for a specific piece.
+
+        Args:
+            piece_id: The piece identifier.
+            cache_dir: Directory containing cache files.
+
+        Returns:
+            Tuple of (contour_points, corner_indices).
+
+        Raises:
+            FileNotFoundError: If cache files don't exist.
+            KeyError: If piece_id not found in cache.
+        """
+        npz_path = cache_dir / f"{piece_id.sheet_id}_contours.npz"
+        json_path = cache_dir / f"{piece_id.sheet_id}_corners.json"
+
+        with np.load(npz_path) as data:
+            contour = data[f"contour_{piece_id}"]
+
+        with json_path.open() as f:
+            all_corners = json.load(f)
+            corners = all_corners[str(piece_id)]
+
+        return contour, corners

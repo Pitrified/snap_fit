@@ -785,9 +785,9 @@ class PieceMatcher:
 - [x] User selects approach → **DECISION: Option B (SQLite)** for matches, with JSON metadata for sheets/pieces
 - [x] Decide on match storage strategy → **DECISION: Store all in SQLite; index for fast queries**
 - [x] Define contour storage approach → **DECISION: Binary `.npz` cache per sheet, loaded on-demand**
-- [ ] Implement `SheetRecord`, `PieceRecord` data models in `src/snap_fit/data_models/`
-- [ ] Add serialization methods to `SheetManager` (`.to_records()`, `.save_metadata()`, `.save_contour_cache()`)
-- [ ] Add persistence methods to `PieceMatcher` (`.save_matches_json()`, `.load_matches_json()`)
-- [ ] Create prototype notebook `01_db_ingestion.ipynb` to validate round-trip
+- [x] Implement `SheetRecord`, `PieceRecord` data models in `src/snap_fit/data_models/`
+- [x] Add serialization methods to `SheetManager` (`.to_records()`, `.save_metadata()`, `.save_contour_cache()`)
+- [x] Add persistence methods to `PieceMatcher` (`.save_matches_json()`, `.load_matches_json()`)
+- [x] Create prototype notebook `01_db_ingestion.ipynb` to validate round-trip
 - [ ] Benchmark with realistic data (~100+ pieces) to validate estimates
 - [ ] (Phase 2) Add SQLite persistence for matches with indexed queries
