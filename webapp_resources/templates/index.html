@@ -1,15 +1,82 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>snap_fit</title>
-    <link rel="stylesheet" href="/static/css/styles.css">
-  </head>
-  <body>
-    <main>
-      <h1>snap_fit webapp</h1>
-      <p>FastAPI scaffold.</p>
-    </main>
-  </body>
-</html>
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card-grid">
+    <div class="card stat-card">
+        <div class="value" id="sheet-count">-</div>
+        <div class="label">Sheets</div>
+        <a href="/sheets">View all →</a>
+    </div>
+    <div class="card stat-card">
+        <div class="value" id="piece-count">-</div>
+        <div class="label">Pieces</div>
+        <a href="/pieces">View all →</a>
+    </div>
+    <div class="card stat-card">
+        <div class="value" id="match-count">-</div>
+        <div class="label">Matches</div>
+        <a href="/matches">View all →</a>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Quick Start</h2>
+    <p>Welcome to the snap_fit admin interface. Use the navigation above to browse:</p>
+    <ul style="margin-top: 1rem; margin-left: 1.5rem;">
+        <li><strong>Sheets</strong> — View ingested puzzle sheets and their metadata</li>
+        <li><strong>Pieces</strong> — Browse individual puzzle pieces and their properties</li>
+        <li><strong>Matches</strong> — Explore segment match results and similarity scores</li>
+    </ul>
+</div>
+
+<div class="card">
+    <h2>API Endpoints</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Endpoint</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>GET /api/v1/pieces/</code></td>
+                <td>List all pieces</td>
+            </tr>
+            <tr>
+                <td><code>GET /api/v1/pieces/sheets</code></td>
+                <td>List all sheets</td>
+            </tr>
+            <tr>
+                <td><code>POST /api/v1/pieces/ingest</code></td>
+                <td>Ingest sheets from directory</td>
+            </tr>
+            <tr>
+                <td><code>GET /api/v1/puzzle/matches</code></td>
+                <td>List all match results</td>
+            </tr>
+            <tr>
+                <td><code>POST /api/v1/puzzle/solve</code></td>
+                <td>Solve puzzle (WIP)</td>
+            </tr>
+        </tbody>
+    </table>
+    <p style="margin-top: 1rem;">
+        <a href="/api/docs">Open Swagger UI →</a>
+    </p>
+</div>
+
+<script>
+// Fetch counts from API
+fetch('/api/v1/pieces/sheets').then(r => r.json()).then(data => {
+    document.getElementById('sheet-count').textContent = data.length;
+});
+fetch('/api/v1/pieces/').then(r => r.json()).then(data => {
+    document.getElementById('piece-count').textContent = data.length;
+});
+fetch('/api/v1/puzzle/matches/count').then(r => r.json()).then(data => {
+    document.getElementById('match-count').textContent = data.count;
+});
+</script>
+{% endblock %}
+

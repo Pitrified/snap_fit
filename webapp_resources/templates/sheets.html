@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="/">Home</a> <span>›</span> Sheets
+</div>
+
+<div class="card">
+    <h2>Sheets ({{ sheets|length }})</h2>
+    {% if sheets %}
+    <table>
+        <thead>
+            <tr>
+                <th>Sheet ID</th>
+                <th>Image Path</th>
+                <th>Pieces</th>
+                <th>Threshold</th>
+                <th>Min Area</th>
+                <th>Created</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for sheet in sheets %}
+            <tr>
+                <td><a href="/sheets/{{ sheet.sheet_id }}">{{ sheet.sheet_id }}</a></td>
+                <td><code>{{ sheet.img_path }}</code></td>
+                <td><span class="badge badge-info">{{ sheet.piece_count }}</span></td>
+                <td>{{ sheet.threshold }}</td>
+                <td>{{ sheet.min_area }}</td>
+                <td>{{ sheet.created_at.strftime('%Y-%m-%d %H:%M') if sheet.created_at else '-' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+        <p>No sheets found.</p>
+        <p style="margin-top: 0.5rem;">Use the API to ingest sheets: <code>POST /api/v1/pieces/ingest</code></p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

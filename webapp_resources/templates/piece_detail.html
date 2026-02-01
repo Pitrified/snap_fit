@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="/">Home</a> <span>›</span> <a href="/pieces">Pieces</a> <span>›</span> {{ piece.piece_id if piece else 'Not Found' }}
+</div>
+
+{% if piece %}
+<div class="card">
+    <h2>Piece: {{ piece.piece_id }}</h2>
+    <div class="detail-grid">
+        <div class="detail-item">
+            <div class="label">Sheet</div>
+            <div class="value"><a href="/sheets/{{ piece.piece_id.sheet_id }}">{{ piece.piece_id.sheet_id }}</a></div>
+        </div>
+        <div class="detail-item">
+            <div class="label">Piece Index</div>
+            <div class="value">{{ piece.piece_id.piece_idx }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="label">Type</div>
+            <div class="value">
+                {% if piece.oriented_piece_type %}
+                {{ piece.oriented_piece_type.piece_type }} ({{ piece.oriented_piece_type.orientation }})
+                {% else %}
+                Unknown
+                {% endif %}
+            </div>
+        </div>
+        <div class="detail-item">
+            <div class="label">Contour Points</div>
+            <div class="value">{{ piece.contour_point_count }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="label">Contour Region</div>
+            <div class="value"><code>{{ piece.contour_region }}</code></div>
+        </div>
+        <div class="detail-item">
+            <div class="label">Flat Edges</div>
+            <div class="value">
+                {% for edge in piece.flat_edges %}
+                <span class="badge badge-warning">{{ edge }}</span>
+                {% endfor %}
+                {% if not piece.flat_edges %}-{% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Corners</h2>
+    <div class="detail-grid">
+        {% for corner, coords in piece.corners.items() %}
+        <div class="detail-item">
+            <div class="label">{{ corner }}</div>
+            <div class="value">({{ coords[0] }}, {{ coords[1] }})</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="card">
+    <h2>Segments</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Edge</th>
+                <th>Shape</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for edge, shape in piece.segment_shapes.items() %}
+            <tr>
+                <td>{{ edge }}</td>
+                <td>
+                    <span class="badge {% if shape == 'IN' %}badge-success{% elif shape == 'OUT' %}badge-info{% elif shape == 'EDGE' %}badge-warning{% else %}badge{% endif %}">
+                        {{ shape }}
+                    </span>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="card">
+    <h2>Top Matches ({{ matches|length }})</h2>
+    {% if matches %}
+    <table>
+        <thead>
+            <tr>
+                <th>Segment 1</th>
+                <th>Segment 2</th>
+                <th>Similarity</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for match in matches %}
+            <tr>
+                <td>
+                    <a href="/pieces/{{ match.seg_id1.piece_id }}">{{ match.seg_id1.piece_id }}</a>
+                    <span class="badge badge-info">{{ match.seg_id1.edge_pos }}</span>
+                </td>
+                <td>
+                    <a href="/pieces/{{ match.seg_id2.piece_id }}">{{ match.seg_id2.piece_id }}</a>
+                    <span class="badge badge-info">{{ match.seg_id2.edge_pos }}</span>
+                </td>
+                <td>
+                    <span class="badge {% if match.similarity < 0.1 %}badge-success{% elif match.similarity < 0.3 %}badge-warning{% else %}badge{% endif %}">
+                        {{ "%.4f"|format(match.similarity) }}
+                    </span>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+        <p>No matches found for this piece.</p>
+    </div>
+    {% endif %}
+</div>
+{% else %}
+<div class="card">
+    <div class="empty-state">
+        <p>Piece not found.</p>
+        <a href="/pieces">← Back to pieces</a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

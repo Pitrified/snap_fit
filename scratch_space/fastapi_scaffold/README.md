@@ -44,29 +44,37 @@ The persistence layer is implemented and tested. The API will leverage:
 - **Contours:** Binary `.npz` files per sheet (efficient, ~12 MB total for 1,500 pieces)
 - **Matches:** JSON for small scale; SQLite planned for Phase 2+ (4.5M matches)
 
-### Phase 1 — Scaffold Structure
+### Phase 1 — Scaffold Structure (✅ COMPLETE)
 
 | #   | Task                                    | Status | Artifact                                |
 | --- | --------------------------------------- | ------ | --------------------------------------- |
-| 1   | Create feature branch                   | ⬜     | `git checkout -b feat/fastapi-scaffold` |
-| 2   | Scaffold `src/snap_fit/webapp/` package | ⬜     | Directory tree below                    |
-| 3   | Add `webapp_resources/` at repo root    | ⬜     | Templates + static assets               |
-| 4   | Wire up `main.py` entrypoint            | ⬜     | App factory, middleware, router mounts  |
+| 1   | Create feature branch                   | ✅     | `git checkout -b feat/fastapi-scaffold` |
+| 2   | Scaffold `src/snap_fit/webapp/` package | ✅     | Directory tree below                    |
+| 3   | Add `webapp_resources/` at repo root    | ✅     | Templates + static assets               |
+| 4   | Wire up `main.py` entrypoint            | ✅     | App factory, middleware, router mounts  |
 
-### Phase 2 — Configuration & Infra
+### Phase 2 — Configuration & Infra (✅ COMPLETE)
 
 | #   | Task                        | Status | Artifact                      |
 | --- | --------------------------- | ------ | ----------------------------- |
-| 5   | Add `.env.example`          | ⬜     | Environment variable template |
-| 6   | Add `Dockerfile` (uv-based) | ⬜     | Multi-stage build             |
-| 7   | Add `docker-compose.yml`    | ⬜     | Local dev orchestration       |
+| 5   | Add `.env.example`          | ✅     | Environment variable template |
+| 6   | Add `Dockerfile` (uv-based) | ✅     | Multi-stage build             |
+| 7   | Add `docker-compose.yml`    | ✅     | Local dev orchestration       |
 
-### Phase 3 — Docs & Tests
+### Phase 3 — Docs & Tests (✅ COMPLETE)
 
 | #   | Task                     | Status | Artifact                    |
 | --- | ------------------------ | ------ | --------------------------- |
-| 8   | Create `docs/fastapi.md` | ⬜     | Install, run, extend guide  |
-| 9   | Add `tests/webapp/`      | ⬜     | Smoke tests for each router |
+| 8   | Create `docs/fastapi.md` | ✅     | Install, run, extend guide  |
+| 9   | Add `tests/webapp/`      | ✅     | Smoke tests for each router |
+
+### Phase 4 — Admin UI (✅ COMPLETE)
+
+| #   | Task                       | Status | Artifact                            |
+| --- | -------------------------- | ------ | ----------------------------------- |
+| 10  | Add Jinja2 templates       | ✅     | `webapp_resources/templates/*.html` |
+| 11  | Add UI router              | ✅     | `src/snap_fit/webapp/routers/ui.py` |
+| 12  | Wire data layer to routers | ✅     | Services with real SheetManager     |
 
 ---
 
@@ -82,6 +90,7 @@ The persistence layer is implemented and tested. The API will leverage:
 │  puzzle_solve      │  puzzle_service        │  PieceRecord (response)  │
 │  interactive       │                        │  MatchResult  (response) │
 │  debug             │                        │                          │
+│  ui (HTML)         │                        │                          │
 └────────────────────┴────────────────────────┴──────────────────────────┘
                                     │
                                     ▼
@@ -858,16 +867,16 @@ Follow the existing patterns — routers handle HTTP concerns, services wrap dom
 
 ---
 
-## Open Questions
+## Resolved Questions
 
-- [ ] Should we mount Jinja2 templates for an admin UI? --> answer: yes, prepare ui to navigate cached data
-- [ ] Add rate limiting middleware? --> answer: no
-- [ ] WebSocket support for real-time puzzle feedback? --> answer: not yet
+- [x] ~~Should we mount Jinja2 templates for an admin UI?~~ → Yes, implemented in `routers/ui.py` with 6 templates
+- [x] ~~Add rate limiting middleware?~~ → No, not needed for current scope
+- [x] ~~WebSocket support for real-time puzzle feedback?~~ → Not yet, deferred to future phase
 - [x] ~~How to persist piece/sheet metadata?~~ → JSON via `SheetManager.save_metadata()`
 - [x] ~~How to handle heavy contour data?~~ → Binary `.npz` via `save_contour_cache()`
 - [x] ~~How to persist match results?~~ → JSON via `PieceMatcher.save_matches_json()`
-- [ ] SQLite for matches at scale (4.5M records)? --> yes
-- [ ] Incremental matching when adding new sheets? --> not yet
+- [x] ~~SQLite for matches at scale (4.5M records)?~~ → Planned for Phase 2+ (currently JSON)
+- [x] ~~Incremental matching when adding new sheets?~~ → Deferred, `match_incremental()` method available
 
 ---
 

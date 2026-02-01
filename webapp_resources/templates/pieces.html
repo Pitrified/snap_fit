@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="/">Home</a> <span>›</span> Pieces
+</div>
+
+<div class="card">
+    <h2>Pieces ({{ pieces|length }})</h2>
+    {% if pieces %}
+    <table>
+        <thead>
+            <tr>
+                <th>Piece ID</th>
+                <th>Sheet</th>
+                <th>Type</th>
+                <th>Flat Edges</th>
+                <th>Contour Points</th>
+                <th>Region</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for piece in pieces %}
+            <tr>
+                <td><a href="/pieces/{{ piece.piece_id }}">{{ piece.piece_id }}</a></td>
+                <td><a href="/sheets/{{ piece.piece_id.sheet_id }}">{{ piece.piece_id.sheet_id }}</a></td>
+                <td>
+                    {% if piece.oriented_piece_type %}
+                    <span class="badge badge-info">{{ piece.oriented_piece_type.piece_type }}</span>
+                    {% else %}
+                    <span class="badge">Unknown</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% for edge in piece.flat_edges %}
+                    <span class="badge badge-warning">{{ edge }}</span>
+                    {% endfor %}
+                    {% if not piece.flat_edges %}-{% endif %}
+                </td>
+                <td>{{ piece.contour_point_count }}</td>
+                <td><code>{{ piece.contour_region }}</code></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+        <p>No pieces found.</p>
+        <p style="margin-top: 0.5rem;">Use the API to ingest sheets: <code>POST /api/v1/pieces/ingest</code></p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

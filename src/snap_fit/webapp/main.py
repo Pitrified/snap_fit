@@ -3,6 +3,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 
 from snap_fit.webapp.core.logging_config import configure_logging
 from snap_fit.webapp.core.settings import get_settings
@@ -10,6 +11,7 @@ from snap_fit.webapp.routers import debug
 from snap_fit.webapp.routers import interactive
 from snap_fit.webapp.routers import piece_ingestion
 from snap_fit.webapp.routers import puzzle_solve
+from snap_fit.webapp.routers import ui
 from snap_fit.webapp.utils.paths import resource_path
 
 
@@ -35,12 +37,17 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # --- Static files (optional) ---
+    # --- Static files ---
     static_dir = resource_path("static")
     if static_dir.exists():
         app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
-    # --- Routers ---
+    # --- Templates ---
+    templates_dir = resource_path("templates")
+    if templates_dir.exists():
+        app.state.templates = Jinja2Templates(directory=templates_dir)
+
+    # --- API Routers ---
     api_v1 = "/api/v1"
     app.include_router(
         piece_ingestion.router, prefix=f"{api_v1}/pieces", tags=["Pieces"]
@@ -50,6 +57,9 @@ def create_app() -> FastAPI:
         interactive.router, prefix=f"{api_v1}/interactive", tags=["Interactive"]
     )
     app.include_router(debug.router, prefix=f"{api_v1}/debug", tags=["Debug"])
+
+    # --- UI Router (HTML pages) ---
+    app.include_router(ui.router, tags=["UI"])
 
     return app
 

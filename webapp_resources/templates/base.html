@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ title }}{% endblock %} | snap_fit</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --bg: #f8fafc;
+            --bg-card: #ffffff;
+            --text: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --success: #22c55e;
+            --warning: #f59e0b;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+        header {
+            background: var(--primary);
+            color: white;
+            padding: 1rem 0;
+            margin-bottom: 2rem;
+        }
+        header h1 { font-size: 1.5rem; }
+        nav {
+            display: flex;
+            gap: 1rem;
+            margin-top: 0.5rem;
+        }
+        nav a {
+            color: rgba(255,255,255,0.9);
+            text-decoration: none;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+        nav a:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        nav a.active {
+            background: rgba(255,255,255,0.2);
+        }
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .card h2 {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            color: var(--text);
+        }
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1rem;
+        }
+        .stat-card {
+            text-align: center;
+            padding: 2rem;
+        }
+        .stat-card .value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        .stat-card .label {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            text-align: left;
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--border);
+        }
+        th {
+            font-weight: 600;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+        }
+        tr:hover {
+            background: var(--bg);
+        }
+        a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .badge-success { background: #dcfce7; color: #166534; }
+        .badge-warning { background: #fef3c7; color: #92400e; }
+        .badge-info { background: #dbeafe; color: #1e40af; }
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-muted);
+        }
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+        .breadcrumb {
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+        .breadcrumb a {
+            color: var(--text-muted);
+        }
+        .breadcrumb span {
+            margin: 0 0.5rem;
+        }
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+        .detail-item {
+            padding: 0.75rem;
+            background: var(--bg);
+            border-radius: 4px;
+        }
+        .detail-item .label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+        .detail-item .value {
+            font-weight: 500;
+            margin-top: 0.25rem;
+        }
+        @media (max-width: 768px) {
+            .card-grid { grid-template-columns: 1fr; }
+            .detail-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>🧩 snap_fit Admin</h1>
+            <nav>
+                <a href="/" {% if request.url.path == '/' %}class="active"{% endif %}>Home</a>
+                <a href="/sheets" {% if '/sheets' in request.url.path %}class="active"{% endif %}>Sheets</a>
+                <a href="/pieces" {% if '/pieces' in request.url.path %}class="active"{% endif %}>Pieces</a>
+                <a href="/matches" {% if '/matches' in request.url.path %}class="active"{% endif %}>Matches</a>
+                <a href="/api/docs" target="_blank">API Docs</a>
+            </nav>
+        </div>
+    </header>
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>

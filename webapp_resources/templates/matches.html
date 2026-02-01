@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="/">Home</a> <span>›</span> Matches
+</div>
+
+<div class="card">
+    <h2>Matches (showing {{ matches|length }} of {{ total_count }})</h2>
+    {% if matches %}
+    <p style="margin-bottom: 1rem; color: var(--text-muted);">
+        Sorted by similarity (lower = better match).
+        {% if matches|length < total_count %}
+        <a href="/matches?limit={{ total_count }}">Show all →</a>
+        {% endif %}
+    </p>
+    <table>
+        <thead>
+            <tr>
+                <th>Segment 1</th>
+                <th>Segment 2</th>
+                <th>Similarity</th>
+                <th>Manual Override</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for match in matches %}
+            <tr>
+                <td>
+                    <a href="/pieces/{{ match.seg_id1.piece_id }}">{{ match.seg_id1.piece_id }}</a>
+                    <span class="badge badge-info">{{ match.seg_id1.edge_pos }}</span>
+                </td>
+                <td>
+                    <a href="/pieces/{{ match.seg_id2.piece_id }}">{{ match.seg_id2.piece_id }}</a>
+                    <span class="badge badge-info">{{ match.seg_id2.edge_pos }}</span>
+                </td>
+                <td>
+                    <span class="badge {% if match.similarity < 0.1 %}badge-success{% elif match.similarity < 0.3 %}badge-warning{% else %}badge{% endif %}">
+                        {{ "%.6f"|format(match.similarity) }}
+                    </span>
+                </td>
+                <td>
+                    {% if match.similarity_manual is not none %}
+                    <span class="badge badge-warning">{{ "%.4f"|format(match.similarity_manual) }}</span>
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+        <p>No matches found.</p>
+        <p style="margin-top: 0.5rem;">Run matching after ingesting sheets.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,6 +1,7 @@
 """Application settings via pydantic-settings (v2 API)."""
 
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic_settings import BaseSettings
 from pydantic_settings import SettingsConfigDict
@@ -25,6 +26,17 @@ class Settings(BaseSettings):
 
     # Paths (optional overrides)
     data_dir: str = "data"
+    cache_dir: str = "cache"
+
+    @property
+    def cache_path(self) -> Path:
+        """Return the cache directory as a Path."""
+        return Path(self.cache_dir)
+
+    @property
+    def data_path(self) -> Path:
+        """Return the data directory as a Path."""
+        return Path(self.data_dir)
 
 
 @lru_cache
