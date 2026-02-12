@@ -979,6 +979,275 @@ With the data layer complete, the API scaffold can be built with real persistenc
 
 ---
 
+## Quick Start Guide
+
+This section provides step-by-step instructions for running the FastAPI webapp and working with cached data.
+
+### 1. Setting Up the Cache/Database
+
+The webapp uses a file-based cache system stored in the `cache/` directory:
+
+```text
+cache/
+├── metadata.json        # Sheet and piece records (JSON)
+├── matches.json         # Match results (JSON)
+└── contours/            # Binary contour data (.npz per sheet)
+    ├── {sheet_id}_contours.npz
+    └── {sheet_id}_corners.json
+```
+
+**Initial Setup:**
+
+```bash
+# 1. Create the cache directory (if not exists)
+mkdir -p cache/contours
+
+# 2. Copy .env.example to .env and configure paths
+cp .env.example .env
+
+# 3. Edit .env to set your cache directory (default is fine for most cases)
+# CACHE_DIR=cache
+# DATA_DIR=data
+```
+
+**Environment Variables (`.env`):**
+
+| Variable             | Default     | Description                        |
+| -------------------- | ----------- | ---------------------------------- |
+| `HOST`               | `127.0.0.1` | Server bind address                |
+| `PORT`               | `8000`      | Server port                        |
+| `DEBUG`              | `true`      | Enable debug mode and hot reload   |
+| `CORS_ALLOW_ORIGINS` | `*`         | Allowed CORS origins               |
+| `CACHE_DIR`          | `cache`     | Directory for metadata and matches |
+| `DATA_DIR`           | `data`      | Directory for input sheet images   |
+
+### 2. Running the Application
+
+**Option A: Local Development (Recommended)**
+
+```bash
+# Install dependencies
+uv sync
+
+# Run the dev server with hot reload
+uv run uvicorn snap_fit.webapp.main:app --reload
+
+# Or via the module entrypoint
+uv run python -m snap_fit.webapp.main
+```
+
+**Option B: Docker Compose**
+
+```bash
+# Build and run
+docker compose up --build
+
+# Or in detached mode
+docker compose up -d --build
+```
+
+**Verify the server is running:**
+
+```bash
+# Health check
+curl http://localhost:8000/api/v1/debug/ping
+# Expected: {"status":"ok"}
+
+# Build info
+curl http://localhost:8000/api/v1/debug/info
+# Expected: {"debug":true,"version":"0.1.0"}
+```
+
+**Available URLs:**
+
+| URL                               | Description                  |
+| --------------------------------- | ---------------------------- |
+| `http://localhost:8000/`          | Admin UI home page           |
+| `http://localhost:8000/sheets`    | Browse cached sheets (HTML)  |
+| `http://localhost:8000/pieces`    | Browse cached pieces (HTML)  |
+| `http://localhost:8000/matches`   | Browse cached matches (HTML) |
+| `http://localhost:8000/api/docs`  | Swagger UI (interactive API) |
+| `http://localhost:8000/api/redoc` | ReDoc documentation          |
+
+### 3. Viewing Cached Data or Running New Ingestion
+
+**View Existing Cached Data (via API):**
+
+```bash
+# List all sheets
+curl http://localhost:8000/api/v1/pieces/sheets
+
+# List all pieces
+curl http://localhost:8000/api/v1/pieces/
+
+# Get a specific piece
+curl http://localhost:8000/api/v1/pieces/{piece_id}
+# Example: curl http://localhost:8000/api/v1/pieces/sheet_001-0
+
+# Get pieces for a specific sheet
+curl http://localhost:8000/api/v1/pieces/sheets/{sheet_id}/pieces
+```
+
+**View via Admin UI:**
+
+Open `http://localhost:8000/` in your browser to navigate sheets, pieces, and matches through the HTML interface.
+
+**Run New Ingestion:**
+
+Ingest sheet images from a directory to populate the cache:
+
+```bash
+# Using curl (JSON body)
+curl -X POST http://localhost:8000/api/v1/pieces/ingest \
+  -H "Content-Type: application/json" \
+  -d '{
+    "sheet_dir": "data/sample_puzzle_v2/sheets",
+    "threshold": 130,
+    "min_area": 80000
+  }'
+
+# Expected response:
+# {"sheets_ingested":4,"pieces_detected":24,"cache_path":"cache"}
+```
+
+**Available sample datasets:**
+
+| Path                            | Description                        |
+| ------------------------------- | ---------------------------------- |
+| `data/sample_puzzle_v2/sheets/` | 4 PNG sheets with synthetic pieces |
+| `data/milano1/sheets/`          | 2 JPG sheets from real puzzle      |
+| `data/oca/sheets/`              | OCA puzzle sheets                  |
+
+**Ingestion Parameters:**
+
+| Parameter   | Default  | Description                               |
+| ----------- | -------- | ----------------------------------------- |
+| `sheet_dir` | Required | Path to directory containing sheet images |
+| `threshold` | `130`    | Binary threshold for image preprocessing  |
+| `min_area`  | `80000`  | Minimum contour area for piece detection  |
+
+### 4. Updating Cache and Running Matching
+
+After ingestion, you can compute segment matches between pieces:
+
+**View Current Match State:**
+
+```bash
+# Get match count
+curl http://localhost:8000/api/v1/puzzle/matches/count
+# Expected: {"count":0} if no matches computed yet
+
+# List top matches (sorted by similarity, lower = better)
+curl "http://localhost:8000/api/v1/puzzle/matches?limit=10"
+
+# Get matches for a specific piece
+curl http://localhost:8000/api/v1/puzzle/matches/piece/{piece_id}
+# Example: curl http://localhost:8000/api/v1/puzzle/matches/piece/sheet_001-0
+
+# Get matches for a specific segment (piece + edge)
+curl http://localhost:8000/api/v1/puzzle/matches/segment/{piece_id}/{edge_pos}
+# Example: curl http://localhost:8000/api/v1/puzzle/matches/segment/sheet_001-0/TOP
+# edge_pos: TOP, RIGHT, BOTTOM, LEFT
+```
+
+**Computing Matches (Python Script):**
+
+The matching is computationally intensive—run it via Python for full control:
+
+```python
+from pathlib import Path
+from snap_fit.puzzle.sheet_manager import SheetManager
+from snap_fit.puzzle.piece_matcher import PieceMatcher
+
+# Load ingested data
+cache_dir = Path("cache")
+metadata = SheetManager.load_metadata(cache_dir / "metadata.json")
+print(f"Loaded {len(metadata['pieces'])} pieces")
+
+# Create a fresh manager and reload sheets for matching
+# (This requires the original images to rebuild Piece objects)
+manager = SheetManager()
+for img_file in sorted(Path("data/sample_puzzle_v2/sheets").glob("*.png")):
+    manager.add_sheet(img_file, threshold=130, min_area=80_000)
+
+# Run matching
+matcher = PieceMatcher(manager)
+matcher.match_all()  # This computes ALL segment pairs
+
+# Save matches to cache
+matcher.save_matches_json(cache_dir / "matches.json")
+print(f"Saved {len(matcher.results)} matches")
+```
+
+**Incremental Matching (Adding New Sheets):**
+
+```python
+# If you add more sheets later, use incremental matching
+# to avoid re-computing existing pairs
+
+# Add new sheets
+new_sheet_ids = []
+for img_file in sorted(Path("data/new_sheets").glob("*.png")):
+    sheet = manager.add_sheet(img_file)
+    new_sheet_ids.append(sheet.sheet_id)
+
+# Get piece IDs from new sheets
+new_piece_ids = [
+    piece.piece_id
+    for sid in new_sheet_ids
+    for piece in manager.sheets[sid].pieces
+]
+
+# Run incremental matching (only new vs existing)
+new_matches = matcher.match_incremental(new_piece_ids)
+print(f"Added {new_matches} new matches")
+
+# Save updated matches
+matcher.save_matches_json(cache_dir / "matches.json")
+```
+
+**Full Refresh Workflow:**
+
+```bash
+# 1. Clear existing cache
+rm -rf cache/*
+
+# 2. Re-ingest sheets
+curl -X POST http://localhost:8000/api/v1/pieces/ingest \
+  -H "Content-Type: application/json" \
+  -d '{"sheet_dir": "data/sample_puzzle_v2/sheets"}'
+
+# 3. Run matching (via Python script or notebook)
+uv run python -c "
+from pathlib import Path
+from snap_fit.puzzle.sheet_manager import SheetManager
+from snap_fit.puzzle.piece_matcher import PieceMatcher
+
+manager = SheetManager()
+for f in sorted(Path('data/sample_puzzle_v2/sheets').glob('*.png')):
+    manager.add_sheet(f, threshold=130, min_area=80000)
+
+matcher = PieceMatcher(manager)
+matcher.match_all()
+matcher.save_matches_json(Path('cache/matches.json'))
+print(f'Computed {len(matcher.results)} matches')
+"
+
+# 4. Verify via API
+curl http://localhost:8000/api/v1/puzzle/matches/count
+```
+
+**Cache File Reference:**
+
+| File                | Created By                        | Contains                    |
+| ------------------- | --------------------------------- | --------------------------- |
+| `metadata.json`     | `POST /api/v1/pieces/ingest`      | Sheet + piece records       |
+| `matches.json`      | `PieceMatcher.save_matches_json`  | All segment match results   |
+| `{id}_contours.npz` | `SheetManager.save_contour_cache` | Binary contour points       |
+| `{id}_corners.json` | `SheetManager.save_contour_cache` | Corner indices for segments |
+
+---
+
 ## References
 
 - [FastAPI docs](https://fastapi.tiangolo.com/)
