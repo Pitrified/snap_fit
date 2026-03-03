@@ -21,9 +21,11 @@ repos:
     hooks:
       # run the linter
       - id: ruff
+        types_or: [ python, pyi ]
         args: [--fix]
       # run the formatter
       - id: ruff-format
+        types_or: [ python, pyi ]
   - repo: https://github.com/RobertCraigie/pyright-python
     # uv pyright --version
     rev: v1.1.407
