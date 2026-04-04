@@ -19,17 +19,27 @@ class PuzzleService:
         """Initialize service with cache directory.
 
         Args:
-            cache_dir: Directory for match cache files.
+            cache_dir: Root cache directory.  Match files live under
+                ``cache_dir / sheets_tag / matches.json``.
         """
         self.cache_dir = cache_dir
-        self.matches_path = cache_dir / "matches.json"
+
+    def _all_matches_paths(self) -> list[Path]:
+        """Return all matches.json files found across dataset sub-directories."""
+        if not self.cache_dir.exists():
+            return []
+        return [
+            p / "matches.json"
+            for p in self.cache_dir.iterdir()
+            if p.is_dir() and (p / "matches.json").exists()
+        ]
 
     def list_matches(
         self,
         limit: int = 100,
         min_similarity: float | None = None,
     ) -> list[MatchResult]:
-        """Return match results from cached matches.
+        """Return match results aggregated from all cached dataset matches.
 
         Args:
             limit: Maximum number of matches to return.
@@ -38,13 +48,16 @@ class PuzzleService:
         Returns:
             List of MatchResult objects sorted by similarity (ascending).
         """
-        if not self.matches_path.exists():
+        all_paths = self._all_matches_paths()
+        if not all_paths:
             return []
 
-        matcher = PieceMatcher(manager=None)
-        matcher.load_matches_json(self.matches_path)
+        results: list[MatchResult] = []
+        for matches_path in all_paths:
+            matcher = PieceMatcher(manager=None)
+            matcher.load_matches_json(matches_path)
+            results.extend(matcher.results)
 
-        results = list(matcher._results)
         if min_similarity is not None:
             results = [r for r in results if r.similarity >= min_similarity]
 
@@ -57,7 +70,7 @@ class PuzzleService:
         piece_id: str,
         limit: int = 10,
     ) -> list[MatchResult]:
-        """Return top matches involving a specific piece.
+        """Return top matches involving a specific piece, across all datasets.
 
         Args:
             piece_id: The piece ID (format: sheet_id-piece_idx).
@@ -66,19 +79,20 @@ class PuzzleService:
         Returns:
             List of MatchResult objects involving the piece.
         """
-        if not self.matches_path.exists():
+        all_paths = self._all_matches_paths()
+        if not all_paths:
             return []
 
-        matcher = PieceMatcher(manager=None)
-        matcher.load_matches_json(self.matches_path)
-
-        # Filter matches involving this piece
-        results = [
-            r
-            for r in matcher._results
-            if str(r.seg_id1.piece_id) == piece_id
-            or str(r.seg_id2.piece_id) == piece_id
-        ]
+        results: list[MatchResult] = []
+        for matches_path in all_paths:
+            matcher = PieceMatcher(manager=None)
+            matcher.load_matches_json(matches_path)
+            results.extend(
+                r
+                for r in matcher.results
+                if str(r.seg_id1.piece_id) == piece_id
+                or str(r.seg_id2.piece_id) == piece_id
+            )
         results.sort(key=lambda r: r.similarity)
         return results[:limit]
 
@@ -88,7 +102,7 @@ class PuzzleService:
         edge_pos: str,
         limit: int = 5,
     ) -> list[MatchResult]:
-        """Return top matches for a specific segment.
+        """Return top matches for a specific segment, across all datasets.
 
         Args:
             piece_id: The piece ID.
@@ -98,25 +112,25 @@ class PuzzleService:
         Returns:
             List of MatchResult objects for the segment.
         """
-        if not self.matches_path.exists():
+        all_paths = self._all_matches_paths()
+        if not all_paths:
             return []
 
-        matcher = PieceMatcher(manager=None)
-        matcher.load_matches_json(self.matches_path)
-
-        # Filter matches for this specific segment
-        results = []
-        for r in matcher._results:
-            seg1_match = (
-                str(r.seg_id1.piece_id) == piece_id
-                and r.seg_id1.edge_pos.value == edge_pos
-            )
-            seg2_match = (
-                str(r.seg_id2.piece_id) == piece_id
-                and r.seg_id2.edge_pos.value == edge_pos
-            )
-            if seg1_match or seg2_match:
-                results.append(r)
+        results: list[MatchResult] = []
+        for matches_path in all_paths:
+            matcher = PieceMatcher(manager=None)
+            matcher.load_matches_json(matches_path)
+            for r in matcher.results:
+                seg1_match = (
+                    str(r.seg_id1.piece_id) == piece_id
+                    and r.seg_id1.edge_pos.value == edge_pos
+                )
+                seg2_match = (
+                    str(r.seg_id2.piece_id) == piece_id
+                    and r.seg_id2.edge_pos.value == edge_pos
+                )
+                if seg1_match or seg2_match:
+                    results.append(r)
 
         results.sort(key=lambda r: r.similarity)
         return results[:limit]
@@ -146,9 +160,10 @@ class PuzzleService:
         }
 
     def match_count(self) -> int:
-        """Return the total number of cached matches."""
-        if not self.matches_path.exists():
-            return 0
-        matcher = PieceMatcher(manager=None)
-        matcher.load_matches_json(self.matches_path)
-        return len(matcher._results)
+        """Return the total number of cached matches across all datasets."""
+        total = 0
+        for matches_path in self._all_matches_paths():
+            matcher = PieceMatcher(manager=None)
+            matcher.load_matches_json(matches_path)
+            total += len(matcher.results)
+        return total

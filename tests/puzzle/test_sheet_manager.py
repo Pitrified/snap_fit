@@ -360,7 +360,7 @@ def create_mock_sheet_for_persistence(sheet_id: str) -> MagicMock:
         # Mock segments
         segments = {}
         shapes = [SegmentShape.IN, SegmentShape.OUT, SegmentShape.EDGE, SegmentShape.IN]
-        for ep, shape in zip(EdgePos, shapes):
+        for ep, shape in zip(EdgePos, shapes, strict=False):
             seg = MagicMock(spec=Segment)
             seg.shape = shape
             segments[ep] = seg

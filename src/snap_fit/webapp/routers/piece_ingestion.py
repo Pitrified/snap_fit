@@ -3,7 +3,7 @@
 Uses the data layer (SheetManager) via PieceService for persistence.
 """
 
-from pathlib import Path
+from typing import Annotated
 
 from fastapi import APIRouter
 from fastapi import Depends
@@ -20,22 +20,24 @@ from snap_fit.webapp.services.piece_service import PieceService
 router = APIRouter()
 
 
-def get_piece_service(settings: Settings = Depends(get_settings)) -> PieceService:
+def get_piece_service(
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> PieceService:
     """Dependency to get PieceService instance."""
     return PieceService(settings.cache_path)
 
 
-@router.get("/", response_model=list[PieceRecord], summary="List all pieces")
+@router.get("/", summary="List all pieces")
 async def list_pieces(
-    service: PieceService = Depends(get_piece_service),
+    service: Annotated[PieceService, Depends(get_piece_service)],
 ) -> list[PieceRecord]:
     """Return all piece records from cached metadata."""
     return service.list_pieces()
 
 
-@router.get("/sheets", response_model=list[SheetRecord], summary="List all sheets")
+@router.get("/sheets", summary="List all sheets")
 async def list_sheets(
-    service: PieceService = Depends(get_piece_service),
+    service: Annotated[PieceService, Depends(get_piece_service)],
 ) -> list[SheetRecord]:
     """Return all sheet records from cached metadata."""
     return service.list_sheets()
@@ -43,12 +45,11 @@ async def list_sheets(
 
 @router.get(
     "/sheets/{sheet_id}",
-    response_model=SheetRecord,
     summary="Get sheet by ID",
 )
 async def get_sheet(
     sheet_id: str,
-    service: PieceService = Depends(get_piece_service),
+    service: Annotated[PieceService, Depends(get_piece_service)],
 ) -> SheetRecord:
     """Retrieve sheet details by sheet ID."""
     record = service.get_sheet(sheet_id)
@@ -59,21 +60,20 @@ async def get_sheet(
 
 @router.get(
     "/sheets/{sheet_id}/pieces",
-    response_model=list[PieceRecord],
     summary="List pieces for sheet",
 )
 async def list_pieces_for_sheet(
     sheet_id: str,
-    service: PieceService = Depends(get_piece_service),
+    service: Annotated[PieceService, Depends(get_piece_service)],
 ) -> list[PieceRecord]:
     """Return all pieces belonging to a specific sheet."""
     return service.get_pieces_for_sheet(sheet_id)
 
 
-@router.get("/{piece_id}", response_model=PieceRecord, summary="Get piece by ID")
+@router.get("/{piece_id}", summary="Get piece by ID")
 async def get_piece(
     piece_id: str,
-    service: PieceService = Depends(get_piece_service),
+    service: Annotated[PieceService, Depends(get_piece_service)],
 ) -> PieceRecord:
     """Retrieve piece details by piece ID (format: sheet_id-piece_idx)."""
     record = service.get_piece(piece_id)
@@ -82,29 +82,29 @@ async def get_piece(
     return record
 
 
-@router.post("/ingest", response_model=IngestResponse, summary="Ingest sheets")
+@router.post("/ingest", summary="Ingest sheets")
 async def ingest_sheets(
     request: IngestRequest,
-    service: PieceService = Depends(get_piece_service),
+    service: Annotated[PieceService, Depends(get_piece_service)],
+    settings: Annotated[Settings, Depends(get_settings)],
 ) -> IngestResponse:
-    """Load sheets from a directory, compute pieces, and persist metadata.
+    """Load sheets for a named dataset, compute pieces, and persist metadata.
 
     Args:
-        request: Ingestion parameters (sheet_dir, threshold, min_area).
+        request: Ingestion parameters - only `sheets_tag` is required.
+            The config and image folder are resolved automatically from
+            `data/{sheets_tag}/`.
+        service: PieceService instance (injected).
+        settings: App settings used to resolve data_dir (injected).
 
     Returns:
         Summary of ingested data.
     """
-    sheet_path = Path(request.sheet_dir)
-    if not sheet_path.is_dir():
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid directory: {request.sheet_dir}",
+    try:
+        result = service.ingest_sheets(
+            sheets_tag=request.sheets_tag,
+            data_dir=settings.data_path,
         )
-
-    result = service.ingest_sheets(
-        sheet_dir=sheet_path,
-        threshold=request.threshold,
-        min_area=request.min_area,
-    )
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     return IngestResponse(**result)

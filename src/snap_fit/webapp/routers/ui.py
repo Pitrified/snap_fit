@@ -1,5 +1,7 @@
 """Router: HTML UI pages for browsing cached data."""
 
+from typing import Annotated
+
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import Request
@@ -13,12 +15,16 @@ from snap_fit.webapp.services.puzzle_service import PuzzleService
 router = APIRouter()
 
 
-def get_piece_service(settings: Settings = Depends(get_settings)) -> PieceService:
+def get_piece_service(
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> PieceService:
     """Dependency to get PieceService instance."""
     return PieceService(settings.cache_path)
 
 
-def get_puzzle_service(settings: Settings = Depends(get_settings)) -> PuzzleService:
+def get_puzzle_service(
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> PuzzleService:
     """Dependency to get PuzzleService instance."""
     return PuzzleService(settings.cache_path)
 
@@ -37,7 +43,7 @@ async def home(request: Request) -> HTMLResponse:
 @router.get("/sheets", response_class=HTMLResponse, summary="Sheets list")
 async def sheets_page(
     request: Request,
-    service: PieceService = Depends(get_piece_service),
+    service: Annotated[PieceService, Depends(get_piece_service)],
 ) -> HTMLResponse:
     """Render the sheets list page."""
     templates = request.app.state.templates
@@ -53,7 +59,7 @@ async def sheets_page(
 async def sheet_detail_page(
     request: Request,
     sheet_id: str,
-    service: PieceService = Depends(get_piece_service),
+    service: Annotated[PieceService, Depends(get_piece_service)],
 ) -> HTMLResponse:
     """Render a sheet detail page with its pieces."""
     templates = request.app.state.templates
@@ -73,7 +79,7 @@ async def sheet_detail_page(
 @router.get("/pieces", response_class=HTMLResponse, summary="Pieces list")
 async def pieces_page(
     request: Request,
-    service: PieceService = Depends(get_piece_service),
+    service: Annotated[PieceService, Depends(get_piece_service)],
 ) -> HTMLResponse:
     """Render the pieces list page."""
     templates = request.app.state.templates
@@ -93,8 +99,8 @@ async def pieces_page(
 async def piece_detail_page(
     request: Request,
     piece_id: str,
-    piece_service: PieceService = Depends(get_piece_service),
-    puzzle_service: PuzzleService = Depends(get_puzzle_service),
+    piece_service: Annotated[PieceService, Depends(get_piece_service)],
+    puzzle_service: Annotated[PuzzleService, Depends(get_puzzle_service)],
 ) -> HTMLResponse:
     """Render a piece detail page with its matches."""
     templates = request.app.state.templates
@@ -115,7 +121,7 @@ async def piece_detail_page(
 async def matches_page(
     request: Request,
     limit: int = 100,
-    service: PuzzleService = Depends(get_puzzle_service),
+    service: Annotated[PuzzleService, Depends(get_puzzle_service)] = None,  # type: ignore[assignment]
 ) -> HTMLResponse:
     """Render the matches list page."""
     templates = request.app.state.templates

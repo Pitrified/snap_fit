@@ -246,9 +246,6 @@ def test_piece_matcher_match_incremental(mock_manager: MagicMock) -> None:
     pid_existing = PieceId(sheet_id="A", piece_id=0)
     pid_new = PieceId(sheet_id="B", piece_id=0)
 
-    id_existing = SegmentId(piece_id=pid_existing, edge_pos=EdgePos.TOP)
-    id_new = SegmentId(piece_id=pid_new, edge_pos=EdgePos.BOTTOM)
-
     # Mock the manager to return segment IDs
     def get_other_pieces(seg_id: SegmentId) -> list[SegmentId]:
         if seg_id.piece_id == pid_new:
@@ -263,7 +260,7 @@ def test_piece_matcher_match_incremental(mock_manager: MagicMock) -> None:
 
         new_count = matcher.match_incremental([pid_new])
 
-        # 4 edges on new piece × 4 edges on existing piece = 16 comparisons
+        # 4 edges on new piece x 4 edges on existing piece = 16 comparisons
         assert new_count == 16
         assert len(matcher.results) == 16
 

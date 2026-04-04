@@ -187,7 +187,7 @@ class TestPieceRecordFromPiece:
 
         # Mock contour
         piece.contour.cv_contour = MagicMock()
-        piece.contour.cv_contour.__len__ = lambda x: 480
+        piece.contour.cv_contour.__len__ = lambda _: 480
         piece.contour.region = (10, 20, 100, 110)
 
         return piece

@@ -27,16 +27,20 @@ class PieceOut(BaseModel):
 
 
 class IngestRequest(BaseModel):
-    """Request to ingest sheets from a directory."""
+    """Request to ingest sheets for a named dataset.
 
-    sheet_dir: str
-    threshold: int = 130
-    min_area: int = 80_000
+    sheets_tag identifies the dataset folder under `data/`.
+    The config is loaded from `data/{sheets_tag}/{sheets_tag}_SheetArucoConfig.json`
+    and images are read from `data/{sheets_tag}/sheets/*.jpg`.
+    """
+
+    sheets_tag: str
 
 
 class IngestResponse(BaseModel):
     """Response from sheet ingestion."""
 
+    sheets_tag: str
     sheets_ingested: int
     pieces_detected: int
     cache_path: str

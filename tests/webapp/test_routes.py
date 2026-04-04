@@ -87,11 +87,11 @@ class TestPieceEndpoints:
         response = client.get("/api/v1/pieces/nonexistent-0")
         assert response.status_code == 404
 
-    def test_ingest_invalid_directory(self, client: TestClient) -> None:
-        """Ingest returns 400 for invalid directory."""
+    def test_ingest_unknown_tag(self, client: TestClient) -> None:
+        """Ingest returns 400 for an unknown sheets_tag (config not found)."""
         response = client.post(
             "/api/v1/pieces/ingest",
-            json={"sheet_dir": "/nonexistent/path"},
+            json={"sheets_tag": "nonexistent_dataset"},
         )
         assert response.status_code == 400
 
@@ -190,7 +190,8 @@ class TestWithCachedData:
                 },
             ],
         }
-        metadata_path = tmp_path / "metadata.json"
+        metadata_path = tmp_path / "test_tag" / "metadata.json"
+        metadata_path.parent.mkdir(parents=True, exist_ok=True)
         metadata_path.write_text(json.dumps(metadata))
 
         # Update settings to use tmp cache
