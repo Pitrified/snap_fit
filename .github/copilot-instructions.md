@@ -52,7 +52,7 @@ Config classes extend `BaseModelKwargs` (not plain `BaseModel`) when their field
 
 ## Style rules
 
-- Never use em dashes (`--` or `---` or Unicode `—`). Use a hyphen `-` or rewrite the sentence.
+- Never use em dashes (`--` or `---` or Unicode `\u2014` and `\u2013`). Use a hyphen `-` or rewrite the sentence.
 
 ## Testing & scratch space
 
