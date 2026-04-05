@@ -6,7 +6,7 @@ services:
     ports:
       - "8000:8000"
     env_file:
-      - .env
+      - ~/cred/snap_fit/.env
     volumes:
       - ./src:/app/src:ro
       - ./webapp_resources:/app/webapp_resources:ro
