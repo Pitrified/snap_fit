@@ -281,3 +281,82 @@ def test_piece_matcher_clear(
 
     assert len(matcher.results) == 0
     assert len(matcher._lookup) == 0
+
+
+# -----------------------------------------------------------------------------
+# SQLite persistence tests
+# -----------------------------------------------------------------------------
+
+
+def test_save_matches_db(
+    mock_manager: MagicMock, id1: SegmentId, id2: SegmentId, tmp_path: Path
+) -> None:
+    """save_matches_db writes a .db file with correct match count."""
+    from snap_fit.persistence.sqlite_store import DatasetStore
+
+    matcher = PieceMatcher(mock_manager)
+    res = MatchResult(seg_id1=id1, seg_id2=id2, similarity=0.42)
+    matcher.results.append(res)
+    matcher._lookup[res.pair] = res
+
+    db_path = tmp_path / "dataset.db"
+    matcher.save_matches_db(db_path)
+
+    assert db_path.exists()
+    with DatasetStore(db_path) as store:
+        assert store.match_count() == 1
+
+
+def test_load_matches_db(
+    mock_manager: MagicMock, id1: SegmentId, id2: SegmentId, tmp_path: Path
+) -> None:
+    """load_matches_db restores _results and _lookup."""
+    matcher1 = PieceMatcher(mock_manager)
+    res = MatchResult(seg_id1=id1, seg_id2=id2, similarity=0.77)
+    res.similarity_manual = 0.33
+    matcher1.results.append(res)
+    matcher1._lookup[res.pair] = res
+
+    db_path = tmp_path / "dataset.db"
+    matcher1.save_matches_db(db_path)
+
+    matcher2 = PieceMatcher(mock_manager)
+    matcher2.load_matches_db(db_path)
+
+    assert len(matcher2.results) == 1
+    assert len(matcher2._lookup) == 1
+    loaded = matcher2.results[0]
+    assert loaded.seg_id1 == id1
+    assert loaded.seg_id2 == id2
+    assert loaded.similarity == 0.77
+    assert loaded.similarity_manual_ == 0.33
+
+
+def test_save_load_matches_db_vs_json_parity(
+    mock_manager: MagicMock, id1: SegmentId, id2: SegmentId, tmp_path: Path
+) -> None:
+    """SQLite and JSON round-trips produce equivalent match lists."""
+    matcher = PieceMatcher(mock_manager)
+    for i in range(3):
+        pid = PieceId(sheet_id=f"s{i}.jpg", piece_id=i)
+        seg_a = SegmentId(piece_id=pid, edge_pos=EdgePos.LEFT)
+        seg_b = SegmentId(piece_id=pid, edge_pos=EdgePos.RIGHT)
+        r = MatchResult(seg_id1=seg_a, seg_id2=seg_b, similarity=float(i) * 0.1)
+        matcher.results.append(r)
+        matcher._lookup[r.pair] = r
+
+    db_path = tmp_path / "dataset.db"
+    json_path = tmp_path / "matches.json"
+    matcher.save_matches_db(db_path)
+    matcher.save_matches_json(json_path)
+
+    db_matcher = PieceMatcher(mock_manager)
+    db_matcher.load_matches_db(db_path)
+
+    json_matcher = PieceMatcher(mock_manager)
+    json_matcher.load_matches_json(json_path)
+
+    assert len(db_matcher.results) == len(json_matcher.results)
+    db_sims = sorted(r.similarity for r in db_matcher.results)
+    json_sims = sorted(r.similarity for r in json_matcher.results)
+    assert db_sims == json_sims

@@ -563,3 +563,75 @@ def test_save_load_metadata_round_trip(
     assert loaded["sheets"][0]["sheet_id"] == "round_trip_sheet"
     assert loaded["sheets"][0]["piece_count"] == 2
     assert loaded["pieces"][0]["contour_point_count"] == 3  # From mock contour
+
+
+# -----------------------------------------------------------------------------
+# SQLite persistence tests
+# -----------------------------------------------------------------------------
+
+
+def test_save_metadata_db(sheet_manager: SheetManager, tmp_path: Path) -> None:
+    """save_metadata_db writes a .db file with correct sheet and piece counts."""
+    from snap_fit.persistence.sqlite_store import DatasetStore
+
+    sheet = create_mock_sheet_for_persistence("db_sheet")
+    sheet_manager.add_sheet(sheet, "db_sheet")
+
+    db_path = tmp_path / "dataset.db"
+    sheet_manager.save_metadata_db(db_path)
+
+    assert db_path.exists()
+    with DatasetStore(db_path) as store:
+        assert len(store.load_sheets()) == 1
+        assert len(store.load_pieces()) == 2
+
+
+def test_load_metadata_db(sheet_manager: SheetManager, tmp_path: Path) -> None:
+    """load_metadata_db returns SheetRecord and PieceRecord objects."""
+    from snap_fit.data_models.piece_record import PieceRecord
+    from snap_fit.data_models.sheet_record import SheetRecord
+
+    sheet = create_mock_sheet_for_persistence("db_sheet")
+    sheet_manager.add_sheet(sheet, "db_sheet")
+
+    db_path = tmp_path / "dataset.db"
+    sheet_manager.save_metadata_db(db_path)
+
+    loaded = SheetManager.load_metadata_db(db_path)
+
+    assert len(loaded["sheets"]) == 1
+    assert len(loaded["pieces"]) == 2
+    assert isinstance(loaded["sheets"][0], SheetRecord)
+    assert isinstance(loaded["pieces"][0], PieceRecord)
+    assert loaded["sheets"][0].sheet_id == "db_sheet"
+    assert loaded["sheets"][0].piece_count == 2
+
+
+def test_save_metadata_db_vs_json_parity(
+    sheet_manager: SheetManager, tmp_path: Path
+) -> None:
+    """SheetRecord fields match between JSON and SQLite round-trips."""
+    sheet = create_mock_sheet_for_persistence("parity_sheet")
+    sheet_manager.add_sheet(sheet, "parity_sheet")
+
+    db_path = tmp_path / "dataset.db"
+    json_path = tmp_path / "metadata.json"
+    sheet_manager.save_metadata_db(db_path)
+    sheet_manager.save_metadata(json_path)
+
+    from snap_fit.data_models.piece_record import PieceRecord
+    from snap_fit.data_models.sheet_record import SheetRecord
+
+    db_loaded = SheetManager.load_metadata_db(db_path)
+    json_raw = SheetManager.load_metadata(json_path)
+
+    db_sheet: SheetRecord = db_loaded["sheets"][0]
+    json_sheet = SheetRecord.model_validate(json_raw["sheets"][0])
+    assert db_sheet.sheet_id == json_sheet.sheet_id
+    assert db_sheet.piece_count == json_sheet.piece_count
+    assert db_sheet.threshold == json_sheet.threshold
+
+    db_piece: PieceRecord = db_loaded["pieces"][0]
+    json_piece = PieceRecord.model_validate(json_raw["pieces"][0])
+    assert db_piece.piece_id == json_piece.piece_id
+    assert db_piece.contour_point_count == json_piece.contour_point_count

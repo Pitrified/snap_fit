@@ -10,6 +10,7 @@ from snap_fit.data_models.match_result import MatchResult
 from snap_fit.data_models.piece_id import PieceId
 from snap_fit.data_models.segment_id import SegmentId
 from snap_fit.image.segment_matcher import SegmentMatcher
+from snap_fit.persistence.sqlite_store import DatasetStore
 from snap_fit.puzzle.sheet_manager import SheetManager
 
 
@@ -130,6 +131,30 @@ class PieceMatcher:
         self._results = [MatchResult.model_validate(d) for d in data]
         self._lookup = {r.pair: r for r in self._results}
         lg.info(f"Loaded {len(self._results)} matches from {path}")
+
+    def save_matches_db(self, db_path: Path) -> None:
+        """Save all match results to a SQLite database.
+
+        Args:
+            db_path: Output path for the SQLite database file.
+        """
+        with DatasetStore(db_path) as store:
+            store.save_matches(self._results)
+        lg.info(f"Saved {len(self._results)} matches to {db_path}")
+
+    def load_matches_db(self, db_path: Path) -> None:
+        """Load match results from a SQLite database and rebuild lookup.
+
+        Args:
+            db_path: Path to the SQLite database file.
+
+        Raises:
+            FileNotFoundError: If the database does not exist.
+        """
+        with DatasetStore(db_path) as store:
+            self._results = store.load_matches()
+        self._lookup = {r.pair: r for r in self._results}
+        lg.info(f"Loaded {len(self._results)} matches from {db_path}")
 
     def get_matched_pair_keys(self) -> set[frozenset[SegmentId]]:
         """Get all matched pairs for incremental matching support.

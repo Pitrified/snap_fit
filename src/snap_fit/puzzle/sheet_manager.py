@@ -15,6 +15,7 @@ from snap_fit.data_models.piece_record import PieceRecord
 from snap_fit.data_models.segment_id import SegmentId
 from snap_fit.data_models.sheet_record import SheetRecord
 from snap_fit.image.segment import Segment
+from snap_fit.persistence.sqlite_store import DatasetStore
 from snap_fit.puzzle.piece import Piece
 from snap_fit.puzzle.sheet import Sheet
 
@@ -208,6 +209,18 @@ class SheetManager:
     # Persistence Methods
     # -------------------------------------------------------------------------
 
+    def _to_record_objects(
+        self, data_root: Path | None = None
+    ) -> tuple[list[SheetRecord], list[PieceRecord]]:
+        """Build SheetRecord/PieceRecord lists from in-memory sheets."""
+        sheet_records = [
+            SheetRecord.from_sheet(s, data_root) for s in self.sheets.values()
+        ]
+        piece_records = [
+            PieceRecord.from_piece(p) for s in self.sheets.values() for p in s.pieces
+        ]
+        return sheet_records, piece_records
+
     def to_records(self, data_root: Path | None = None) -> dict[str, Any]:
         """Export all sheet and piece data to JSON-serializable records.
 
@@ -217,16 +230,10 @@ class SheetManager:
         Returns:
             Dict with 'sheets' and 'pieces' lists of serialized records.
         """
+        sheet_records, piece_records = self._to_record_objects(data_root)
         return {
-            "sheets": [
-                SheetRecord.from_sheet(s, data_root).model_dump(mode="json")
-                for s in self.sheets.values()
-            ],
-            "pieces": [
-                PieceRecord.from_piece(p).model_dump(mode="json")
-                for s in self.sheets.values()
-                for p in s.pieces
-            ],
+            "sheets": [s.model_dump(mode="json") for s in sheet_records],
+            "pieces": [p.model_dump(mode="json") for p in piece_records],
         }
 
     def save_metadata(self, path: Path, data_root: Path | None = None) -> None:
@@ -243,6 +250,41 @@ class SheetManager:
             f"Saved metadata for {len(data['sheets'])} sheets, "
             f"{len(data['pieces'])} pieces to {path}"
         )
+
+    def save_metadata_db(self, db_path: Path, data_root: Path | None = None) -> None:
+        """Save sheet and piece metadata to a SQLite database.
+
+        Args:
+            db_path: Output path for the SQLite database file.
+            data_root: Base path for making image paths relative.
+        """
+        sheet_records, piece_records = self._to_record_objects(data_root)
+        with DatasetStore(db_path) as store:
+            store.save_sheets(sheet_records)
+            store.save_pieces(piece_records)
+        lg.info(
+            f"Saved metadata for {len(sheet_records)} sheets, "
+            f"{len(piece_records)} pieces to {db_path}"
+        )
+
+    @staticmethod
+    def load_metadata_db(db_path: Path) -> dict[str, Any]:
+        """Load metadata from a SQLite database (returns Pydantic records).
+
+        Args:
+            db_path: Path to the SQLite database file.
+
+        Returns:
+            Dict with 'sheets' (list[SheetRecord]) and 'pieces' (list[PieceRecord]).
+        """
+        with DatasetStore(db_path) as store:
+            sheets = store.load_sheets()
+            pieces = store.load_pieces()
+        lg.info(
+            f"Loaded metadata: {len(sheets)} sheets, "
+            f"{len(pieces)} pieces from {db_path}"
+        )
+        return {"sheets": sheets, "pieces": pieces}
 
     def save_contour_cache(self, cache_dir: Path) -> None:
         """Save contour points to binary .npz files (one per sheet).
