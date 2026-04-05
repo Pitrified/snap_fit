@@ -49,7 +49,7 @@ The decision to use SQLite for matches was made but never implemented. This plan
 
 The migration follows five steps. Each step produces a testable checkpoint - validate via both a scratch notebook and the webapp UI before moving to the next.
 
-### Step 1: Add the SQLite persistence module
+### Step 1: Add the SQLite persistence module -> [detailed plan](./11_sqlite_persistence_module.md)
 
 **Starting point:** No database code exists anywhere in the project. `sqlite3` is a Python stdlib module (no new dependencies needed).
 
@@ -65,7 +65,7 @@ The migration follows five steps. Each step produces a testable checkpoint - val
 - Unit tests: round-trip `SheetRecord`, `PieceRecord`, and `MatchResult` objects through the store and assert equality.
 - Scratch notebook cell: create a temporary `.db`, insert the OCA dataset's records, query them back, compare to JSON originals.
 
-### Step 2: Add save/load SQLite methods to SheetManager and PieceMatcher
+### Step 2: Add save/load SQLite methods to SheetManager and PieceMatcher -> [detailed plan](./12_domain_sqlite_methods.md)
 
 **Starting point:** `SheetManager` has `save_metadata()` / `load_metadata()` (JSON). `PieceMatcher` has `save_matches_json()` / `load_matches_json()` (JSON).
 
@@ -80,7 +80,7 @@ The migration follows five steps. Each step produces a testable checkpoint - val
 - Unit tests: round-trip through the new methods, compare results to JSON round-trip.
 - Scratch notebook cell: load OCA via SheetManager, save to both JSON and SQLite, use `load_metadata_db()` and compare record-by-record.
 
-### Step 3: Migrate the services layer to use SQLite
+### Step 3: Migrate the services layer to use SQLite -> [detailed plan](./13_services_sqlite_migration.md)
 
 **Starting point:** `PieceService` and `PuzzleService` read JSON files on every call, instantiate throwaway `PieceMatcher` objects, and aggregate by looping over tag directories.
 
@@ -97,7 +97,7 @@ The migration follows five steps. Each step produces a testable checkpoint - val
 - Start the dev server (`uv run uvicorn ...`), browse `/sheets`, `/pieces`, `/matches` in the UI - same data, no regressions.
 - Scratch notebook cell: call `PieceService.list_pieces()` and `PuzzleService.list_matches()` and confirm results match the JSON-era output.
 
-### Step 4: Write a one-shot migration script for existing cache data
+### Step 4: Write a one-shot migration script for existing cache data -> [detailed plan](./14_cache_data_migration.md)
 
 **Starting point:** Existing datasets live in `cache/{tag}/metadata.json` + `cache/{tag}/matches.json`. No `.db` files exist yet.
 
@@ -112,7 +112,7 @@ The migration follows five steps. Each step produces a testable checkpoint - val
 - Scratch notebook: load `dataset.db` and `metadata.json` side by side, assert record counts and field values match.
 - Webapp UI: verify `/sheets`, `/pieces/{id}`, `/matches` all work identically.
 
-### Step 5: Remove JSON persistence for metadata and matches
+### Step 5: Remove JSON persistence for metadata and matches -> [detailed plan](./15_json_removal.md)
 
 **Starting point:** Both JSON and SQLite paths coexist. Services already read from SQLite (step 3). JSON files still exist on disk and the old save/load methods still exist in code.
 
