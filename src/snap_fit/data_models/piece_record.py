@@ -48,12 +48,12 @@ class PieceRecord(BaseModel):
         """
         return cls(
             piece_id=piece.piece_id,
-            corners={pos.value: tuple(piece.corners[pos]) for pos in CornerPos},
+            corners={pos.value: piece.corners[pos] for pos in CornerPos},
             segment_shapes={
                 pos.value: seg.shape.value for pos, seg in piece.segments.items()
             },
             oriented_piece_type=piece.oriented_piece_type,
             flat_edges=[e.value for e in piece.flat_edges],
             contour_point_count=len(piece.contour.cv_contour),
-            contour_region=piece.contour.region,
+            contour_region=tuple(piece.contour.region),  # type: ignore[arg-type]
         )

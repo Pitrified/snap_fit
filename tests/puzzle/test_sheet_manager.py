@@ -509,7 +509,8 @@ def test_load_contour_for_piece(sheet_manager: SheetManager, tmp_path: Path) -> 
 
     # Save npz
     np.savez_compressed(
-        cache_dir / "sheet_a_contours.npz", **{f"contour_{piece_id}": contour_points}
+        cache_dir / "sheet_a_contours.npz",
+        **{f"contour_{piece_id}": contour_points},  # type: ignore[reportArgumentType]
     )
 
     # Save corners json

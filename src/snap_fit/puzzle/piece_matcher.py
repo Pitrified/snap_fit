@@ -16,11 +16,18 @@ from snap_fit.puzzle.sheet_manager import SheetManager
 class PieceMatcher:
     """Matches puzzle pieces and stores results."""
 
-    def __init__(self, manager: SheetManager) -> None:
+    def __init__(self, manager: SheetManager | None) -> None:
         """Initialize the piece matcher with a sheet manager."""
         self.manager = manager
         self._results: list[MatchResult] = []
         self._lookup: dict[frozenset[SegmentId], MatchResult] = {}
+
+    def _require_manager(self) -> SheetManager:
+        """Return the manager, raising if not set."""
+        if self.manager is None:
+            msg = "SheetManager is required for this operation"
+            raise RuntimeError(msg)
+        return self.manager
 
     @property
     def results(self) -> list[MatchResult]:
@@ -33,8 +40,9 @@ class PieceMatcher:
         if pair in self._lookup:
             return self._lookup[pair]
 
-        seg1 = self.manager.get_segment(id1)
-        seg2 = self.manager.get_segment(id2)
+        mgr = self._require_manager()
+        seg1 = mgr.get_segment(id1)
+        seg2 = mgr.get_segment(id2)
 
         if seg1 is None or seg2 is None:
             lg.warning(f"Could not find segments for {id1} or {id2}")
@@ -51,12 +59,13 @@ class PieceMatcher:
 
     def match_all(self) -> None:
         """Match all segments against all segments from other pieces."""
-        all_ids = self.manager.get_segment_ids_all()
+        mgr = self._require_manager()
+        all_ids = mgr.get_segment_ids_all()
         lg.info(f"Matching {len(all_ids)} segments...")
 
         for id1 in all_ids:
             # Use the manager's helper to get candidates from other pieces
-            other_ids = self.manager.get_segment_ids_other_pieces(id1)
+            other_ids = mgr.get_segment_ids_other_pieces(id1)
             for id2 in other_ids:
                 self.match_pair(id1, id2)
 
@@ -143,11 +152,12 @@ class PieceMatcher:
         """
         existing_keys = self.get_matched_pair_keys()
         new_count = 0
+        mgr = self._require_manager()
 
         for piece_id in new_piece_ids:
             for edge_pos in EdgePos:
                 new_seg_id = SegmentId(piece_id=piece_id, edge_pos=edge_pos)
-                other_ids = self.manager.get_segment_ids_other_pieces(new_seg_id)
+                other_ids = mgr.get_segment_ids_other_pieces(new_seg_id)
 
                 for other_id in other_ids:
                     pair = frozenset({new_seg_id, other_id})

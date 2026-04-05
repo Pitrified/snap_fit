@@ -1,5 +1,6 @@
 """Smoke tests for webapp routes."""
 
+from collections.abc import Iterator
 import json
 from pathlib import Path
 
@@ -10,27 +11,18 @@ from snap_fit.webapp.main import create_app
 
 
 @pytest.fixture
-def client() -> TestClient:
-    """Create test client."""
-    app = create_app()
-    return TestClient(app)
-
-
-@pytest.fixture
-def client_with_cache(tmp_path: Path) -> TestClient:
-    """Create test client with a temporary cache directory."""
-    # Set up temp cache
+def client(tmp_path: Path) -> Iterator[TestClient]:
+    """Create test client with isolated cache."""
     import os
 
-    os.environ["CACHE_DIR"] = str(tmp_path)
-    app = create_app()
-    # Clear settings cache to pick up new env
     from snap_fit.webapp.core.settings import get_settings
 
+    os.environ["SNAPFIT_TMP_TEST_CACHE_DIR"] = str(tmp_path)
     get_settings.cache_clear()
+    app = create_app()
     yield TestClient(app)
-    # Cleanup
     get_settings.cache_clear()
+    os.environ.pop("SNAPFIT_TMP_TEST_CACHE_DIR", None)
 
 
 class TestDebugEndpoints:
@@ -197,7 +189,7 @@ class TestWithCachedData:
         # Update settings to use tmp cache
         import os
 
-        os.environ["CACHE_DIR"] = str(tmp_path)
+        os.environ["SNAPFIT_TMP_TEST_CACHE_DIR"] = str(tmp_path)
         from snap_fit.webapp.core.settings import get_settings
 
         get_settings.cache_clear()
@@ -213,4 +205,4 @@ class TestWithCachedData:
 
         # Cleanup
         get_settings.cache_clear()
-        del os.environ["CACHE_DIR"]
+        del os.environ["SNAPFIT_TMP_TEST_CACHE_DIR"]

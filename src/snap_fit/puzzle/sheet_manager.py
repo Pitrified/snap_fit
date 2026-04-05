@@ -268,7 +268,7 @@ class SheetManager:
             # Save contour points as compressed numpy archive
             # ~500 pts x 12 pieces x 8 bytes = ~48 KB per sheet
             npz_path = cache_dir / f"{sheet_id}_contours.npz"
-            np.savez_compressed(npz_path, **contours)
+            np.savez_compressed(npz_path, **contours)  # type: ignore[reportArgumentType]
 
             # Save corner indices as JSON (~1 KB per sheet)
             json_path = cache_dir / f"{sheet_id}_corners.json"
