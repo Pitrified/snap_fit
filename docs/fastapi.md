@@ -197,4 +197,3 @@ A: POST to `/api/v1/pieces/ingest` with JSON body:
   "min_area": 80000
 }
 ```
-

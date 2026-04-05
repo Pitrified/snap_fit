@@ -60,16 +60,16 @@ The shape classification algorithm in `src/snap_fit/image/segment.py` uses simpl
 def _compute_shape(self) -> None:
     # Transform segment to align with x-axis
     # ...
-    
+
     # Count points far from center line
     flat_th = 20
     out_count = (s1_xs < -flat_th).sum()  # points to the left
     in_count = (s1_xs > flat_th).sum()    # points to the right
-    
+
     count_th = 5
     is_out = bool(out_count > count_th)
     is_in = bool(in_count > count_th)
-    
+
     # Classification
     match (is_out, is_in):
         case True, False:  -> OUT (tab protruding outward)
@@ -109,16 +109,16 @@ def is_compatible(self, other: Segment) -> bool:
     # EDGE segments are never compatible
     if self.shape == s.EDGE or other.shape == s.EDGE:
         return False
-    
+
     # Standard IN/OUT compatibility
     if (self.shape == s.IN and other.shape == s.OUT) or \
        (self.shape == s.OUT and other.shape == s.IN):
         return True
-    
+
     # WEIRD segments treated as potentially compatible
     if self.shape == s.WEIRD or other.shape == s.WEIRD:
         return True
-    
+
     return False
 ```
 
@@ -174,11 +174,11 @@ Consider using shape compatibility as a **score modifier** rather than a hard fi
 ```python
 def compute_similarity(self) -> float:
     base_score = self.match_shape()  # Contour similarity
-    
+
     if not self.s1.is_compatible(self.s2):
         # Penalize incompatible shapes but don't reject
         return base_score * 1.5 + SHAPE_PENALTY
-    
+
     return base_score
 ```
 

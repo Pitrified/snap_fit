@@ -296,7 +296,7 @@ class NaiveLinearSolver:
         inners: list[PieceId],
     ) -> None:
         """Initialize solver with grid model, matcher, and piece partitions.
-        
+
         Args:
             grid: Grid model defining puzzle structure.
             matcher: Pre-computed piece matcher with cached scores.
@@ -308,7 +308,7 @@ class NaiveLinearSolver:
 
     def solve(self) -> PlacementState:
         """Execute solver and return placement state.
-        
+
         Returns:
             PlacementState with all pieces placed and their orientations.
         """
@@ -316,10 +316,10 @@ class NaiveLinearSolver:
 
     def score_solution(self, state: PlacementState) -> float:
         """Compute total score for a placement state.
-        
+
         Args:
             state: Placement state to score.
-            
+
         Returns:
             Total similarity score (lower is better).
         """
@@ -348,4 +348,3 @@ class NaiveLinearSolver:
 6. [x] Create `tests/solver/test_naive_linear_solver.py`
 7. [x] Run `uv run pyright` and fix any type errors
 8. [x] Run `uv run pytest tests/solver/` to verify (29 tests passing)
-
