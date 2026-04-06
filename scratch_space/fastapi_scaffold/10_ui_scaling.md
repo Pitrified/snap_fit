@@ -80,22 +80,16 @@ The migration follows five steps. Each step produces a testable checkpoint - val
 - Unit tests: round-trip through the new methods, compare results to JSON round-trip.
 - Scratch notebook cell: load OCA via SheetManager, save to both JSON and SQLite, use `load_metadata_db()` and compare record-by-record.
 
-### Step 3: Migrate the services layer to use SQLite -> [detailed plan](./13_services_sqlite_migration.md)
+### Step 3: Migrate the services layer to use SQLite -> [detailed plan](./13_services_sqlite_migration.md) ✅ DONE
 
 **Starting point:** `PieceService` and `PuzzleService` read JSON files on every call, instantiate throwaway `PieceMatcher` objects, and aggregate by looping over tag directories.
 
-**What changes:**
-- Update `PieceService.ingest_sheets()` to also (or instead) write a `{tag_dir}/dataset.db` file via `DatasetStore`, alongside (initially) the existing JSON files.
-- Rewrite `PieceService.list_sheets()`, `list_pieces()`, `get_sheet()`, `get_piece()`, `get_pieces_for_sheet()` to open the `.db` file and query directly rather than loading full JSON into memory.
-- Rewrite `PuzzleService.list_matches()`, `get_matches_for_piece()`, `get_matches_for_segment()`, `match_count()` to query the `.db` with SQL WHERE/LIMIT clauses. This eliminates the per-request full-file load and the Python-side linear scan.
-- `_all_tag_dirs()` helper stays but now looks for `dataset.db` instead of (or in addition to) `metadata.json`.
+**What changed:**
+- `PieceService`: added `_db_path()` helper; rewrote `list_sheets()`, `list_pieces()`, `get_sheet()`, `get_piece()`, `get_pieces_for_sheet()` to use `DatasetStore`; `ingest_sheets()` now dual-writes `metadata.json` + `dataset.db`.
+- `PuzzleService`: replaced `_all_matches_paths()` with `_all_db_paths()`; rewrote `list_matches()`, `get_matches_for_piece()`, `get_matches_for_segment()`, `match_count()` to use `DatasetStore`; removed `PieceMatcher` import.
+- `tests/webapp/test_routes.py`: `TestWithCachedData.test_pieces_with_mock_data` now creates a `dataset.db` via `DatasetStore` instead of writing `metadata.json`.
 
-**Expected outcome:** Services read from SQLite. The webapp endpoints return the same data as before but with O(log n) indexed lookups instead of O(n) full-file scans.
-
-**Validation:**
-- Existing webapp test suite passes (smoke tests in `tests/webapp/`).
-- Start the dev server (`uv run uvicorn ...`), browse `/sheets`, `/pieces`, `/matches` in the UI - same data, no regressions.
-- Scratch notebook cell: call `PieceService.list_pieces()` and `PuzzleService.list_matches()` and confirm results match the JSON-era output.
+**Validation passed:** `uv run pytest` (252/252), `uv run ruff check .` (clean), `uv run pyright` (0 errors).
 
 ### Step 4: Write a one-shot migration script for existing cache data -> [detailed plan](./14_cache_data_migration.md)
 

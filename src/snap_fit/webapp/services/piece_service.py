@@ -10,6 +10,7 @@ from loguru import logger as lg
 from snap_fit.config.aruco.sheet_aruco_config import SheetArucoConfig
 from snap_fit.data_models.piece_record import PieceRecord
 from snap_fit.data_models.sheet_record import SheetRecord
+from snap_fit.persistence.sqlite_store import DatasetStore
 from snap_fit.puzzle.sheet_aruco import SheetAruco
 from snap_fit.puzzle.sheet_manager import SheetManager
 
@@ -22,8 +23,8 @@ class PieceService:
 
         Args:
             cache_dir: Root cache directory.  Each dataset lives under
-                ``cache_dir / sheets_tag /`` with its own metadata.json,
-                matches.json and contours/ sub-directory.
+                ``cache_dir / sheets_tag /`` with its own dataset.db and
+                contours/ sub-directory.
         """
         self.cache_dir = cache_dir
 
@@ -41,49 +42,48 @@ class PieceService:
             return []
         return [p for p in self.cache_dir.iterdir() if p.is_dir()]
 
+    def _db_path(self, tag_dir: Path) -> Path:
+        """Return the SQLite database path for a dataset tag directory."""
+        return tag_dir / "dataset.db"
+
     def list_sheets(self) -> list[SheetRecord]:
         """Return all sheet records aggregated across every cached dataset."""
         records: list[SheetRecord] = []
         for tag_dir in self._all_tag_dirs():
-            meta = tag_dir / "metadata.json"
-            if not meta.exists():
+            db_path = self._db_path(tag_dir)
+            if not db_path.exists():
                 continue
-            data = SheetManager.load_metadata(meta)
-            records.extend(
-                SheetRecord.model_validate(s) for s in data.get("sheets", [])
-            )
+            with DatasetStore(db_path) as store:
+                records.extend(store.load_sheets())
         return records
 
     def list_pieces(self) -> list[PieceRecord]:
         """Return all piece records aggregated across every cached dataset."""
         records: list[PieceRecord] = []
         for tag_dir in self._all_tag_dirs():
-            meta = tag_dir / "metadata.json"
-            if not meta.exists():
+            db_path = self._db_path(tag_dir)
+            if not db_path.exists():
                 continue
-            data = SheetManager.load_metadata(meta)
-            records.extend(
-                PieceRecord.model_validate(p) for p in data.get("pieces", [])
-            )
+            with DatasetStore(db_path) as store:
+                records.extend(store.load_pieces())
         return records
 
     def get_piece(self, piece_id: str) -> PieceRecord | None:
         """Retrieve a single piece by ID, searching all cached datasets.
 
         Args:
-            piece_id: The piece ID (format: sheet_id-piece_idx).
+            piece_id: The piece ID (format: sheet_id:piece_idx).
 
         Returns:
             PieceRecord if found, None otherwise.
         """
         for tag_dir in self._all_tag_dirs():
-            meta = tag_dir / "metadata.json"
-            if not meta.exists():
+            db_path = self._db_path(tag_dir)
+            if not db_path.exists():
                 continue
-            data = SheetManager.load_metadata(meta)
-            for p in data.get("pieces", []):
-                record = PieceRecord.model_validate(p)
-                if str(record.piece_id) == piece_id:
+            with DatasetStore(db_path) as store:
+                record = store.load_piece(piece_id)
+                if record is not None:
                     return record
         return None
 
@@ -97,13 +97,12 @@ class PieceService:
             SheetRecord if found, None otherwise.
         """
         for tag_dir in self._all_tag_dirs():
-            meta = tag_dir / "metadata.json"
-            if not meta.exists():
+            db_path = self._db_path(tag_dir)
+            if not db_path.exists():
                 continue
-            data = SheetManager.load_metadata(meta)
-            for s in data.get("sheets", []):
-                record = SheetRecord.model_validate(s)
-                if record.sheet_id == sheet_id:
+            with DatasetStore(db_path) as store:
+                record = store.load_sheet(sheet_id)
+                if record is not None:
                     return record
         return None
 
@@ -148,6 +147,7 @@ class PieceService:
         tag_dir = self._tag_dir(sheets_tag)
         tag_dir.mkdir(parents=True, exist_ok=True)
         manager.save_metadata(tag_dir / "metadata.json")
+        manager.save_metadata_db(tag_dir / "dataset.db")
         manager.save_contour_cache(tag_dir / "contours")
 
         records = manager.to_records()
@@ -167,4 +167,12 @@ class PieceService:
         Returns:
             List of PieceRecord objects for the sheet.
         """
-        return [p for p in self.list_pieces() if p.piece_id.sheet_id == sheet_id]
+        for tag_dir in self._all_tag_dirs():
+            db_path = self._db_path(tag_dir)
+            if not db_path.exists():
+                continue
+            with DatasetStore(db_path) as store:
+                records = store.load_pieces_for_sheet(sheet_id)
+                if records:
+                    return records
+        return []

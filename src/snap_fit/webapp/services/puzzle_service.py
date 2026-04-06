@@ -1,6 +1,6 @@
 """Service layer for puzzle operations.
 
-Integrates with PieceMatcher for match data access.
+Integrates with DatasetStore for match data access.
 """
 
 from pathlib import Path
@@ -9,7 +9,7 @@ from typing import Any
 from loguru import logger as lg
 
 from snap_fit.data_models.match_result import MatchResult
-from snap_fit.puzzle.piece_matcher import PieceMatcher
+from snap_fit.persistence.sqlite_store import DatasetStore
 
 
 class PuzzleService:
@@ -19,19 +19,19 @@ class PuzzleService:
         """Initialize service with cache directory.
 
         Args:
-            cache_dir: Root cache directory.  Match files live under
-                ``cache_dir / sheets_tag / matches.json``.
+            cache_dir: Root cache directory.  Dataset databases live under
+                ``cache_dir / sheets_tag / dataset.db``.
         """
         self.cache_dir = cache_dir
 
-    def _all_matches_paths(self) -> list[Path]:
-        """Return all matches.json files found across dataset sub-directories."""
+    def _all_db_paths(self) -> list[Path]:
+        """Return all dataset.db files found across dataset sub-directories."""
         if not self.cache_dir.exists():
             return []
         return [
-            p / "matches.json"
+            p / "dataset.db"
             for p in self.cache_dir.iterdir()
-            if p.is_dir() and (p / "matches.json").exists()
+            if p.is_dir() and (p / "dataset.db").exists()
         ]
 
     def list_matches(
@@ -48,20 +48,15 @@ class PuzzleService:
         Returns:
             List of MatchResult objects sorted by similarity (ascending).
         """
-        all_paths = self._all_matches_paths()
-        if not all_paths:
+        all_db_paths = self._all_db_paths()
+        if not all_db_paths:
             return []
 
         results: list[MatchResult] = []
-        for matches_path in all_paths:
-            matcher = PieceMatcher(manager=None)
-            matcher.load_matches_json(matches_path)
-            results.extend(matcher.results)
+        for db_path in all_db_paths:
+            with DatasetStore(db_path) as store:
+                results.extend(store.load_matches(min_similarity=min_similarity))
 
-        if min_similarity is not None:
-            results = [r for r in results if r.similarity >= min_similarity]
-
-        # Sort by similarity ascending (best matches have lowest similarity)
         results.sort(key=lambda r: r.similarity)
         return results[:limit]
 
@@ -73,26 +68,20 @@ class PuzzleService:
         """Return top matches involving a specific piece, across all datasets.
 
         Args:
-            piece_id: The piece ID (format: sheet_id-piece_idx).
+            piece_id: The piece ID (format: sheet_id:piece_idx).
             limit: Maximum number of matches to return.
 
         Returns:
             List of MatchResult objects involving the piece.
         """
-        all_paths = self._all_matches_paths()
-        if not all_paths:
+        all_db_paths = self._all_db_paths()
+        if not all_db_paths:
             return []
 
         results: list[MatchResult] = []
-        for matches_path in all_paths:
-            matcher = PieceMatcher(manager=None)
-            matcher.load_matches_json(matches_path)
-            results.extend(
-                r
-                for r in matcher.results
-                if str(r.seg_id1.piece_id) == piece_id
-                or str(r.seg_id2.piece_id) == piece_id
-            )
+        for db_path in all_db_paths:
+            with DatasetStore(db_path) as store:
+                results.extend(store.query_matches_for_piece(piece_id, limit))
         results.sort(key=lambda r: r.similarity)
         return results[:limit]
 
@@ -112,26 +101,16 @@ class PuzzleService:
         Returns:
             List of MatchResult objects for the segment.
         """
-        all_paths = self._all_matches_paths()
-        if not all_paths:
+        all_db_paths = self._all_db_paths()
+        if not all_db_paths:
             return []
 
         results: list[MatchResult] = []
-        for matches_path in all_paths:
-            matcher = PieceMatcher(manager=None)
-            matcher.load_matches_json(matches_path)
-            for r in matcher.results:
-                seg1_match = (
-                    str(r.seg_id1.piece_id) == piece_id
-                    and r.seg_id1.edge_pos.value == edge_pos
+        for db_path in all_db_paths:
+            with DatasetStore(db_path) as store:
+                results.extend(
+                    store.query_matches_for_segment(piece_id, edge_pos, limit)
                 )
-                seg2_match = (
-                    str(r.seg_id2.piece_id) == piece_id
-                    and r.seg_id2.edge_pos.value == edge_pos
-                )
-                if seg1_match or seg2_match:
-                    results.append(r)
-
         results.sort(key=lambda r: r.similarity)
         return results[:limit]
 
@@ -162,8 +141,7 @@ class PuzzleService:
     def match_count(self) -> int:
         """Return the total number of cached matches across all datasets."""
         total = 0
-        for matches_path in self._all_matches_paths():
-            matcher = PieceMatcher(manager=None)
-            matcher.load_matches_json(matches_path)
-            total += len(matcher.results)
+        for db_path in self._all_db_paths():
+            with DatasetStore(db_path) as store:
+                total += store.match_count()
         return total

@@ -1,7 +1,6 @@
 """Smoke tests for webapp routes."""
 
 from collections.abc import Iterator
-import json
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -148,43 +147,46 @@ class TestWithCachedData:
 
     def test_pieces_with_mock_data(self, tmp_path: Path) -> None:
         """List pieces returns data when cache exists."""
-        # Create mock metadata matching actual serialization format
-        metadata = {
-            "sheets": [
-                {
-                    "sheet_id": "test_sheet",
-                    "img_path": "data/test.png",
-                    "piece_count": 1,
-                    "threshold": 130,
-                    "min_area": 80000,
-                    "created_at": "2025-01-01T00:00:00",
-                }
-            ],
-            "pieces": [
-                {
-                    "piece_id": {"sheet_id": "test_sheet", "piece_id": 0},
-                    "corners": {
-                        "TL": [0, 0],
-                        "TR": [100, 0],
-                        "BR": [100, 100],
-                        "BL": [0, 100],
-                    },
-                    "segment_shapes": {
-                        "TOP": "OUT",
-                        "RIGHT": "IN",
-                        "BOTTOM": "OUT",
-                        "LEFT": "IN",
-                    },
-                    "oriented_piece_type": {"piece_type": 0, "orientation": 0},
-                    "flat_edges": [],
-                    "contour_point_count": 100,
-                    "contour_region": [0, 0, 100, 100],
+        from snap_fit.data_models.piece_record import PieceRecord
+        from snap_fit.data_models.sheet_record import SheetRecord
+        from snap_fit.persistence.sqlite_store import DatasetStore
+
+        sheet_record = SheetRecord.model_validate(
+            {
+                "sheet_id": "test_sheet",
+                "img_path": "data/test.png",
+                "piece_count": 1,
+                "threshold": 130,
+                "min_area": 80000,
+                "created_at": "2025-01-01T00:00:00",
+            }
+        )
+        piece_record = PieceRecord.model_validate(
+            {
+                "piece_id": {"sheet_id": "test_sheet", "piece_id": 0},
+                "corners": {
+                    "TL": [0, 0],
+                    "TR": [100, 0],
+                    "BR": [100, 100],
+                    "BL": [0, 100],
                 },
-            ],
-        }
-        metadata_path = tmp_path / "test_tag" / "metadata.json"
-        metadata_path.parent.mkdir(parents=True, exist_ok=True)
-        metadata_path.write_text(json.dumps(metadata))
+                "segment_shapes": {
+                    "TOP": "OUT",
+                    "RIGHT": "IN",
+                    "BOTTOM": "OUT",
+                    "LEFT": "IN",
+                },
+                "oriented_piece_type": {"piece_type": 0, "orientation": 0},
+                "flat_edges": [],
+                "contour_point_count": 100,
+                "contour_region": [0, 0, 100, 100],
+            }
+        )
+        db_path = tmp_path / "test_tag" / "dataset.db"
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+        with DatasetStore(db_path) as store:
+            store.save_sheets([sheet_record])
+            store.save_pieces([piece_record])
 
         # Update settings to use tmp cache
         import os
