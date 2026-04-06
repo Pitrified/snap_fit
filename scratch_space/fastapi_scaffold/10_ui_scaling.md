@@ -1,16 +1,22 @@
 # Scale up storage - SQLite migration for metadata and matches
 
-## 1. Current state
+## 1. Current state (updated Apr 6 2026)
 
 ### What we have
 
-The persistence layer is fully JSON-based with per-dataset tag directories:
+The persistence layer is now SQLite-backed for new ingestions. The `oca` dataset cache
+still holds legacy JSON files alongside; running the Phase 6 notebook cells creates
+`dataset.db` and makes the webapp fully live.
 
 ```
 cache/
-  {sheets_tag}/
-    metadata.json      <- SheetRecord[] + PieceRecord[] (Pydantic -> JSON)
-    matches.json       <- MatchResult[] (Pydantic -> JSON, sorted by similarity)
+  metadata.json          <- stale root-level leftover (NOT used by webapp)
+  matches.json           <- stale root-level leftover (NOT used by webapp)
+  contours/              <- stale root-level leftover (NOT used by webapp)
+  oca/
+    metadata.json        <- kept during transition (removed in step 5)
+    matches.json         <- kept during transition (removed in step 5)
+    dataset.db           <- created by Phase 6 migration cells
     contours/
       {sheet_id}_contours.npz   <- compressed numpy arrays
       {sheet_id}_corners.json   <- corner indices per piece
@@ -20,12 +26,13 @@ Contour binary storage (.npz + corners JSON) is efficient and does not need to c
 
 ### What works
 
-- `PieceService` aggregates metadata across all `cache/{tag}/metadata.json` files (list/get sheets and pieces).
-- `PuzzleService` aggregates matches across all `cache/{tag}/matches.json` files (list/filter/count matches).
-- `PieceMatcher` has `save_matches_json()` / `load_matches_json()` for round-tripping match data.
-- `SheetManager` has `save_metadata()` / `load_metadata()` / `save_contour_cache()` for round-tripping sheet and piece data.
-- The webapp UI (Jinja2 templates) renders sheets, pieces, and matches tables by calling the services above.
-- The ingest endpoint (`POST /api/v1/pieces/ingest`) loads a dataset via ArUco config and persists metadata + contours.
+- `src/snap_fit/persistence/sqlite_store.py` - `DatasetStore` class with full schema, row conversion, indexed queries. **DONE (Step 1)**
+- `SheetManager.save_metadata_db()` / `load_metadata_db()` and `PieceMatcher.save_matches_db()` / `load_matches_db()` - SQLite round-trip methods. **DONE (Step 2)**
+- `PieceService` reads from `dataset.db` via `DatasetStore`; `ingest_sheets()` dual-writes JSON + SQLite. **DONE (Step 3)**
+- `PuzzleService` reads from `dataset.db` via `DatasetStore`; no longer imports `PieceMatcher`. **DONE (Step 3)**
+- All 252 unit tests pass; ruff clean; pyright 0 errors. **DONE (Step 3)**
+- Webapp UI renders sheets, pieces, and matches from SQLite where `dataset.db` exists.
+- Phase 6 notebook cells in `01_db_ingestion.ipynb` ready to migrate the `oca` dataset. **DONE (Step 4 - notebook prepared)**
 
 ### What breaks at scale
 
@@ -49,36 +56,26 @@ The decision to use SQLite for matches was made but never implemented. This plan
 
 The migration follows five steps. Each step produces a testable checkpoint - validate via both a scratch notebook and the webapp UI before moving to the next.
 
-### Step 1: Add the SQLite persistence module -> [detailed plan](./11_sqlite_persistence_module.md)
+### Step 1: Add the SQLite persistence module -> [detailed plan](./11_sqlite_persistence_module.md) ✅ DONE
 
 **Starting point:** No database code exists anywhere in the project. `sqlite3` is a Python stdlib module (no new dependencies needed).
 
-**What changes:**
-- Create a new module `src/snap_fit/persistence/sqlite_store.py` (or similar location TBD) that encapsulates all SQLite interaction.
-- Define the schema: a `sheets` table (columns mirror `SheetRecord` fields), a `pieces` table (columns mirror `PieceRecord` fields, with `sheet_id` as FK), and a `matches` table (columns mirror `MatchResult` fields, with indexed columns for `seg_id1_piece_id`, `seg_id2_piece_id`, and `similarity`).
-- Implement a `DatasetStore` class whose constructor takes a path to a `.db` file. Expose methods: `save_sheets()`, `save_pieces()`, `save_matches()`, `load_sheets()`, `load_pieces()`, `load_matches()`, `query_matches_for_piece()`, `query_matches_for_segment()`, `match_count()`.
-- The store converts between Pydantic models and SQLite rows internally - callers never see raw SQL.
+**What was built:**
+- `src/snap_fit/persistence/sqlite_store.py` - `DatasetStore` class with `sheets`, `pieces`, `matches` tables, row conversion helpers, context manager support, indexed queries.
+- `tests/persistence/test_sqlite_store.py` - full unit test coverage.
 
-**Expected outcome:** A standalone module with no dependencies on the webapp or services layers. Can be tested in isolation.
+**Validation passed:** All round-trip tests pass, including `similarity_manual_` alias handling.
 
-**Validation:**
-- Unit tests: round-trip `SheetRecord`, `PieceRecord`, and `MatchResult` objects through the store and assert equality.
-- Scratch notebook cell: create a temporary `.db`, insert the OCA dataset's records, query them back, compare to JSON originals.
-
-### Step 2: Add save/load SQLite methods to SheetManager and PieceMatcher -> [detailed plan](./12_domain_sqlite_methods.md)
+### Step 2: Add save/load SQLite methods to SheetManager and PieceMatcher -> [detailed plan](./12_domain_sqlite_methods.md) ✅ DONE
 
 **Starting point:** `SheetManager` has `save_metadata()` / `load_metadata()` (JSON). `PieceMatcher` has `save_matches_json()` / `load_matches_json()` (JSON).
 
-**What changes:**
-- Add `SheetManager.save_metadata_db(db_path, data_root)` and `SheetManager.load_metadata_db(db_path)` that delegate to `DatasetStore`.
-- Add `PieceMatcher.save_matches_db(db_path)` and `PieceMatcher.load_matches_db(db_path)` that delegate to `DatasetStore`.
-- The JSON methods stay in place (no removal yet) so existing workflows keep working during the transition.
+**What was built:**
+- `SheetManager._to_record_objects()`, `save_metadata_db(db_path, data_root)`, `load_metadata_db(db_path)` added.
+- `PieceMatcher.save_matches_db(db_path)`, `load_matches_db(db_path)` added.
+- JSON methods kept in place during the transition.
 
-**Expected outcome:** Both domain classes can persist to and reload from SQLite in addition to JSON.
-
-**Validation:**
-- Unit tests: round-trip through the new methods, compare results to JSON round-trip.
-- Scratch notebook cell: load OCA via SheetManager, save to both JSON and SQLite, use `load_metadata_db()` and compare record-by-record.
+**Validation passed:** All tests pass; JSON methods untouched.
 
 ### Step 3: Migrate the services layer to use SQLite -> [detailed plan](./13_services_sqlite_migration.md) ✅ DONE
 
@@ -91,20 +88,20 @@ The migration follows five steps. Each step produces a testable checkpoint - val
 
 **Validation passed:** `uv run pytest` (252/252), `uv run ruff check .` (clean), `uv run pyright` (0 errors).
 
-### Step 4: Write a one-shot migration script for existing cache data -> [detailed plan](./14_cache_data_migration.md)
+### Step 4: Write a one-shot migration script for existing cache data -> [detailed plan](./14_cache_data_migration.md) ✅ NOTEBOOK PREPARED
 
 **Starting point:** Existing datasets live in `cache/{tag}/metadata.json` + `cache/{tag}/matches.json`. No `.db` files exist yet.
 
-**What changes:**
-- Create a small migration script (or a management command / notebook cell) that, for each tag directory: reads `metadata.json` + `matches.json`, creates `dataset.db` via `DatasetStore`, and writes all records.
-- Run the migration on the `oca` dataset (and any other existing datasets).
-- After confirmed successful migration, remove the stale flat `cache/metadata.json` and `cache/matches.json` files at the root level (these were leftovers from before the tag-directory refactor and are not used by the webapp).
+**What was built:**
+- Phase 6 cells added to `scratch_space/fastapi_scaffold/01_db_ingestion.ipynb` (sections 6.1-6.10).
+- Cells load JSON records, write to `cache/oca/dataset.db`, then assert record counts, field spot-checks, top-5 similarity checks, and a per-piece query test.
+- Final cell lists the stale root-level files with removal instructions.
 
-**Expected outcome:** Every `cache/{tag}/` directory now has a `dataset.db` alongside (temporarily) the old JSON files. The flat root-level JSON files are cleaned up.
+**To execute:** run Phase 6 cells in `01_db_ingestion.ipynb`.
 
-**Validation:**
-- Scratch notebook: load `dataset.db` and `metadata.json` side by side, assert record counts and field values match.
-- Webapp UI: verify `/sheets`, `/pieces/{id}`, `/matches` all work identically.
+**After running:** delete stale root-level files (`cache/metadata.json`, `cache/matches.json`, `cache/contours/`) as instructed by cell 6.10.
+
+**Validation (in notebook):** record counts match JSON originals; similarity spot-checks pass; `query_matches_for_piece` returns results; `match_count() == 240`.
 
 ### Step 5: Remove JSON persistence for metadata and matches -> [detailed plan](./15_json_removal.md)
 
