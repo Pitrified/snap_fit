@@ -17,12 +17,12 @@ def client(tmp_path: Path) -> Iterator[TestClient]:
 
     from snap_fit.webapp.core.settings import get_settings
 
-    os.environ["SNAPFIT_TMP_TEST_CACHE_DIR"] = str(tmp_path)
+    os.environ["CACHE_DIR"] = str(tmp_path)
     get_settings.cache_clear()
     app = create_app()
     yield TestClient(app)
     get_settings.cache_clear()
-    os.environ.pop("SNAPFIT_TMP_TEST_CACHE_DIR", None)
+    os.environ.pop("CACHE_DIR", None)
 
 
 class TestDebugEndpoints:
@@ -189,7 +189,7 @@ class TestWithCachedData:
         # Update settings to use tmp cache
         import os
 
-        os.environ["SNAPFIT_TMP_TEST_CACHE_DIR"] = str(tmp_path)
+        os.environ["CACHE_DIR"] = str(tmp_path)
         from snap_fit.webapp.core.settings import get_settings
 
         get_settings.cache_clear()
@@ -205,4 +205,4 @@ class TestWithCachedData:
 
         # Cleanup
         get_settings.cache_clear()
-        del os.environ["SNAPFIT_TMP_TEST_CACHE_DIR"]
+        del os.environ["CACHE_DIR"]
