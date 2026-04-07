@@ -20,7 +20,8 @@ When adding new documentation, please follow the standard template defined in `A
 ## Structure
 
 - `docs/`: Root documentation folder.
-- `docs/api/`: (Planned) API reference generated from docstrings.
+- `docs/references/`: API reference generated from docstrings. Auto generated, do not edit manually.
+- `docs/library/`: Module-specific documentation, mirroring `src/snap_fit/`.
 - `docs/guides/`: (Planned) How-to guides and tutorials.
 
 ## Pitfalls

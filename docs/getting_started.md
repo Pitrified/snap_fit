@@ -1,3 +1,8 @@
+---
+owner: @pmn
+editable_by_llm: false
+---
+
 # Some memos about getting started with SnapFit
 
 1. generate an [aruco board](../scratch_space/aruco_setup/03_generate_aruco_board.ipynb)
