@@ -28,6 +28,10 @@ ignore = [
     "FBT003", # Boolean positional value in function call - common in matplotlib (ax.grid(True))
     "T20",    # print found
 ]
+".github/**" = [
+    "T20",     # print found
+    "INP001",  # not a part of an implicit namespace package
+]
 "tests/*" = [
     "ARG001",  # Unused function argument: mocks and similar
     "INP001",  # File `tests/...` is part of an implicit namespace package. Add an `__init__.py`. Causes a bug.
