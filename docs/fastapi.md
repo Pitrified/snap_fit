@@ -1,4 +1,4 @@
-# FastAPI Webapp — Developer Guide
+# FastAPI Webapp - Developer Guide
 
 This document describes how to run, develop, test and maintain the `snap_fit` FastAPI application under `src/snap_fit/webapp`.
 
@@ -113,9 +113,9 @@ CACHE_DIR=cache
 ```
 
 The service looks for:
-- `{CACHE_DIR}/metadata.json` — Sheet and piece metadata
-- `{CACHE_DIR}/matches.json` — Match results
-- `{CACHE_DIR}/contours/` — Binary contour cache
+- `{CACHE_DIR}/metadata.json` - Sheet and piece metadata
+- `{CACHE_DIR}/matches.json` - Match results
+- `{CACHE_DIR}/contours/` - Binary contour cache
 
 ## Run in Docker
 

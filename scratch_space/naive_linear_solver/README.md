@@ -58,7 +58,7 @@ The Naive Linear Solver will implement a straightforward row-by-row puzzle assem
 
 ---
 
-## Selected Approach: Option A – Greedy Best-Match Strategy
+## Selected Approach: Option A - Greedy Best-Match Strategy
 
 Option A was chosen for initial implementation due to its simplicity and suitability as a baseline solver.
 

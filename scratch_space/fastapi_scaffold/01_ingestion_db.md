@@ -7,7 +7,7 @@
 
 ## Overview
 
-A preliminary step before the FastAPI app is to set up the ingestion of pieces and matches into a database, which will then be queried by the FastAPI app. The current implementation is **not database-centric**—data flows through in-memory objects (`SheetManager`, `PieceMatcher`) without persistence.
+A preliminary step before the FastAPI app is to set up the ingestion of pieces and matches into a database, which will then be queried by the FastAPI app. The current implementation is **not database-centric**-data flows through in-memory objects (`SheetManager`, `PieceMatcher`) without persistence.
 
 ### Current Architecture Challenges
 
@@ -42,7 +42,7 @@ A preliminary step before the FastAPI app is to set up the ingestion of pieces a
 - Full indexing, concurrent access
 - Cons: External dependency; overkill for local dev
 
-**Recommendation: Keep options open—evaluate after prototyping with real data.**
+**Recommendation: Keep options open-evaluate after prototyping with real data.**
 
 **DECISION:** Proceed with **Option B (SQLite)** for match storage (indexed queries at scale), combined with **JSON for metadata** (sheets, pieces). This is effectively a hybrid approach optimized for the expected query patterns.
 
@@ -67,31 +67,31 @@ Based on expected puzzle size:
 | Data Type                       | Size Estimate | Calculation                                         |
 | ------------------------------- | ------------- | --------------------------------------------------- |
 | **Contour points (all pieces)** | ~12 MB        | 1,500 pieces × 500 pts × 2 coords × 4 bytes (int32) |
-| **Contour points (JSON)**       | ~30–50 MB     | JSON overhead (~3× binary)                          |
-| **Contour points (compressed)** | ~5–8 MB       | gzip/zstd on binary or JSON                         |
+| **Contour points (JSON)**       | ~30-50 MB     | JSON overhead (~3× binary)                          |
+| **Contour points (compressed)** | ~5-8 MB       | gzip/zstd on binary or JSON                         |
 | **PieceRecord metadata**        | ~1 MB         | 1,500 × ~700 bytes (corners, shapes, IDs)           |
-| **MatchResult (all pairs)**     | ~500 MB–1 GB  | 4.5M × ~100–200 bytes JSON each                     |
-| **MatchResult (top 10%)**       | ~50–100 MB    | Filter to best matches only                         |
+| **MatchResult (all pairs)**     | ~500 MB-1 GB  | 4.5M × ~100-200 bytes JSON each                     |
+| **MatchResult (top 10%)**       | ~50-100 MB    | Filter to best matches only                         |
 | **Sheet images (refs only)**    | ~10 KB        | 125 × 80 bytes (paths)                              |
-| **Sheet images (12MP JPEG)**    | ~500 MB–1 GB  | 125 × 4–8 MB each (on disk, not in DB)              |
+| **Sheet images (12MP JPEG)**    | ~500 MB-1 GB  | 125 × 4-8 MB each (on disk, not in DB)              |
 
 ### Performance Considerations
 
 | Operation                      | Concern                    | Mitigation                                |
 | ------------------------------ | -------------------------- | ----------------------------------------- |
-| Load all matches into memory   | 4.5M objects = ~2–4 GB RAM | Lazy load; store only top N per segment   |
+| Load all matches into memory   | 4.5M objects = ~2-4 GB RAM | Lazy load; store only top N per segment   |
 | Query matches for one piece    | Scan 4.5M records          | Index by `piece_id`; pre-group in dict    |
-| Serialize/deserialize contours | 12–50 MB I/O               | Binary format; compress; cache            |
+| Serialize/deserialize contours | 12-50 MB I/O               | Binary format; compress; cache            |
 | Full re-matching               | O(n²) comparisons          | Incremental; persist intermediate results |
 
 ### Implications for Approach Selection
 
 | Approach                  | Viability at Scale                                               |
 | ------------------------- | ---------------------------------------------------------------- |
-| **Option A (JSON)**       | ⚠️ Marginal—loading 500MB+ JSON is slow; no indexing             |
-| **Option B (SQLite)**     | ✅ Good—indexed queries; handles millions of rows; single file   |
-| **Option C (PostgreSQL)** | ✅ Good—better for concurrent access; overkill for single-user   |
-| **Option D (Hybrid)**     | ✅ Recommended—SQLite for matches, JSON/binary for contour cache |
+| **Option A (JSON)**       | ⚠️ Marginal-loading 500MB+ JSON is slow; no indexing             |
+| **Option B (SQLite)**     | ✅ Good-indexed queries; handles millions of rows; single file   |
+| **Option C (PostgreSQL)** | ✅ Good-better for concurrent access; overkill for single-user   |
+| **Option D (Hybrid)**     | ✅ Recommended-SQLite for matches, JSON/binary for contour cache |
 
 ---
 
@@ -261,11 +261,11 @@ def load_contour_for_piece(piece_id: PieceId, cache_dir: Path) -> tuple[np.ndarr
 
 ### Problem: Full Object Reconstruction
 
-`Sheet` and `Piece` are **computed** objects—they derive geometry from images at load time. To reconstruct them:
+`Sheet` and `Piece` are **computed** objects-they derive geometry from images at load time. To reconstruct them:
 
 1. **Approach A:** Store derived data (corners, contours as point lists)
    - Pro: No image re-processing needed
-   - Con: ~30–50 MB for 1,500 pieces (acceptable); ~500 pts × 1,500 pieces
+   - Con: ~30-50 MB for 1,500 pieces (acceptable); ~500 pts × 1,500 pieces
 
 2. **Approach B:** Store only image paths + minimal config
    - Pro: Compact (~10 KB total); single source of truth
@@ -277,7 +277,7 @@ def load_contour_for_piece(piece_id: PieceId, cache_dir: Path) -> tuple[np.ndarr
    - Full contour points in separate binary cache (`.npz` per sheet, lazy-loaded)
    - **At 1,500 pieces:** metadata ~1 MB, contour cache ~12 MB binary
 
-**DECISION: Approach C**—store metadata + geometry summary; contour points in binary cache; lazy-load when matching.
+**DECISION: Approach C**-store metadata + geometry summary; contour points in binary cache; lazy-load when matching.
 
 ### Reconstruction Strategy
 
@@ -456,12 +456,12 @@ class PieceMatcher:
 
 1. **Contour Point Storage:** Should we store full contour points for segments?
    - Needed for re-running `SegmentMatcher` on existing data
-   - At scale: ~12 MB binary, ~30–50 MB JSON for 1,500 pieces
+   - At scale: ~12 MB binary, ~30-50 MB JSON for 1,500 pieces
    - Options: numpy `.tobytes()` + base64, or separate `.npy`/`.npz` files
    - **DECISION:** Binary cache file, loaded on-demand
 
 2. **Image Management:** Store images in DB (blob) or keep as file refs?
-   - At scale: ~125 sheets × 4–8 MB = 500 MB–1 GB
+   - At scale: ~125 sheets × 4-8 MB = 500 MB-1 GB
    - **DECISION:** File refs with configurable base path (keep images on disk)
 
 3. **Incremental Updates:** How to handle adding new sheets without re-matching all?
@@ -469,7 +469,7 @@ class PieceMatcher:
    - Store `matched_pairs: set[frozenset[SegmentId]]` in matcher state
    - At scale: adding 1 sheet (~12 pieces) requires ~12 × 6,000 = 72K new comparisons
 
-4. **Manual Similarity Overrides:** `MatchResult.similarity_manual` exists—how to persist/restore?
+4. **Manual Similarity Overrides:** `MatchResult.similarity_manual` exists-how to persist/restore?
    - Already part of Pydantic model; will serialize
 
 5. **Match Storage Strategy:** Store all 4.5M matches or filter?
@@ -478,7 +478,7 @@ class PieceMatcher:
    - **DECISION:** Store all in SQLite; index for fast queries
 
 6. **Memory Budget:** How much RAM can we assume?
-   - Loading all matches (~4.5M) needs 2–4 GB
+   - Loading all matches (~4.5M) needs 2-4 GB
    - **Mitigation:** Stream/paginate; keep only working set in memory
 
 ---
@@ -720,7 +720,7 @@ class PieceMatcher:
 
 | Issue                                                                      | Location in Plan       | Fix                                                                                                                                                                        |
 | -------------------------------------------------------------------------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `SegmentRecord` proposed but segments lack IDs                             | Phase 1.3              | **Remove SegmentRecord**—segments are derived from piece contour + corners. Store segment shapes in `PieceRecord.segment_shapes`.                                          |
+| `SegmentRecord` proposed but segments lack IDs                             | Phase 1.3              | **Remove SegmentRecord**-segments are derived from piece contour + corners. Store segment shapes in `PieceRecord.segment_shapes`.                                          |
 | `SheetManager.load_json` can't reconstruct full objects                    | Phase 2.3              | **Clarify:** `load_metadata()` returns records only. Full reconstruction requires `Sheet(img_fp)` + cache. Add separate `reconstruct_from_cache()` method.                 |
 | Plan says "Challenge: Cannot fully reconstruct Sheet/Piece without images" | Reload Considerations  | **Decision C handles this:** Store metadata + geometry. For matching queries, only `PieceRecord` + `MatchResult` needed. Full `Piece` objects only needed for re-matching. |
 | `PieceRecord` example shows `corners: dict[str, tuple[int, int]]`          | Serialization Strategy | **OK but clarify:** Keys are `CornerPos.value` strings ("top_left", etc.) for JSON compatibility.                                                                          |

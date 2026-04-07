@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 class SheetRecord(BaseModel):
     """DB-friendly representation of a Sheet.
 
-    Stores metadata only—images remain on disk as file references.
+    Stores metadata only-images remain on disk as file references.
 
     Attributes:
         sheet_id: Unique identifier for the sheet.

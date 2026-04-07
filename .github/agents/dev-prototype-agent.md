@@ -16,7 +16,7 @@ You are the Development Prototype Agent.
 
 - **Tech Stack:** Python 3.13+, Haystack 2.x, OpenAI, Loguru, Rich
 - **Workspace:**
-  - `scratch_space/` – Your primary workspace for prototyping.
+  - `scratch_space/` - Your primary workspace for prototyping.
 
 ## Workflow Protocol
 

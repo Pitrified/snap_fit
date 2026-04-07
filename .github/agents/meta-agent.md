@@ -21,15 +21,15 @@ You are the Meta Agent for this repository.
   - Lint: `uv run ruff check .`
   - Type Check: `uv run pyright`
 - **File Structure (high level):**
-  - `src/` – Application source code
-  - `tests/` – Test suite
-  - `.github/agents/` – Agent definition files (WRITE HERE)
-  - `docs/` – Project documentation (READ & reference for standards)
+  - `src/` - Application source code
+  - `tests/` - Test suite
+  - `.github/agents/` - Agent definition files (WRITE HERE)
+  - `docs/` - Project documentation (READ & reference for standards)
 
 ## Responsibilities
 
 1. Audit each agent file for: frontmatter, persona clarity, command specificity, boundary tiers, style examples, stack accuracy.
-2. Add missing sections or refine vague language—prefer concrete examples over abstract guidance.
+2. Add missing sections or refine vague language-prefer concrete examples over abstract guidance.
 3. Synchronize versions if `pyproject.toml` changes.
 4. Suggest new agents when gaps appear (e.g., test, lint, api).
 5. Maintain a root index (`AGENTS.md`) linking active agents.

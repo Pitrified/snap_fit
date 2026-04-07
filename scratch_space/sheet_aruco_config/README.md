@@ -39,8 +39,8 @@ The following is a sequential, actionable checklist to implement Option A. Each 
 
 5. Update documentation and examples:
 
-- `docs/roadmap/roadmap.md` — update description and migration notes.
-- `scratch_space/*` READMEs and notebooks that instantiate `SheetAruco` (explicit list below) — update examples to construct `SheetArucoConfig` and call `load_sheet(img_fp)` without `min_area`.
+- `docs/roadmap/roadmap.md` - update description and migration notes.
+- `scratch_space/*` READMEs and notebooks that instantiate `SheetAruco` (explicit list below) - update examples to construct `SheetArucoConfig` and call `load_sheet(img_fp)` without `min_area`.
   - `scratch_space/streamline_sheet_aruco/README.md`
   - `scratch_space/aruco_setup/04_load_sheets.ipynb`
   - `scratch_space/segment_shape/01_segment_shape.ipynb`
@@ -50,7 +50,7 @@ The following is a sequential, actionable checklist to implement Option A. Each 
 
 6. Run tests and iterate:
 
-- `uv run pytest tests/ -q` — fix failing tests.
+- `uv run pytest tests/ -q` - fix failing tests.
 - `uv run ruff format .` and `uv run ruff check .`.
 - `uv run pyright` (type-check) if available.
 

@@ -1,4 +1,4 @@
-# Sheet Identity & Piece Labelling — Design Plan
+# Sheet Identity & Piece Labelling - Design Plan
 
 > **Branch target:** `feat/sheet-identity`  
 > **Depends on:** existing `ArucoBoardGenerator`, `SheetAruco`, `ArucoDetectorConfig`  
@@ -29,8 +29,8 @@ The board image produced by `ArucoBoardGenerator.generate_image()` is today a
 blank field with an ArUco ring. We need to embed two things into that generated
 image:
 
-1. **Sheet metadata** — machine-readable identity of the print run  
-2. **Slot grid with labels** — human-readable + machine-computable piece positions
+1. **Sheet metadata** - machine-readable identity of the print run  
+2. **Slot grid with labels** - human-readable + machine-computable piece positions
 
 ---
 
@@ -40,18 +40,18 @@ image:
 
 | Class | File | Role | Output |
 |-------|------|------|--------|
-| `ArucoBoardConfig` | `config/aruco/aruco_board_config.py` | Pydantic config: markers_x/y, marker_length, separation, margin, dictionary_id | — |
+| `ArucoBoardConfig` | `config/aruco/aruco_board_config.py` | Pydantic config: markers_x/y, marker_length, separation, margin, dictionary_id | - |
 | `ArucoBoardGenerator` | `aruco/aruco_board.py` | Builds `cv2.aruco.Board` ring; `generate_image() -> np.ndarray` | 920×1320 px numpy array (default config) |
-| `ArucoDetectorConfig` | `config/aruco/aruco_detector_config.py` | Pydantic: detector params + **owns** `ArucoBoardConfig` as `board` field | — |
-| `SheetArucoConfig` | `config/aruco/sheet_aruco_config.py` | Pydantic: `min_area`, `crop_margin`, `detector: ArucoDetectorConfig` | — |
+| `ArucoDetectorConfig` | `config/aruco/aruco_detector_config.py` | Pydantic: detector params + **owns** `ArucoBoardConfig` as `board` field | - |
+| `SheetArucoConfig` | `config/aruco/sheet_aruco_config.py` | Pydantic: `min_area`, `crop_margin`, `detector: ArucoDetectorConfig` | - |
 | `SheetAruco` | `puzzle/sheet_aruco.py` | Wraps detector; `load_sheet(img_fp) -> Sheet` | `Sheet` object |
 | `PuzzleGenerator` | `puzzle/puzzle_generator.py` | Generates Bézier puzzle geometry; produces `PuzzlePiece` list with `.label` (`A1`, `B3`…) | SVG / `PuzzlePiece` list |
 | `PuzzleRasterizer` | `puzzle/puzzle_rasterizer.py` | SVG → `np.ndarray` via `cairosvg` at given DPI | BGR numpy array |
 | `PuzzleSheetComposer` | `puzzle/puzzle_sheet.py` | Composites piece SVGs onto a board image | `np.ndarray` sheet image |
 
 **Key observation:** `generate_label()` in `puzzle_generator.py` produces `LLNN`
-labels (e.g. `A1`, `BC3`). This same function — and the grid logic in
-`PuzzleGenerator` — can be reused directly for slot labelling on the board, with
+labels (e.g. `A1`, `BC3`). This same function - and the grid logic in
+`PuzzleGenerator` - can be reused directly for slot labelling on the board, with
 no dependency on synthetic piece generation.
 
 ### 2.2 Parse/ingest side
@@ -74,13 +74,13 @@ the grid geometry embedded in the board config.
 No QR code generation or decoding exists in the project. `qrcode` (pure-Python)
 is the natural addition for generation; `opencv-contrib-python` (already a
 dependency) includes `cv2.QRCodeDetector` and `cv2.QRCodeDetectorAruco` for
-decoding — **zero new runtime dependencies required**.
+decoding - **zero new runtime dependencies required**.
 
 ### 2.4 SVG text labels
 
 `PuzzleGenerator.piece_to_svg()` and `to_svg()` render piece labels using SVG
 `<text>` elements, then `PuzzleRasterizer.rasterize()` converts to a numpy array
-via `cairosvg`. For slot labels on the board background we do not need SVG —
+via `cairosvg`. For slot labels on the board background we do not need SVG -
 `cv2.putText()` on the numpy array directly is simpler and avoids the
 SVG→raster round-trip. `opencv-python` is already present.
 
@@ -117,7 +117,7 @@ ring row) is the ideal location for QR codes + human text:
 
 ```
 QR + text strip:
-  x = 120 … 820  (700 px = 160 mm wide — full interior width)
+  x = 120 … 820  (700 px = 160 mm wide - full interior width)
   y = 1100 … 1220  (120 px = 27 mm tall)
 
 This is the gap between the bottom ring row and the interior piece area.
@@ -150,7 +150,7 @@ e.g.  "oca,2,6,oca,20250115"   →  20 bytes
 | V2      | 25      | 26 bytes    | 66 mm               |
 | V3      | 29      | 42 bytes    | 74 mm               |
 
-A single **V2 QR** at ECC-M holds 26 bytes — enough for the entire 20-byte
+A single **V2 QR** at ECC-M holds 26 bytes - enough for the entire 20-byte
 payload with 6 bytes to spare. Using **3× V1 QR codes** in a horizontal line
 provides redundancy: any one code is sufficient to decode the full payload (each
 encodes the complete payload, not a chunk). Three V1 codes at 58 mm each = 174 mm,
@@ -163,7 +163,7 @@ succeeds if any one code is readable.
 
 In board pixels: V1 at `module_size_px` such that total QR width ≤ 220 px
 (¼ of the 700 px strip width per code). `(21 + 8) × module_size_px ≤ 220` →
-`module_size_px ≤ 7.6` → use 7 px/module. At 4.38 px/mm this is 1.6 mm/module —
+`module_size_px ≤ 7.6` → use 7 px/module. At 4.38 px/mm this is 1.6 mm/module -
 within reliable decoding range for clean prints.
 
 ### 3.3 Human text zone
@@ -190,7 +190,7 @@ Slot height: 220 / 6 = 37 mm   →  163 px
 
 Label text `A1` … `H6` rendered at the **top-left corner** of each slot,
 inset by 4 px, using `cv2.putText()` at `fontScale=0.5`, `thickness=1`,
-`FONT_HERSHEY_SIMPLEX`. At 4.38 px/mm, character height ≈ 10 px ≈ 2.3 mm —
+`FONT_HERSHEY_SIMPLEX`. At 4.38 px/mm, character height ≈ 10 px ≈ 2.3 mm -
 clearly legible at A4 print size.
 
 ---
@@ -203,7 +203,7 @@ clearly legible at A4 print size.
 | 2 | Relation to `SheetRecord` | Embed as `metadata: SheetMetadata \| None` field on `SheetRecord` |
 | 3 | QR decode: pre or post rectification | **Pre-rectification** (images already nearly straight; avoids crop risk) |
 | 4 | QR code count/size | 3× V1 identical QR codes; each encodes full payload; `QRChunkHandler` manages encode/decode uniformly |
-| 5 | QR strip location | **Inside** the ArUco ring — in the bottom interior gap — positioned around the ring as needed |
+| 5 | QR strip location | **Inside** the ArUco ring - in the bottom interior gap - positioned around the ring as needed |
 | 6 | Board image assembly | Composited in-place: `ArucoBoardGenerator.generate_image()` remains as-is; new `BoardImageComposer` assembles all elements |
 
 ---
@@ -244,7 +244,7 @@ class QRChunkHandler:
 
     def decode_first(self, image: np.ndarray) -> str | None:
         """Detect and decode any QR code in image. Returns payload or None."""
-        # Uses cv2.QRCodeDetector — no new dependency
+        # Uses cv2.QRCodeDetector - no new dependency
         ...
 ```
 
@@ -277,7 +277,7 @@ class SlotGridConfig(BaseModelKwargs):
     cols: int = Field(default=8)
     rows: int = Field(default=6)
     label_inset_px: int = Field(default=4)
-    # Derived from board config at render time — not stored here
+    # Derived from board config at render time - not stored here
 
 class SlotGrid:
     """Computes slot geometry and renders labels onto a board image."""
@@ -380,7 +380,7 @@ def load_sheet(self, img_fp: Path) -> Sheet:
     return sheet
 ```
 
-`load_sheet()` signature is **unchanged** — return type stays `Sheet`. Metadata
+`load_sheet()` signature is **unchanged** - return type stays `Sheet`. Metadata
 is attached as an attribute. Callers that do not care about metadata are
 unaffected.
 
@@ -401,7 +401,7 @@ metadata: SheetMetadata | None = None
 metadata=sheet.metadata
 ```
 
-No schema migration needed immediately — the field is nullable and the
+No schema migration needed immediately - the field is nullable and the
 `DatasetStore` can store it as a JSON text column when plan 11/12 migration is
 complete.
 
@@ -478,15 +478,15 @@ SheetAruco.load_sheet(img_fp)
 
 | File | Change |
 |------|--------|
-| `src/snap_fit/aruco/sheet_metadata.py` | **NEW** — `SheetMetadata`, `QRChunkHandler`, `SheetMetadataEncoder`, `SheetMetadataDecoder` |
-| `src/snap_fit/aruco/slot_grid.py` | **NEW** — `SlotGridConfig`, `SlotGrid` |
-| `src/snap_fit/aruco/board_image_composer.py` | **NEW** — `BoardImageComposer` |
+| `src/snap_fit/aruco/sheet_metadata.py` | **NEW** - `SheetMetadata`, `QRChunkHandler`, `SheetMetadataEncoder`, `SheetMetadataDecoder` |
+| `src/snap_fit/aruco/slot_grid.py` | **NEW** - `SlotGridConfig`, `SlotGrid` |
+| `src/snap_fit/aruco/board_image_composer.py` | **NEW** - `BoardImageComposer` |
 | `src/snap_fit/config/aruco/sheet_aruco_config.py` | Add `metadata_zone: MetadataZoneConfig \| None = None` |
 | `src/snap_fit/puzzle/sheet_aruco.py` | Call `SheetMetadataDecoder` pre-rectification; attach to `sheet.metadata` |
 | `src/snap_fit/puzzle/sheet.py` | Add `metadata: SheetMetadata \| None = None`; call `SlotGrid.slot_for_centroid()` in `build_pieces()` |
 | `src/snap_fit/data_models/sheet_record.py` | Add `metadata: SheetMetadata \| None = None` |
 | `src/snap_fit/data_models/piece_record.py` | Add `label: str \| None = None` |
-| `src/snap_fit/puzzle/puzzle_generator.py` | No changes — `generate_label()` reused as-is |
+| `src/snap_fit/puzzle/puzzle_generator.py` | No changes - `generate_label()` reused as-is |
 | `pyproject.toml` | Add `qrcode>=8.0` to dependencies |
 
 `cv2.QRCodeDetector` is already available via `opencv-contrib-python`. No other
@@ -504,8 +504,8 @@ Each step is independently testable.
 | 2 | `QRChunkHandler.encode()` + `decode_first()` | Encode payload, render to image, decode back |
 | 3 | `SlotGridConfig` + `SlotGrid.slot_centers()` + `label_for_slot()` | Assert label grid matches expected `generate_label()` output |
 | 4 | `SlotGrid.render_labels()` on a blank white array | Visual inspection in notebook |
-| 5 | `SheetMetadataEncoder.render()` — QR strip + text | Visual + decode round-trip |
-| 6 | `BoardImageComposer.compose()` — full assembly | Save image, visual check |
+| 5 | `SheetMetadataEncoder.render()` - QR strip + text | Visual + decode round-trip |
+| 6 | `BoardImageComposer.compose()` - full assembly | Save image, visual check |
 | 7 | `SheetMetadataDecoder.decode()` on a composed image (not rectified) | Assert metadata recovered |
 | 8 | `SheetAruco.load_sheet()` integration | End-to-end: compose → save → load → assert `sheet.metadata` |
 | 9 | `SlotGrid.slot_for_centroid()` + `Sheet.build_pieces()` label assignment | Synthetic contours at known slot positions |
@@ -517,7 +517,7 @@ Each step is independently testable.
 
 | # | Question | Answer |
 |---|----------| ------ |
-| 1 | Should `SlotGrid` be part of `SheetMetadata` (so slot grid params travel with the QR payload) or driven purely by config at both ends? Recommendation: config-driven (grid params live in `MetadataZoneConfig`), not in QR payload — payload stays minimal. | config driven, not in QR payload |
+| 1 | Should `SlotGrid` be part of `SheetMetadata` (so slot grid params travel with the QR payload) or driven purely by config at both ends? Recommendation: config-driven (grid params live in `MetadataZoneConfig`), not in QR payload - payload stays minimal. | config driven, not in QR payload |
 | 2 | `QRChunkHandler` is currently "3 identical codes". The name suggests future chunking. Confirm whether the chunked (split-string) variant is in scope now or explicitly deferred. | deferred, dedicated class is there precisely to keep details of qr code handling isolated |
-| 3 | `Contour.centroid` — does it exist? `Sheet.build_pieces()` will need it. Check `src/snap_fit/image/contour.py`. | check and add if needed |
+| 3 | `Contour.centroid` - does it exist? `Sheet.build_pieces()` will need it. Check `src/snap_fit/image/contour.py`. | check and add if needed |
 | 4 | What is the source of truth for `total_sheets` at print time? It must be known before all sheets are generated (typically it's `ceil(total_pieces / slots_per_sheet)`). This drives whether `BoardImageComposer` needs to receive it externally or compute it. | might be unknown |

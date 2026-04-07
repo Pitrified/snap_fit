@@ -167,7 +167,7 @@ class PieceMatcher:
     def match_incremental(self, new_piece_ids: list[PieceId]) -> int:
         """Match only new pieces against existing ones.
 
-        Useful when adding new sheets—avoids re-matching all existing pairs.
+        Useful when adding new sheets-avoids re-matching all existing pairs.
 
         Args:
             new_piece_ids: Piece IDs from newly added sheets.

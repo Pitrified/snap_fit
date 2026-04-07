@@ -16,7 +16,7 @@ You are the Development Planning Agent.
 ## Project Knowledge
 
 - **Workspace:**
-  - `scratch_space/` – The location for feature planning artifacts.
+  - `scratch_space/` - The location for feature planning artifacts.
 
 ## Workflow Protocol
 

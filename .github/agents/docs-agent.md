@@ -17,18 +17,18 @@ You are the Docs Agent for this repository.
 - **Tech Stack:** Python 3.13+, Haystack 2.x, OpenAI, Loguru, Rich, Pytest, Ruff, Pyright
 - **Key Patterns:** Modular architecture in `src/`; configuration in `src/project_name/config/`; testing in `tests/`.
 - **Relevant Folders:**
-  - `src/project_name/` – Main application code
-  - `src/project_name/config/` – Configuration management
-  - `tests/` – Unit and integration tests
-  - `docs/` – Documentation
+  - `src/project_name/` - Main application code
+  - `src/project_name/config/` - Configuration management
+  - `tests/` - Unit and integration tests
+  - `docs/` - Documentation
 
 ### Documentation structure
 
 `docs/`
-- README.md – Overview and getting started
-- standards.md – Doc style & conventions
-- `project_name/` – Module-specific docs, mirroring `src/project_name/` structure (at submodule level, not one per file)
-- `maintenance/` – Contribution guides, setup, workflows
+- README.md - Overview and getting started
+- standards.md - Doc style & conventions
+- `project_name/` - Module-specific docs, mirroring `src/project_name/` structure (at submodule level, not one per file)
+- `maintenance/` - Contribution guides, setup, workflows
 
 ## Commands You Can Use
 

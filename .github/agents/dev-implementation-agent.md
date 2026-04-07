@@ -17,8 +17,8 @@ You are the Development Implementation Agent.
 
 - **Tech Stack:** Python 3.13+, Haystack 2.x, OpenAI, Loguru, Rich, Pyright
 - **Workspace:**
-  - `src/` – The destination for production code.
-  - `scratch_space/` – Source of prototypes and location for sample notebooks.
+  - `src/` - The destination for production code.
+  - `scratch_space/` - Source of prototypes and location for sample notebooks.
 
 ## Workflow Protocol
 

@@ -19,9 +19,9 @@ please
 
 USER UPDATE: cache folder has a flat structure, propagate the `sheets_tag` logic everywhere in the cache handling
 
-### Task 4 — Propagate `sheets_tag` into cache paths
+### Task 4 - Propagate `sheets_tag` into cache paths
 
-**Problem:** All datasets currently share a single `cache/metadata.json`, `cache/matches.json` and `cache/contours/` — datasets overwrite each other on ingest.
+**Problem:** All datasets currently share a single `cache/metadata.json`, `cache/matches.json` and `cache/contours/` - datasets overwrite each other on ingest.
 
 **Target structure:**
 
@@ -55,7 +55,7 @@ cache/
 - Remove flat `self.matches_path` instance attribute.
 - Add `_all_matches_paths() -> list[Path]` helper returning all `{tag}/matches.json` files found under `self.cache_dir`.
 - `list_matches`, `get_matches_for_piece`, `get_matches_for_segment`, `match_count`: load and aggregate across all discovered matches files.
-- `ingest_sheets` in `PieceService` also writes `cache/{tag}/matches.json` after running matching (currently the notebook does this manually — the service should mirror the same pattern for completeness; but since the service does not run matching, leave `matches.json` as the concern of a future matcher step and only scope metadata + contours here).
+- `ingest_sheets` in `PieceService` also writes `cache/{tag}/matches.json` after running matching (currently the notebook does this manually - the service should mirror the same pattern for completeness; but since the service does not run matching, leave `matches.json` as the concern of a future matcher step and only scope metadata + contours here).
 
 `Notebook`:
 
@@ -85,24 +85,24 @@ cache/
 
 ---
 
-### Task 1 — Update `01_db_ingestion.ipynb`
+### Task 1 - Update `01_db_ingestion.ipynb`
 
 **Changes:**
 
 - **Imports cell**: add `SheetArucoConfig`, `SheetAruco`, `get_snap_fit_paths`; remove unused bare-`Sheet` import
 - **Paths/config cell**: replace hard-coded `REPO_ROOT`/`DATA_ROOT` with `get_snap_fit_paths()`; add `sheets_tag` variable; load `SheetArucoConfig` from the tag-specific JSON
 - **Load-sheets cell**: replace manual loop + bare `Sheet(...)` with `SheetAruco(config).load_sheet` as `loader_func` passed to `manager.add_sheets()`
-- Keep Phase 2–5 cells unchanged (they operate on the already-populated manager)
+- Keep Phase 2-5 cells unchanged (they operate on the already-populated manager)
 
 ---
 
-### Task 2 — Update the webapp ingestion endpoint
+### Task 2 - Update the webapp ingestion endpoint
 
 **Files touched:**
 
-- `src/snap_fit/webapp/schemas/piece.py` — `IngestRequest`
-- `src/snap_fit/webapp/services/piece_service.py` — `PieceService.ingest_sheets`
-- `src/snap_fit/webapp/routers/piece_ingestion.py` — `POST /ingest`
+- `src/snap_fit/webapp/schemas/piece.py` - `IngestRequest`
+- `src/snap_fit/webapp/services/piece_service.py` - `PieceService.ingest_sheets`
+- `src/snap_fit/webapp/routers/piece_ingestion.py` - `POST /ingest`
 
 **Changes:**
 
@@ -117,7 +117,7 @@ cache/
 
 ---
 
-### Task 3 — Add UI element for dataset ingestion
+### Task 3 - Add UI element for dataset ingestion
 
 **File touched:** `webapp_resources/templates/index.html`
 

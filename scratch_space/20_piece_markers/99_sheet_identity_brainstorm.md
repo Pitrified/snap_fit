@@ -1,6 +1,6 @@
-# Sheet Identity & Piece Labelling — Problem Definition and Options
+# Sheet Identity & Piece Labelling - Problem Definition and Options
 
-> **Context:** `snap_fit` — `feat/fastapi-scaffold` branch  
+> **Context:** `snap_fit` - `feat/fastapi-scaffold` branch  
 > **Related code:** `ArucoBoardGenerator`, `PuzzleSheetComposer`, `SheetArucoConfig`, `SheetRecord`  
 > **Status:** Brainstorm / pre-planning --> superseded by `scratch_space/20_piece_markers/00_sheet_identity_plan.md`
 
@@ -24,7 +24,7 @@ homography estimation.
 Once a photo has been taken and processed, the pipeline needs to answer two
 questions it currently cannot answer:
 
-#### Problem A — Sheet identity
+#### Problem A - Sheet identity
 
 > *Which photo belongs to which dataset / batch / physical print-run?*
 
@@ -39,13 +39,13 @@ image encodes:
 Without this, the operator must name files manually or track a separate spreadsheet
 side-channel. Any mismatch silently produces wrong results downstream.
 
-#### Problem B — Piece identity
+#### Problem B - Piece identity
 
 > *Which physical piece in the photo is piece `A1`, `B3`, etc.?*
 
 `PuzzleSheetComposer` places pieces in a grid and assigns each a label (e.g. `A1`
 via `generate_label()`). But once printed and cut, **the machine only knows a
-piece by its pixel position on the sheet** — it derives a `PieceId(sheet_id,
+piece by its pixel position on the sheet** - it derives a `PieceId(sheet_id,
 piece_idx)` from contour detection order, which is fragile. The human operator who
 will physically handle pieces cannot cross-reference the machine index to the
 printed label without an explicit visual mapping.
@@ -66,18 +66,18 @@ These come from the existing codebase conventions:
   `pydantic`, `qrcode` is acceptable (pure-Python, stdlib-compatible); `zxing` or
   heavy barcode libs are not.
 - **Generated at print time.** Metadata must be baked into the image that
-  `PuzzleSheetComposer` produces — not added later.
+  `PuzzleSheetComposer` produces - not added later.
 - **Read at ingest time.** `SheetAruco.load_sheet()` is the natural decode point,
   after rectification but before `Sheet` construction.
 - **Config-driven.** New layout parameters belong in `SheetLayout` or a new
   `SheetIdentityConfig`, consistent with `ArucoBoardConfig` / `SheetArucoConfig`
   patterns.
 - **Graceful degradation.** If a QR / label zone is not found, the pipeline should
-  warn (loguru) and continue — not crash.
+  warn (loguru) and continue - not crash.
 
 ---
 
-## 3. Problem A — Sheet Identity (metadata encoding)
+## 3. Problem A - Sheet Identity (metadata encoding)
 
 ### What needs to be encoded
 
@@ -97,14 +97,14 @@ piece_count     int
 tiles_x / tiles_y int
 ```
 
-### Option A1 — QR code zone outside the ArUco ring
+### Option A1 - QR code zone outside the ArUco ring
 
 Place one or more `qrcode`-generated QR codes in the outer margin of the sheet,
 **outside** the ArUco ring perimeter. The QR code encodes the metadata as compact
 JSON or a URL-like string.
 
 **Where:** The ring board is a frame; the "outside" is the area beyond the
-outermost marker row/column. Currently `ArucoBoardConfig.margin = 20 px` — this
+outermost marker row/column. Currently `ArucoBoardConfig.margin = 20 px` - this
 margin could host a QR code strip at a corner.
 
 **Pros:**
@@ -112,14 +112,14 @@ margin could host a QR code strip at a corner.
 - Machine-scannable independently of the aruco pipeline (phone camera, webapp
   upload flow).
 - Can be decoded *before* rectification (useful if rectification fails).
-- QR codes survive moderate rotation and perspective distortion — redundancy with
+- QR codes survive moderate rotation and perspective distortion - redundancy with
   ArUco.
 
 **Cons:**
 - Needs space in the margin; current margin (20 px at board pixel resolution) is
   too small. Margin must be enlarged or QR placed inside a dedicated strip.
 - After `crop_margin` in `SheetAruco.load_sheet()`, the QR zone may be cropped
-  away — must decode *before* cropping, or adjust `crop_margin`.
+  away - must decode *before* cropping, or adjust `crop_margin`.
 - Adds a second decode step in `SheetAruco`.
 
 **Fit with codebase:** A `SheetMetadataEncoder` class in
@@ -130,7 +130,7 @@ in. Decoding lives in a `SheetMetadataDecoder` counterpart called from
 
 ---
 
-### Option A2 — Human-readable text block alongside a QR code
+### Option A2 - Human-readable text block alongside a QR code
 
 Pair the QR code (Option A1) with a printed text block in the same margin zone,
 in plain English:
@@ -145,7 +145,7 @@ OpenCV's `cv2.putText()` or PIL/Pillow can render this directly onto the numpy
 array.
 
 **Pros:**
-- Zero ambiguity for a human inspecting a printout — no scanner needed.
+- Zero ambiguity for a human inspecting a printout - no scanner needed.
 - Works as a fallback when QR decode fails.
 - Trivially added on top of A1 (same margin zone, stacked).
 
@@ -159,18 +159,18 @@ text block. `cv2.putText()` is already a dependency via `opencv-python`.
 
 ---
 
-### Option A3 — Steganography / invisible watermark
+### Option A3 - Steganography / invisible watermark
 
 Embed metadata in the image's high-frequency pixel noise (imperceptible to
 the eye) using a library such as `invisible-watermark`.
 
 **Verdict: Not recommended.** Steganography is fragile to JPEG compression,
-printing/scanning noise, and perspective distortion — all of which apply here.
+printing/scanning noise, and perspective distortion - all of which apply here.
 Adds a heavy, uncommon dependency. Mentioned for completeness; discard.
 
 ---
 
-### Option A4 — Filename convention only (current implicit approach)
+### Option A4 - Filename convention only (current implicit approach)
 
 Keep relying on the operator to name files correctly (e.g. `oca_sheet_02.jpg`)
 and parse the tag from the filename at ingest time.
@@ -190,12 +190,12 @@ provides a visual label. Both are generated at print time by an extended
 `PuzzleSheetComposer` and decoded by `SheetAruco` on the pre-crop image.
 
 `crop_margin` must be set to preserve the outer margin zone, or the decode step
-must run before the crop. The latter is cleaner — decode metadata from the
+must run before the crop. The latter is cleaner - decode metadata from the
 pre-rectified image, then proceed with crop as today.
 
 ---
 
-## 4. Problem B — Piece Identity (grid labelling)
+## 4. Problem B - Piece Identity (grid labelling)
 
 ### What needs to be communicated
 
@@ -208,7 +208,7 @@ The machine derives `piece_idx` from contour detection order, which is not
 guaranteed to match printing order. The human has no way to know that the piece
 in the upper-left slot is `A1` without looking at the original print template.
 
-### Option B1 — Grid slot labels printed on the sheet background
+### Option B1 - Grid slot labels printed on the sheet background
 
 Print the label of each slot (e.g. `A1`, `B3`) directly onto the sheet
 background, inside the slot area but positioned so it remains visible after the
@@ -232,19 +232,19 @@ piece itself.
 - Works with the existing `generate_label()` → `A1` / `B2` scheme.
 
 **Cons:**
-- Labels may be occluded by the placed piece if positioned carelessly — must be
+- Labels may be occluded by the placed piece if positioned carelessly - must be
   placed at a consistent corner offset.
 - Requires `SheetLayout` to know piece spacing precisely at render time (already
   available via `pieces_per_sheet()`).
 
 **Fit with codebase:** New method `PuzzleSheetComposer.render_slot_labels()` that
 draws each label at a fixed inset from the slot's top-left corner, called before
-`place_pieces()`. The slot geometry is already computed in `place_pieces()` —
+`place_pieces()`. The slot geometry is already computed in `place_pieces()` -
 extract it into a shared helper.
 
 ---
 
-### Option B2 — Per-slot QR codes
+### Option B2 - Per-slot QR codes
 
 Each grid slot gets its own small QR code encoding the slot's label + position.
 The QR is printed in the background of the slot.
@@ -259,7 +259,7 @@ row, col}` for every slot, replacing the geometric contour→slot assignment.
 
 **Cons:**
 - At 300 DPI and ~25 mm slots, a QR code in a slot corner must be very small
-  (~6–8 mm), approaching the reliable decoding limit.
+  (~6-8 mm), approaching the reliable decoding limit.
 - 48 QR codes on a single sheet (for an 8×6 grid) is visually noisy and
   computationally expensive to decode.
 - Largely redundant if the sheet-level metadata QR (Problem A) already encodes
@@ -270,7 +270,7 @@ is unknown at decode time. Recommend against for the current use case.
 
 ---
 
-### Option B3 — Human label strip / index card
+### Option B3 - Human label strip / index card
 
 Print a reference strip outside the ArUco ring (in the margin, similar to the
 metadata zone in A1/A2) listing all slots and their labels:
@@ -294,7 +294,7 @@ pass as Option A2.
 
 ---
 
-### Option B4 — Slot index encoded in the ArUco marker IDs
+### Option B4 - Slot index encoded in the ArUco marker IDs
 
 Assign ArUco marker IDs to carry slot-position information (e.g. marker 0 = slot
 A1, marker 1 = slot A2, …). The ring already uses a subset of the dictionary;
@@ -304,7 +304,7 @@ interior markers (currently not used) could carry slot data.
 reprojection quality, not data density. Overloading marker IDs with slot
 semantics couples two concerns that are currently cleanly separated. The
 `DICT_6X6_250` dictionary has 250 IDs; a 48-piece sheet would need 48 interior
-markers plus the ring — feasible but cluttered. Discard.
+markers plus the ring - feasible but cluttered. Discard.
 
 ---
 
@@ -329,20 +329,20 @@ The changes touch three layers and introduce one new module:
 ```
 src/snap_fit/
 ├── aruco/
-│   ├── aruco_board.py              (existing — no changes)
-│   ├── aruco_detector.py           (existing — no changes)
+│   ├── aruco_board.py              (existing - no changes)
+│   ├── aruco_detector.py           (existing - no changes)
 │   └── sheet_metadata.py           (NEW)
 │       ├── SheetMetadata           Pydantic model (tag_name, sheet_index, ...)
 │       ├── SheetMetadataEncoder    generate_image(metadata) -> np.ndarray
 │       └── SheetMetadataDecoder    decode_from_image(img) -> SheetMetadata | None
 │
 ├── config/aruco/
-│   └── sheet_aruco_config.py       (existing — add metadata_zone: MetadataZoneConfig)
+│   └── sheet_aruco_config.py       (existing - add metadata_zone: MetadataZoneConfig)
 │
 └── puzzle/
-    ├── puzzle_sheet.py             (existing — add render_slot_labels(),
+    ├── puzzle_sheet.py             (existing - add render_slot_labels(),
     │                                render_metadata_zone() to PuzzleSheetComposer)
-    └── sheet_aruco.py              (existing — call decoder before crop in load_sheet())
+    └── sheet_aruco.py              (existing - call decoder before crop in load_sheet())
 ```
 
 ### `SheetMetadata` Pydantic model
@@ -386,7 +386,7 @@ def load_sheet(self, img_fp: Path) -> tuple[Sheet, SheetMetadata | None]:
     return Sheet(...), metadata
 ```
 
-Return type changes to a tuple — callers that only need `Sheet` can unpack and
+Return type changes to a tuple - callers that only need `Sheet` can unpack and
 discard `metadata`. Alternatively wrap in a dataclass `LoadedSheet(sheet, metadata)`.
 
 ---

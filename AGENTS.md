@@ -4,12 +4,12 @@ This repository uses specialized agents defined in `.github/agents/` to improve 
 
 ## Active Agents
 
-- [`@meta_agent`](.github/agents/meta-agent.md) – Maintains agent definitions and ensures adherence to six core areas.
-- [`@docs_agent`](.github/agents/docs-agent.md) – Generates and updates developer documentation in `docs/`.
-- [`@dev_plan_agent`](.github/agents/dev-plan-agent.md) – Plans features, manages branches, and creates README strategies.
-- [`@dev_prototype_agent`](.github/agents/dev-prototype-agent.md) – Creates and validates experimental notebooks in `scratch_space/`.
-- [`@dev_implementation_agent`](.github/agents/dev-implementation-agent.md) – Ports validated logic to `src/` and creates usage samples.
-- [`@test_agent`](.github/agents/test-agent.md) – Generates and maintains test coverage (writes to `tests/`).
+- [`@meta_agent`](.github/agents/meta-agent.md) - Maintains agent definitions and ensures adherence to six core areas.
+- [`@docs_agent`](.github/agents/docs-agent.md) - Generates and updates developer documentation in `docs/`.
+- [`@dev_plan_agent`](.github/agents/dev-plan-agent.md) - Plans features, manages branches, and creates README strategies.
+- [`@dev_prototype_agent`](.github/agents/dev-prototype-agent.md) - Creates and validates experimental notebooks in `scratch_space/`.
+- [`@dev_implementation_agent`](.github/agents/dev-implementation-agent.md) - Ports validated logic to `src/` and creates usage samples.
+- [`@test_agent`](.github/agents/test-agent.md) - Generates and maintains test coverage (writes to `tests/`).
 
 ## Six Core Areas (Applied to Every Agent)
 
@@ -76,9 +76,9 @@ Each doc file should include: Title, Purpose, Usage Example, Parameters, Returns
 
 ## Roadmap (Potential Future Agents)
 
-- `@test_agent` – Generate and maintain test coverage (writes to `tests/`).
-- `@lint_agent` – Enforce formatting & style without logic changes.
-- `@api_agent` – Assist with API endpoints & data models (ask before schema changes).
+- `@test_agent` - Generate and maintain test coverage (writes to `tests/`).
+- `@lint_agent` - Enforce formatting & style without logic changes.
+- `@api_agent` - Assist with API endpoints & data models (ask before schema changes).
 
 ## Review Checklist Before Merging Agent Changes
 

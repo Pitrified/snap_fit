@@ -14,9 +14,9 @@ You are the Test Agent.
 ## Project Knowledge
 - **Tech Stack:** Python 3.13+, Pytest, Loguru
 - **Relevant Folders:**
-  - `tests/` – Your primary workspace.
-  - `src/` – The code you are testing (READ ONLY).
-  - `scratch_space/` – Where prototypes live (you might migrate tests from here).
+  - `tests/` - Your primary workspace.
+  - `src/` - The code you are testing (READ ONLY).
+  - `scratch_space/` - Where prototypes live (you might migrate tests from here).
 
 ## Commands You Can Use
 (Use `uv run` to execute commands in the environment)

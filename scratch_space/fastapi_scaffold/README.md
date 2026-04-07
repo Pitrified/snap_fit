@@ -1,4 +1,4 @@
-# FastAPI Scaffold — Feature Plan
+# FastAPI Scaffold - Feature Plan
 
 > **Status:** ✅ Phase 0 complete (Data Layer); Phase 1 ready  
 > **Branch:** `feat/fastapi-scaffold`  
@@ -15,17 +15,17 @@ Add a production-ready FastAPI application to the `snap_fit` repository. The web
 
 | Option                  | Summary                                                                     | Trade-offs                            |
 | ----------------------- | --------------------------------------------------------------------------- | ------------------------------------- |
-| **A — Minimal Starter** | Single app, modular routers, settings via `pydantic-settings`, CORS, Docker | Fast to ship; extend later for scale  |
-| **B — Sub-apps + DI**   | Versioned sub-applications, full dependency injection                       | Better isolation; more boilerplate    |
-| **C — Container-First** | Gunicorn workers, Nginx reverse proxy, health probes                        | Production-hardened; overkill for MVP |
+| **A - Minimal Starter** | Single app, modular routers, settings via `pydantic-settings`, CORS, Docker | Fast to ship; extend later for scale  |
+| **B - Sub-apps + DI**   | Versioned sub-applications, full dependency injection                       | Better isolation; more boilerplate    |
+| **C - Container-First** | Gunicorn workers, Nginx reverse proxy, health probes                        | Production-hardened; overkill for MVP |
 
-**Decision:** Proceed with **Option A** — minimal starter with quality-of-life conveniences (hot reload, Swagger UI, typed settings, path utilities).
+**Decision:** Proceed with **Option A** - minimal starter with quality-of-life conveniences (hot reload, Swagger UI, typed settings, path utilities).
 
 ---
 
 ## Implementation Plan
 
-### Phase 0 — Data Layer (✅ COMPLETE)
+### Phase 0 - Data Layer (✅ COMPLETE)
 
 > **See:** [01_ingestion_db.md](01_ingestion_db.md) for full design rationale
 
@@ -44,7 +44,7 @@ The persistence layer is implemented and tested. The API will leverage:
 - **Contours:** Binary `.npz` files per sheet (efficient, ~12 MB total for 1,500 pieces)
 - **Matches:** JSON for small scale; SQLite planned for Phase 2+ (4.5M matches)
 
-### Phase 1 — Scaffold Structure (✅ COMPLETE)
+### Phase 1 - Scaffold Structure (✅ COMPLETE)
 
 | #   | Task                                    | Status | Artifact                                |
 | --- | --------------------------------------- | ------ | --------------------------------------- |
@@ -53,7 +53,7 @@ The persistence layer is implemented and tested. The API will leverage:
 | 3   | Add `webapp_resources/` at repo root    | ✅     | Templates + static assets               |
 | 4   | Wire up `main.py` entrypoint            | ✅     | App factory, middleware, router mounts  |
 
-### Phase 2 — Configuration & Infra (✅ COMPLETE)
+### Phase 2 - Configuration & Infra (✅ COMPLETE)
 
 | #   | Task                        | Status | Artifact                      |
 | --- | --------------------------- | ------ | ----------------------------- |
@@ -61,14 +61,14 @@ The persistence layer is implemented and tested. The API will leverage:
 | 6   | Add `Dockerfile` (uv-based) | ✅     | Multi-stage build             |
 | 7   | Add `docker-compose.yml`    | ✅     | Local dev orchestration       |
 
-### Phase 3 — Docs & Tests (✅ COMPLETE)
+### Phase 3 - Docs & Tests (✅ COMPLETE)
 
 | #   | Task                     | Status | Artifact                    |
 | --- | ------------------------ | ------ | --------------------------- |
 | 8   | Create `docs/fastapi.md` | ✅     | Install, run, extend guide  |
 | 9   | Add `tests/webapp/`      | ✅     | Smoke tests for each router |
 
-### Phase 4 — Admin UI (✅ COMPLETE)
+### Phase 4 - Admin UI (✅ COMPLETE)
 
 | #   | Task                       | Status | Artifact                            |
 | --- | -------------------------- | ------ | ----------------------------------- |
@@ -125,7 +125,7 @@ The persistence layer is implemented and tested. The API will leverage:
 
 ```text
 snap_fit/                           # repo root
-├── webapp_resources/               # outside src — static assets & templates
+├── webapp_resources/               # outside src - static assets & templates
 │   ├── static/
 │   │   └── css/
 │   │       └── styles.css
@@ -863,7 +863,7 @@ def test_list_sheets_empty(client: TestClient) -> None:
 3. **Register in `main.py`:** Import and `app.include_router(...)`
 4. **Add tests:** Create `tests/webapp/test_my_feature.py`
 
-Follow the existing patterns — routers handle HTTP concerns, services wrap domain logic, schemas define contracts.
+Follow the existing patterns - routers handle HTTP concerns, services wrap domain logic, schemas define contracts.
 
 ---
 
@@ -969,11 +969,11 @@ match.model_dump(mode="json")  # Serialize
 
 With the data layer complete, the API scaffold can be built with real persistence:
 
-1. **Create scaffold** — Run Phase 1 tasks to set up directory structure
-2. **Wire data layer** — Import `SheetManager`, `PieceMatcher`, `SheetRecord`, `PieceRecord` in services
-3. **Configure cache path** — Add `CACHE_DIR` to settings, expose via `paths.py`
-4. **Implement routers** — Use provided router templates that already call the data layer
-5. **Add integration tests** — Test round-trip: ingest → persist → query via API
+1. **Create scaffold** - Run Phase 1 tasks to set up directory structure
+2. **Wire data layer** - Import `SheetManager`, `PieceMatcher`, `SheetRecord`, `PieceRecord` in services
+3. **Configure cache path** - Add `CACHE_DIR` to settings, expose via `paths.py`
+4. **Implement routers** - Use provided router templates that already call the data layer
+5. **Add integration tests** - Test round-trip: ingest → persist → query via API
 
 **Estimated effort:** ~2-3 hours for scaffold + basic endpoints
 
@@ -1152,7 +1152,7 @@ curl http://localhost:8000/api/v1/puzzle/matches/segment/{piece_id}/{edge_pos}
 
 **Computing Matches (Python Script):**
 
-The matching is computationally intensive—run it via Python for full control:
+The matching is computationally intensive-run it via Python for full control:
 
 ```python
 from pathlib import Path
