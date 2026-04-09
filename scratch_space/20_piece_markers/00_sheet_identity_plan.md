@@ -15,6 +15,7 @@ testing with synthetic data. The real flow is:
 ```
 [PRINT TIME]
   Generate board image  →  operator prints it  →  cuts puzzle pieces by hand
+  Or operator just uses an existing puzzle game
 
 [PHOTO TIME]
   Operator places physical pieces on the board
