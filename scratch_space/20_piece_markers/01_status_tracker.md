@@ -14,7 +14,7 @@ detailed plans, code stubs, data models, and test strategies.
 
 | # | File | Title | Status | Dependencies |
 |---|------|-------|--------|--------------|
-| 02 | [02_sheet_metadata_model.md](02_sheet_metadata_model.md) | `SheetMetadata` Pydantic model | not started | - |
+| 02 | [02_sheet_metadata_model.md](02_sheet_metadata_model.md) | `SheetMetadata` Pydantic model | **done** | - |
 | 03 | [03_qr_chunk_handler.md](03_qr_chunk_handler.md) | `QRChunkHandler` encode/decode | not started | 02 |
 | 04 | [04_metadata_zone_config.md](04_metadata_zone_config.md) | `MetadataZoneConfig` + `SlotGridConfig` | not started | - |
 | 05 | [05_slot_grid.md](05_slot_grid.md) | `SlotGrid` geometry + label rendering | not started | 04 |

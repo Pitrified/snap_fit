@@ -1,6 +1,6 @@
 # Step 02 - `SheetMetadata` Pydantic Model
 
-> **Status:** not started
+> **Status:** done
 > **Target file:** `src/snap_fit/aruco/sheet_metadata.py`
 > **Depends on:** nothing
 
@@ -80,7 +80,7 @@ use a lookup at decode time. For now, short tags are the norm.
 
 ## Acceptance criteria
 
-- [ ] `SheetMetadata` model validates correctly with all field types
-- [ ] `to_qr_payload()` produces correct CSV string
-- [ ] `from_qr_payload()` round-trips without data loss
-- [ ] `total_sheets=None` is handled gracefully in both encode and decode
+- [x] `SheetMetadata` model validates correctly with all field types
+- [x] `to_qr_payload()` produces correct CSV string
+- [x] `from_qr_payload()` round-trips without data loss
+- [x] `total_sheets=None` is handled gracefully in both encode and decode
