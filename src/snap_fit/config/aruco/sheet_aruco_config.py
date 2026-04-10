@@ -3,6 +3,7 @@
 from pydantic import Field
 
 from snap_fit.config.aruco.aruco_detector_config import ArucoDetectorConfig
+from snap_fit.config.aruco.metadata_zone_config import MetadataZoneConfig
 from snap_fit.data_models.basemodel_kwargs import BaseModelKwargs
 
 
@@ -14,6 +15,8 @@ class SheetArucoConfig(BaseModelKwargs):
         crop_margin: Pixels to crop after rectification. If None, computed from
             the detector/board settings.
         detector: `ArucoDetectorConfig` used to construct the detector.
+        metadata_zone: Optional config for QR strip and slot grid. When None,
+            existing behaviour is unchanged.
     """
 
     min_area: int = Field(default=80_000, description="Minimum area for pieces")
@@ -22,4 +25,7 @@ class SheetArucoConfig(BaseModelKwargs):
     )
     detector: ArucoDetectorConfig = Field(
         default_factory=ArucoDetectorConfig, description="Aruco detector config"
+    )
+    metadata_zone: MetadataZoneConfig | None = Field(
+        default=None, description="QR strip and slot grid config"
     )

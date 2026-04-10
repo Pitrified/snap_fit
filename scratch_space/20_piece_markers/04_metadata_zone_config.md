@@ -1,6 +1,6 @@
 # Step 04 - `MetadataZoneConfig` + `SlotGridConfig`
 
-> **Status:** not started
+> **Status:** **done**
 > **Target files:** `src/snap_fit/config/aruco/metadata_zone_config.py`, `src/snap_fit/config/aruco/sheet_aruco_config.py`
 > **Depends on:** nothing
 
@@ -98,6 +98,10 @@ fully backward-compatible addition.
 - **JSON round-trip:** `model_validate_json(model.model_dump_json())` round-trips
 - **Backward compat:** `SheetArucoConfig` without `metadata_zone` still works
 - **Test file:** `tests/config/test_metadata_zone_config.py`
+
+## Interactive verification
+
+update the notebook in `scratch_space/20_piece_markers/00_sample.ipynb` to interactively create config instances, serialize/deserialize, and visualize this and previous steps done in `scratch_space/20_piece_markers/*.md` (`<= 04`).
 
 ## Acceptance criteria
 
