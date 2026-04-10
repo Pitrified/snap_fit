@@ -21,7 +21,7 @@ detailed plans, code stubs, data models, and test strategies.
 | 06 | [06_sheet_metadata_codec.md](06_sheet_metadata_codec.md) | `SheetMetadataEncoder` + `SheetMetadataDecoder` | **done** | 02, 03, 04 |
 | 07 | [07_board_image_composer.md](07_board_image_composer.md) | `BoardImageComposer` full assembly | **done** | 05, 06 |
 | 08 | [08_contour_centroid.md](08_contour_centroid.md) | Add `centroid` property to `Contour` | **done** | - |
-| 09 | [09_sheet_integration.md](09_sheet_integration.md) | Wire into `Sheet`, `SheetAruco`, records | not started | 02, 05, 06, 08 |
+| 09 | [09_sheet_integration.md](09_sheet_integration.md) | Wire into `Sheet`, `SheetAruco`, Records | **done** | 02, 05, 06, 08 |
 | 10 | [10_pyproject_dependency.md](10_pyproject_dependency.md) | Add `qrcode` dependency | **done** | - |
 
 ## Dependency graph

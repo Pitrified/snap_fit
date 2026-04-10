@@ -1,6 +1,9 @@
 """Sheet identity metadata model for QR code embedding."""
 
+from __future__ import annotations
+
 from datetime import date
+from typing import TYPE_CHECKING
 
 import cv2
 from loguru import logger as lg
@@ -12,9 +15,11 @@ from qrcode.constants import ERROR_CORRECT_L
 from qrcode.constants import ERROR_CORRECT_M
 from qrcode.constants import ERROR_CORRECT_Q
 
-from snap_fit.config.aruco.aruco_board_config import ArucoBoardConfig
-from snap_fit.config.aruco.metadata_zone_config import MetadataZoneConfig
 from snap_fit.data_models.basemodel_kwargs import BaseModelKwargs
+
+if TYPE_CHECKING:
+    from snap_fit.config.aruco.aruco_board_config import ArucoBoardConfig
+    from snap_fit.config.aruco.metadata_zone_config import MetadataZoneConfig
 
 _ECC_MAP: dict[str, int] = {
     "L": ERROR_CORRECT_L,
@@ -58,7 +63,7 @@ class SheetMetadata(BaseModelKwargs):
         return ",".join(parts)
 
     @classmethod
-    def from_qr_payload(cls, s: str) -> "SheetMetadata":
+    def from_qr_payload(cls, s: str) -> SheetMetadata:
         """Decode from compact CSV payload string.
 
         Args:

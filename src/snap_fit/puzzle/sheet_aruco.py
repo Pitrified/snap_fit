@@ -46,6 +46,13 @@ class SheetAruco:
         lg.info(f"Loading image from {img_fp}")
         img_orig = load_image(img_fp)
 
+        # Decode metadata BEFORE rectification (QR codes may be cropped out after).
+        from snap_fit.aruco.sheet_metadata import SheetMetadataDecoder  # noqa: PLC0415
+
+        metadata = SheetMetadataDecoder().decode(img_orig)
+        if metadata is None:
+            lg.debug(f"No sheet metadata QR found in {img_fp.name}")
+
         lg.info("Detecting ArUco markers and correcting perspective...")
         rectified = self.aruco_detector.rectify(img_orig)
 
@@ -63,4 +70,21 @@ class SheetAruco:
             lg.warning("Perspective correction failed. Using original image.")
             img_final = img_orig
 
-        return Sheet(img_fp=img_fp, min_area=self.config.min_area, image=img_final)
+        slot_grid = None
+        if self.config.metadata_zone is not None:
+            from snap_fit.aruco.slot_grid import SlotGrid  # noqa: PLC0415
+
+            slot_grid = SlotGrid(
+                self.config.metadata_zone.slot_grid,
+                self.config.detector.board,
+            )
+
+        sheet = Sheet(
+            img_fp=img_fp,
+            min_area=self.config.min_area,
+            image=img_final,
+            slot_grid=slot_grid,
+        )
+        sheet.metadata = metadata
+
+        return sheet

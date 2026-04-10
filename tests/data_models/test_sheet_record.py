@@ -84,6 +84,7 @@ class TestSheetRecordFromSheet:
         mock_sheet.pieces = [MagicMock(), MagicMock(), MagicMock()]
         mock_sheet.threshold = 125
         mock_sheet.min_area = 90_000
+        mock_sheet.metadata = None
 
         record = SheetRecord.from_sheet(mock_sheet)
 
@@ -101,6 +102,7 @@ class TestSheetRecordFromSheet:
         mock_sheet.pieces = [MagicMock()]
         mock_sheet.threshold = 130
         mock_sheet.min_area = 80_000
+        mock_sheet.metadata = None
 
         data_root = Path("/data/root")
         record = SheetRecord.from_sheet(mock_sheet, data_root=data_root)
@@ -115,6 +117,7 @@ class TestSheetRecordFromSheet:
         mock_sheet.pieces = []
         mock_sheet.threshold = 130
         mock_sheet.min_area = 80_000
+        mock_sheet.metadata = None
 
         data_root = Path("/data/root")
         record = SheetRecord.from_sheet(mock_sheet, data_root=data_root)

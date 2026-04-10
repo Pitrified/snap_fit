@@ -64,6 +64,7 @@ class Piece:
         self.contour_loc = contour.cv_contour
 
         self.name = img_fp.stem
+        self.label: str | None = None
 
         self.img_gray = convert_to_grayscale(self.img_orig)
 

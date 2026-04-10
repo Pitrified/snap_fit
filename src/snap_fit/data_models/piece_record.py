@@ -35,6 +35,7 @@ class PieceRecord(BaseModel):
     flat_edges: list[str]
     contour_point_count: int
     contour_region: tuple[int, int, int, int]
+    label: str | None = None
 
     @classmethod
     def from_piece(cls, piece: "Piece") -> "PieceRecord":
@@ -56,4 +57,5 @@ class PieceRecord(BaseModel):
             flat_edges=[e.value for e in piece.flat_edges],
             contour_point_count=len(piece.contour.cv_contour),
             contour_region=tuple(piece.contour.region),  # type: ignore[arg-type]
+            label=piece.label,
         )

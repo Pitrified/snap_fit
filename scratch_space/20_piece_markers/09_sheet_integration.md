@@ -1,6 +1,6 @@
 # Step 09 - Wire into `Sheet`, `SheetAruco`, Records
 
-> **Status:** not started
+> **Status:** done
 > **Target files:** multiple (see touchmap)
 > **Depends on:** Steps 02, 05, 06, 08
 
@@ -175,9 +175,9 @@ defaults.
 
 ## Acceptance criteria
 
-- [ ] `sheet.metadata` is populated after `SheetAruco.load_sheet()` on boards with QR
-- [ ] `sheet.metadata` is `None` for boards without QR (with warning logged)
-- [ ] Pieces get labels when slot grid is available
-- [ ] `SheetRecord` and `PieceRecord` serialize/deserialize the new fields
-- [ ] All existing tests pass without modification
-- [ ] Existing JSON cache files load without error
+- [x] `sheet.metadata` is populated after `SheetAruco.load_sheet()` on boards with QR
+- [x] `sheet.metadata` is `None` for boards without QR (with warning logged)
+- [x] Pieces get labels when slot grid is available
+- [x] `SheetRecord` and `PieceRecord` serialize/deserialize the new fields
+- [x] All existing tests pass without modification
+- [x] Existing JSON cache files load without error

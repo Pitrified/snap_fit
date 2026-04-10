@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING
 from pydantic import BaseModel
 from pydantic import Field
 
+from snap_fit.aruco.sheet_metadata import SheetMetadata
+
 if TYPE_CHECKING:
     from snap_fit.puzzle.sheet import Sheet
 
@@ -32,6 +34,7 @@ class SheetRecord(BaseModel):
     threshold: int = 130
     min_area: int = 80_000
     created_at: datetime = Field(default_factory=datetime.now)
+    metadata: SheetMetadata | None = None
 
     @classmethod
     def from_sheet(cls, sheet: "Sheet", data_root: Path | None = None) -> "SheetRecord":
@@ -56,4 +59,5 @@ class SheetRecord(BaseModel):
             piece_count=len(sheet.pieces),
             threshold=sheet.threshold,
             min_area=sheet.min_area,
+            metadata=sheet.metadata,
         )

@@ -1,12 +1,22 @@
 """A sheet is a photo full of pieces."""
 
-from pathlib import Path
+from __future__ import annotations
 
-from cv2.typing import Rect
+from typing import TYPE_CHECKING
+
 from loguru import logger as lg
-import numpy as np
 
 from snap_fit.data_models.piece_id import PieceId
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from cv2.typing import Rect
+    import numpy as np
+
+    from snap_fit.aruco.sheet_metadata import SheetMetadata
+    from snap_fit.aruco.slot_grid import SlotGrid
+
 from snap_fit.image.contour import Contour
 from snap_fit.image.process import apply_dilation
 from snap_fit.image.process import apply_erosion
@@ -28,11 +38,15 @@ class Sheet:
         min_area: int = 80_000,
         image: np.ndarray | None = None,
         sheet_id: str | None = None,
+        slot_grid: SlotGrid | None = None,
     ) -> None:
         """Initialize the sheet with the image file path."""
         self.img_fp = img_fp
         self.min_area = min_area
         self.sheet_id = sheet_id or img_fp.stem
+
+        self.metadata: SheetMetadata | None = None
+        self.slot_grid: SlotGrid | None = slot_grid
 
         if image is not None:
             self.img_orig = image
@@ -97,6 +111,11 @@ class Sheet:
                 piece_id=piece_id,
                 pad=pad,
             )
+            if self.slot_grid is not None:
+                cx, cy = contour.centroid
+                slot = self.slot_grid.slot_for_centroid(cx, cy)
+                if slot is not None:
+                    piece.label = self.slot_grid.label_for_slot(*slot)
             self.pieces.append(piece)
 
     @property
