@@ -8,6 +8,7 @@ https://docs.opencv.org/3.4/d4/d73/tutorial_py_contours_begin.html
 
 from __future__ import annotations
 
+import cv2
 import numpy as np
 
 from snap_fit.config.types import EDGE_ENDS_TO_CORNER
@@ -30,6 +31,17 @@ class Contour:
         self.cv_contour = cv_contour
         self.region = compute_bounding_rectangle(cv_contour)
         self.area = compute_rect_area(self.region)
+
+    @property
+    def centroid(self) -> tuple[int, int]:
+        """Contour centroid (x, y) computed from image moments."""
+        m = cv2.moments(self.cv_contour)
+        if m["m00"] == 0:
+            x, y, w, h = self.region
+            return (x + w // 2, y + h // 2)
+        cx = int(m["m10"] / m["m00"])
+        cy = int(m["m01"] / m["m00"])
+        return (cx, cy)
 
     def translate(self, x_offset: int, y_offset: int) -> Contour:
         """Translate the contour by the specified x and y offsets.

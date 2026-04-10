@@ -1,6 +1,6 @@
 # Step 08 - Add `centroid` Property to `Contour`
 
-> **Status:** not started
+> **Status:** done
 > **Target file:** `src/snap_fit/image/contour.py`
 > **Depends on:** nothing
 
