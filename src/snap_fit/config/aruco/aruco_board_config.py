@@ -24,3 +24,20 @@ class ArucoBoardConfig(BaseModelKwargs):
     border_bits: int = Field(
         default=1, description="Number of bits for the marker border"
     )
+
+    def board_dimensions(self) -> tuple[int, int]:
+        """Compute (width, height) in pixels for the generated board image.
+
+        Matches exactly what ArucoBoardGenerator.generate_image() produces.
+        """
+        w = (
+            self.markers_x * self.marker_length
+            + (self.markers_x - 1) * self.marker_separation
+            + self.margin
+        )
+        h = (
+            self.markers_y * self.marker_length
+            + (self.markers_y - 1) * self.marker_separation
+            + self.margin
+        )
+        return (int(w), int(h))

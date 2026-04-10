@@ -1,6 +1,6 @@
 # Step 05 - `SlotGrid` Geometry + Label Rendering
 
-> **Status:** not started
+> **Status:** done
 > **Target file:** `src/snap_fit/aruco/slot_grid.py`
 > **Depends on:** Step 04 (SlotGridConfig, MetadataZoneConfig)
 
@@ -147,10 +147,14 @@ with the known 920x1320 output for the default config.
 - **Board dimensions:** `ArucoBoardConfig().board_dimensions() == (920, 1320)`
 - **Test file:** `tests/aruco/test_slot_grid.py`
 
+## Interactive verification
+
+Update the notebook in `scratch_space/20_piece_markers/00_sample.ipynb` to interactively create a `SlotGrid` instance with the default config, visualize the computed slot centers and rendered labels on a generated board image, and verify the `slot_for_centroid()` mapping with sample points.
+
 ## Acceptance criteria
 
-- [ ] `SlotGrid` computes correct slot positions for default 8x6 grid
-- [ ] `label_for_slot()` reuses `generate_label()` from puzzle_generator
-- [ ] `slot_for_centroid()` correctly maps interior centroids and rejects out-of-bounds
-- [ ] `render_labels()` produces readable text on a board image
-- [ ] `board_dimensions()` on `ArucoBoardConfig` matches `generate_image()` output
+- [x] `SlotGrid` computes correct slot positions for default 8x6 grid
+- [x] `label_for_slot()` reuses `generate_label()` from puzzle_generator
+- [x] `slot_for_centroid()` correctly maps interior centroids and rejects out-of-bounds
+- [x] `render_labels()` produces readable text on a board image
+- [x] `board_dimensions()` on `ArucoBoardConfig` matches `generate_image()` output
