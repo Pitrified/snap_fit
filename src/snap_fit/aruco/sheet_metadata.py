@@ -2,9 +2,23 @@
 
 from datetime import date
 
+import cv2
+import numpy as np
 from pydantic import Field
+import qrcode
+from qrcode.constants import ERROR_CORRECT_H
+from qrcode.constants import ERROR_CORRECT_L
+from qrcode.constants import ERROR_CORRECT_M
+from qrcode.constants import ERROR_CORRECT_Q
 
 from snap_fit.data_models.basemodel_kwargs import BaseModelKwargs
+
+_ECC_MAP: dict[str, int] = {
+    "L": ERROR_CORRECT_L,
+    "M": ERROR_CORRECT_M,
+    "Q": ERROR_CORRECT_Q,
+    "H": ERROR_CORRECT_H,
+}
 
 
 class SheetMetadata(BaseModelKwargs):
@@ -55,3 +69,58 @@ class SheetMetadata(BaseModelKwargs):
             board_config_id=parts[3],
             printed_at=date(int(parts[4][:4]), int(parts[4][4:6]), int(parts[4][6:8])),
         )
+
+
+class QRChunkHandler:
+    """Encodes/decodes a payload across N identical QR images.
+
+    All N codes carry the full payload for redundancy. Decode succeeds on any
+    single readable code. Chunked split-and-reconstruct is explicitly deferred.
+
+    Attributes:
+        n_codes: Number of identical QR images to generate.
+        ecc: Error correction level - one of 'L', 'M', 'Q', 'H'.
+    """
+
+    def __init__(self, n_codes: int = 3, ecc: str = "M") -> None:
+        """Initialise with code count and error correction level."""
+        if ecc not in _ECC_MAP:
+            msg = f"ecc must be one of {list(_ECC_MAP)}; got {ecc!r}"
+            raise ValueError(msg)
+        self.n_codes = n_codes
+        self.ecc = ecc
+
+    def encode(self, payload: str) -> list[np.ndarray]:
+        """Return a list of n_codes identical QR code images.
+
+        Args:
+            payload: String to encode into each QR code.
+
+        Returns:
+            List of n_codes uint8 grayscale numpy arrays (white=255, black=0).
+        """
+        qr = qrcode.QRCode(
+            error_correction=_ECC_MAP[self.ecc],
+            box_size=7,
+            border=4,
+        )
+        qr.add_data(payload)
+        qr.make(fit=True)
+        pil_img = qr.make_image(fill_color="black", back_color="white")
+        arr = np.array(pil_img.get_image().convert("L"), dtype=np.uint8)
+        return [arr.copy() for _ in range(self.n_codes)]
+
+    def decode_first(self, image: np.ndarray) -> str | None:
+        """Detect and decode any QR code present in image.
+
+        Args:
+            image: Grayscale or BGR numpy array containing at least one QR code.
+
+        Returns:
+            Decoded payload string, or None if no readable QR code is found.
+        """
+        detector = cv2.QRCodeDetector()
+        data, _, _ = detector.detectAndDecode(image)
+        if data:
+            return data
+        return None

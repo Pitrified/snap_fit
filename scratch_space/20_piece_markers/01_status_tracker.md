@@ -15,14 +15,14 @@ detailed plans, code stubs, data models, and test strategies.
 | # | File | Title | Status | Dependencies |
 |---|------|-------|--------|--------------|
 | 02 | [02_sheet_metadata_model.md](02_sheet_metadata_model.md) | `SheetMetadata` Pydantic model | **done** | - |
-| 03 | [03_qr_chunk_handler.md](03_qr_chunk_handler.md) | `QRChunkHandler` encode/decode | not started | 02 |
+| 03 | [03_qr_chunk_handler.md](03_qr_chunk_handler.md) | `QRChunkHandler` encode/decode | **done** | 02 |
 | 04 | [04_metadata_zone_config.md](04_metadata_zone_config.md) | `MetadataZoneConfig` + `SlotGridConfig` | not started | - |
 | 05 | [05_slot_grid.md](05_slot_grid.md) | `SlotGrid` geometry + label rendering | not started | 04 |
 | 06 | [06_sheet_metadata_codec.md](06_sheet_metadata_codec.md) | `SheetMetadataEncoder` + `SheetMetadataDecoder` | not started | 02, 03, 04 |
 | 07 | [07_board_image_composer.md](07_board_image_composer.md) | `BoardImageComposer` full assembly | not started | 05, 06 |
 | 08 | [08_contour_centroid.md](08_contour_centroid.md) | Add `centroid` property to `Contour` | not started | - |
 | 09 | [09_sheet_integration.md](09_sheet_integration.md) | Wire into `Sheet`, `SheetAruco`, records | not started | 02, 05, 06, 08 |
-| 10 | [10_pyproject_dependency.md](10_pyproject_dependency.md) | Add `qrcode` dependency | not started | - |
+| 10 | [10_pyproject_dependency.md](10_pyproject_dependency.md) | Add `qrcode` dependency | **done** | - |
 
 ## Dependency graph
 

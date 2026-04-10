@@ -1,6 +1,6 @@
 # Step 10 - Add `qrcode` Dependency
 
-> **Status:** not started
+> **Status:** **done**
 > **Target file:** `pyproject.toml`
 > **Depends on:** nothing
 

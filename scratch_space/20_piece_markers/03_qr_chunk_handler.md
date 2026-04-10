@@ -1,6 +1,6 @@
 # Step 03 - `QRChunkHandler` Encode/Decode
 
-> **Status:** not started
+> **Status:** **done**
 > **Target file:** `src/snap_fit/aruco/sheet_metadata.py` (same file as SheetMetadata)
 > **Depends on:** Step 02 (SheetMetadata)
 
@@ -21,6 +21,7 @@ explicitly deferred.
 ## Code stub
 
 ```python
+import cv2
 import numpy as np
 import qrcode
 from qrcode.constants import ERROR_CORRECT_L, ERROR_CORRECT_M, ERROR_CORRECT_Q, ERROR_CORRECT_H
@@ -38,7 +39,7 @@ class QRChunkHandler:
     """Encodes/decodes a payload across N identical QR images.
 
     All N codes carry the full payload. Decode succeeds on any one.
-    Chunked split-and-reconstruct is deferred.
+    Chunked split-and-reconstruct or majority ECC is deferred.
     """
 
     def __init__(self, n_codes: int = 3, ecc: str = "M") -> None:
@@ -60,8 +61,6 @@ class QRChunkHandler:
 
     def decode_first(self, image: np.ndarray) -> str | None:
         """Detect and decode any QR code in image. Returns payload or None."""
-        import cv2
-
         detector = cv2.QRCodeDetector()
         data, _, _ = detector.detectAndDecode(image)
         if data:
