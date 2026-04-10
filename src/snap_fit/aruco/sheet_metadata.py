@@ -3,6 +3,7 @@
 from datetime import date
 
 import cv2
+from loguru import logger as lg
 import numpy as np
 from pydantic import Field
 import qrcode
@@ -11,6 +12,8 @@ from qrcode.constants import ERROR_CORRECT_L
 from qrcode.constants import ERROR_CORRECT_M
 from qrcode.constants import ERROR_CORRECT_Q
 
+from snap_fit.config.aruco.aruco_board_config import ArucoBoardConfig
+from snap_fit.config.aruco.metadata_zone_config import MetadataZoneConfig
 from snap_fit.data_models.basemodel_kwargs import BaseModelKwargs
 
 _ECC_MAP: dict[str, int] = {
@@ -19,6 +22,9 @@ _ECC_MAP: dict[str, int] = {
     "Q": ERROR_CORRECT_Q,
     "H": ERROR_CORRECT_H,
 }
+
+# opencv ndim value for BGR images
+_BGR_NDIM: int = 3
 
 
 class SheetMetadata(BaseModelKwargs):
@@ -119,8 +125,156 @@ class QRChunkHandler:
         Returns:
             Decoded payload string, or None if no readable QR code is found.
         """
+        # detectMulti handles multiple (or small) codes in large images better
+        # than the single detectAndDecode path.
         detector = cv2.QRCodeDetector()
-        data, _, _ = detector.detectAndDecode(image)
-        if data:
-            return data
+        detected, points = detector.detectMulti(image)
+        if detected and points is not None:
+            ok, decoded, _ = detector.decodeMulti(image, points)
+            if ok and decoded:
+                first = next((t for t in decoded if t), None)
+                if first:
+                    return first
+        # WeChatQRCode provides a robust fallback for challenging cases.
+        try:
+            wechat = cv2.wechat_qrcode_WeChatQRCode()  # type: ignore[attr-defined]
+            texts, _ = wechat.detectAndDecode(image)
+            if texts:
+                return texts[0]
+        except (cv2.error, AttributeError):
+            pass
         return None
+
+
+class SheetMetadataEncoder:
+    """Renders QR codes and human-readable text onto a board image.
+
+    The QR strip occupies the bottom interior band of the board, symmetric
+    with the ArUco ring band at the top. Text is placed as a single line
+    just above the strip.
+    """
+
+    def __init__(self, board_config: ArucoBoardConfig) -> None:
+        """Initialise with the board geometry configuration.
+
+        Args:
+            board_config: ArUco board config used to derive strip coordinates.
+        """
+        self.board_config = board_config
+
+    def _strip_region(self) -> tuple[int, int, int, int]:
+        """Return (x0, y0, x1, y1) of the QR strip in board pixel coordinates."""
+        board_w, board_h = self.board_config.board_dimensions()
+        ring_start = self.board_config.margin + self.board_config.marker_length
+        x0 = ring_start
+        x1 = board_w - self.board_config.marker_length
+        y1 = board_h - self.board_config.marker_length
+        y0 = y1 - ring_start
+        return (x0, y0, x1, y1)
+
+    def render(
+        self,
+        board_img: np.ndarray,
+        metadata: SheetMetadata,
+        config: MetadataZoneConfig,
+    ) -> np.ndarray:
+        """Return a copy of board_img with QR strip and text rendered.
+
+        Args:
+            board_img: Source board image (grayscale or BGR).
+            metadata: Sheet identity to encode.
+            config: QR strip and text rendering parameters.
+
+        Returns:
+            Modified copy of board_img.
+        """
+        if not config.enabled:
+            return board_img.copy()
+
+        img = board_img.copy()
+        payload = metadata.to_qr_payload()
+        handler = QRChunkHandler(n_codes=config.qr_n_codes, ecc=config.qr_ecc)
+        qr_images = handler.encode(payload)
+        strip = self._strip_region()
+        self._place_qr_codes(img, qr_images, strip)
+        if config.text_enabled:
+            self._place_text(img, metadata, strip)
+        return img
+
+    def _place_qr_codes(
+        self,
+        img: np.ndarray,
+        qr_images: list[np.ndarray],
+        strip_region: tuple[int, int, int, int],
+    ) -> None:
+        """Place QR images evenly spaced inside the strip region."""
+        x0, y0, x1, y1 = strip_region
+        strip_h = y1 - y0
+        strip_w = x1 - x0
+        n = len(qr_images)
+        total_qr = n * strip_h
+        gap = max(0, (strip_w - total_qr) // (n + 1))
+        is_color = img.ndim == _BGR_NDIM
+        for i, qr_raw in enumerate(qr_images):
+            qr_resized = cv2.resize(
+                qr_raw, (strip_h, strip_h), interpolation=cv2.INTER_AREA
+            )
+            x_start = x0 + gap + i * (strip_h + gap)
+            if x_start + strip_h > x1:
+                break
+            if is_color:
+                img[y0:y1, x_start : x_start + strip_h] = cv2.cvtColor(
+                    qr_resized, cv2.COLOR_GRAY2BGR
+                )
+            else:
+                img[y0:y1, x_start : x_start + strip_h] = qr_resized
+
+    def _place_text(
+        self,
+        img: np.ndarray,
+        metadata: SheetMetadata,
+        strip_region: tuple[int, int, int, int],
+    ) -> None:
+        """Render a human-readable identity line just above the QR strip."""
+        x0, y0, _x1, _y1 = strip_region
+        ts = "??" if metadata.total_sheets is None else f"{metadata.total_sheets:02d}"
+        text = (
+            f"{metadata.tag_name}  "
+            f"{metadata.sheet_index + 1:02d}/{ts}  "
+            f"{metadata.printed_at:%Y-%m-%d}"
+        )
+        # Use (0, 0, 0) for putText - OpenCV uses the first channel for grayscale.
+        cv2.putText(
+            img,
+            text,
+            (x0, y0 - 4),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.45,
+            (0, 0, 0),
+            1,
+            cv2.LINE_AA,
+        )
+
+
+class SheetMetadataDecoder:
+    """Extracts SheetMetadata from a raw (pre-rectified) photo."""
+
+    def decode(self, image: np.ndarray) -> SheetMetadata | None:
+        """Try to decode metadata from image. Returns None with a warning if not found.
+
+        Args:
+            image: Grayscale or BGR numpy array of the board photo.
+
+        Returns:
+            Decoded SheetMetadata, or None if no readable QR code is found.
+        """
+        handler = QRChunkHandler()
+        payload = handler.decode_first(image)
+        if payload is None:
+            lg.warning("No QR code found in image")
+            return None
+        try:
+            return SheetMetadata.from_qr_payload(payload)
+        except (ValueError, IndexError):
+            lg.warning("QR payload could not be parsed: %r", payload)
+            return None

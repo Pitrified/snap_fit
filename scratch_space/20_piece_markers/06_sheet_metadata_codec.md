@@ -1,6 +1,6 @@
 # Step 06 - `SheetMetadataEncoder` + `SheetMetadataDecoder`
 
-> **Status:** not started
+> **Status:** done
 > **Target file:** `src/snap_fit/aruco/sheet_metadata.py` (same file as Steps 02-03)
 > **Depends on:** Steps 02, 03, 04
 

@@ -18,7 +18,7 @@ detailed plans, code stubs, data models, and test strategies.
 | 03 | [03_qr_chunk_handler.md](03_qr_chunk_handler.md) | `QRChunkHandler` encode/decode | **done** | 02 |
 | 04 | [04_metadata_zone_config.md](04_metadata_zone_config.md) | `MetadataZoneConfig` + `SlotGridConfig` | **done** | - |
 | 05 | [05_slot_grid.md](05_slot_grid.md) | `SlotGrid` geometry + label rendering | **done** | 04 |
-| 06 | [06_sheet_metadata_codec.md](06_sheet_metadata_codec.md) | `SheetMetadataEncoder` + `SheetMetadataDecoder` | not started | 02, 03, 04 |
+| 06 | [06_sheet_metadata_codec.md](06_sheet_metadata_codec.md) | `SheetMetadataEncoder` + `SheetMetadataDecoder` | **done** | 02, 03, 04 |
 | 07 | [07_board_image_composer.md](07_board_image_composer.md) | `BoardImageComposer` full assembly | not started | 05, 06 |
 | 08 | [08_contour_centroid.md](08_contour_centroid.md) | Add `centroid` property to `Contour` | not started | - |
 | 09 | [09_sheet_integration.md](09_sheet_integration.md) | Wire into `Sheet`, `SheetAruco`, records | not started | 02, 05, 06, 08 |
