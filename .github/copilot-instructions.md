@@ -11,6 +11,7 @@ uv run uvicorn snap_fit.webapp.main:app --reload   # run the FastAPI dev server
 uv run pytest                                       # run tests
 uv run ruff check .                                 # lint (ruff, ALL rules enabled - see ruff.toml)
 uv run pyright                                      # type-check (src/ and tests/ only)
+uv run pre-commit run --all-files                # run pre-commit hooks (ruff, black, isort, nbstripout, etc)
 ```
 
 Credentials live at `~/cred/snap_fit/.env`. See `CONTRIBUTING.md` for the required keys (e.g. `SNAP_FIT_SAMPLE_ENV_VAR`).
@@ -71,5 +72,6 @@ Config classes extend `BaseModelKwargs` (not plain `BaseModel`) when their field
 After every code change, run the full verification suite before considering the task done:
 
 ```bash
-uv run pytest && uv run ruff check . && uv run pyright
+uv run pytest && uv run ruff check . && uv run pyright && uv run pre-commit run --all-files
+# uv run nbstripout path/to/notebook.ipynb  # strip outputs before committing
 ```
