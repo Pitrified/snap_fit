@@ -33,13 +33,13 @@ class SlotGrid:
         board_w, board_h = board_config.board_dimensions()
 
         # Marker at col 0 occupies x = margin..margin+marker_length.
-        # Last marker col occupies x = (board_w-marker_length)..board_w.
+        # Last marker col occupies x = (board_w-ring_start)..board_w-margin.
         # Interior = gap between first and last marker columns/rows.
         ring_start = board_config.margin + board_config.marker_length
         self._interior_x0 = ring_start
         self._interior_y0 = ring_start
-        self._interior_x1 = board_w - board_config.marker_length
-        self._interior_y1 = board_h - board_config.marker_length
+        self._interior_x1 = board_w - ring_start
+        self._interior_y1 = board_h - ring_start
 
         # Reserve a strip at the bottom of the interior for QR codes / text.
         # Height matches the ring band at the top for visual symmetry.

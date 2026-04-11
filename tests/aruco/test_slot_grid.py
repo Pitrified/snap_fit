@@ -10,7 +10,7 @@ from snap_fit.config.aruco.metadata_zone_config import SlotGridConfig
 
 @pytest.fixture
 def default_board_config() -> ArucoBoardConfig:
-    """Return default ArucoBoardConfig (5x7 ring, 920x1320 px)."""
+    """Return default ArucoBoardConfig (5x7 ring, 940x1340 px)."""
     return ArucoBoardConfig()
 
 
@@ -35,9 +35,9 @@ def slot_grid(
 
 
 def test_board_dimensions_default() -> None:
-    """Default ArucoBoardConfig produces 920x1320."""
+    """Default ArucoBoardConfig produces 940x1340."""
     cfg = ArucoBoardConfig()
-    assert cfg.board_dimensions() == (920, 1320)
+    assert cfg.board_dimensions() == (940, 1340)
 
 
 def test_board_dimensions_custom() -> None:
@@ -49,8 +49,8 @@ def test_board_dimensions_custom() -> None:
         marker_separation=50,
         margin=10,
     )
-    w = 3 * 50 + 2 * 50 + 10
-    h = 4 * 50 + 3 * 50 + 10
+    w = 3 * 50 + 2 * 50 + 2 * 10
+    h = 4 * 50 + 3 * 50 + 2 * 10
     assert cfg.board_dimensions() == (w, h)
 
 
@@ -190,20 +190,20 @@ def test_slot_for_centroid_in_qr_strip(slot_grid: SlotGrid) -> None:
 
 def test_render_labels_returns_copy(slot_grid: SlotGrid) -> None:
     """render_labels returns a new array, not a view of the input."""
-    board = np.ones((1320, 920, 3), dtype=np.uint8) * 255
+    board = np.ones((1340, 940, 3), dtype=np.uint8) * 255
     result = slot_grid.render_labels(board)
     assert result is not board
 
 
 def test_render_labels_modifies_image(slot_grid: SlotGrid) -> None:
     """render_labels draws text that changes at least some pixels."""
-    board = np.ones((1320, 920, 3), dtype=np.uint8) * 255
+    board = np.ones((1340, 940, 3), dtype=np.uint8) * 255
     result = slot_grid.render_labels(board)
     assert not np.array_equal(result, board)
 
 
 def test_render_labels_shape_preserved(slot_grid: SlotGrid) -> None:
     """render_labels preserves the input image shape."""
-    board = np.ones((1320, 920, 3), dtype=np.uint8) * 255
+    board = np.ones((1340, 940, 3), dtype=np.uint8) * 255
     result = slot_grid.render_labels(board)
     assert result.shape == board.shape

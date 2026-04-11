@@ -172,8 +172,8 @@ class SheetMetadataEncoder:
         board_w, board_h = self.board_config.board_dimensions()
         ring_start = self.board_config.margin + self.board_config.marker_length
         x0 = ring_start
-        x1 = board_w - self.board_config.marker_length
-        y1 = board_h - self.board_config.marker_length
+        x1 = board_w - ring_start
+        y1 = board_h - ring_start
         y0 = y1 - ring_start
         return (x0, y0, x1, y1)
 

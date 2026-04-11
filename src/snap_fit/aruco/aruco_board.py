@@ -87,19 +87,7 @@ class ArucoBoardGenerator:
         Returns:
             The generated board image.
         """
-        min_width = (
-            self.config.markers_x * self.config.marker_length
-            + (self.config.markers_x - 1) * self.config.marker_separation
-            + self.config.margin
-        )
-        min_height = (
-            self.config.markers_y * self.config.marker_length
-            + (self.config.markers_y - 1) * self.config.marker_separation
-            + self.config.margin
-        )
-
-        img_width = int(min_width)
-        img_height = int(min_height)
+        img_width, img_height = self.config.board_dimensions()
 
         board_image = self.board.generateImage(
             (img_width, img_height),

@@ -59,20 +59,8 @@ def test_generate_image(board_config: ArucoBoardConfig) -> None:
     image = generator.generate_image()
 
     assert isinstance(image, np.ndarray)
-    # Check dimensions
-    # Width = 3*10 + 2*5 + 5 = 30 + 10 + 5 = 45
-    # Height = 3*10 + 2*5 + 5 = 45
-
-    expected_width = (
-        board_config.markers_x * board_config.marker_length
-        + (board_config.markers_x - 1) * board_config.marker_separation
-        + board_config.margin
-    )
-    expected_height = (
-        board_config.markers_y * board_config.marker_length
-        + (board_config.markers_y - 1) * board_config.marker_separation
-        + board_config.margin
-    )
+    # Check dimensions match board_dimensions() (bilateral margin)
+    expected_width, expected_height = board_config.board_dimensions()
 
     assert image.shape[0] == expected_height
     assert image.shape[1] == expected_width
