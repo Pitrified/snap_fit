@@ -1,0 +1,112 @@
+=== BOARD DIMENSIONS ===
+board = 920 x 1320
+margin=20, marker_length=100, marker_sep=100
+stride=200, border_bits=1
+
+=== INTERIOR / PIECE AREA / QR STRIP ===
+interior  = x[120, 820] y[120, 1220]  700x1100
+piece_area= x[120, 820] y[120, 1100]  700x980
+qr_strip  = x[120, 820] y[1100, 1220]  700x120
+slot_w=87.50, slot_h=163.33
+ring_start=120
+
+=== RING BAND ASYMMETRY ===
+left_band  = 120 px (margin+marker = 20+100)
+right_band = 100 px (marker only = 100)
+top_band   = 120 px (margin+marker = 20+100)
+bottom_band= 100 px (marker only = 100)
+  NOTE: 20 px ASYMMETRY between left/right and top/bottom!
+
+=== ACTUAL MARKER PIXEL BOUNDING BOXES (from rendered image) ===
+
+  row 1 side markers: expected y=[220, 320]
+    actual y range: [217, 315] (expected [220, 320])
+    y overshoot top: 3 px, bottom: -5 px
+    marker x-runs at y=270: [(np.int64(20), np.int64(33)), (np.int64(45), np.int64(118)), (np.int64(802), np.int64(815)), (np.int64(839), np.int64(852)), (np.int64(864), np.int64(900))]
+      run [802, 815] OVERLAPS interior [120, 820] by 13 px
+    interior marker pixels at y=270: x=[802, 803, 804, 805, 806, 807, 808, 809, 810, 811, 812, 813, 814]
+
+  row 3 side markers: expected y=[620, 720]
+    actual y range: [611, 709] (expected [620, 720])
+    y overshoot top: 9 px, bottom: -11 px
+    marker x-runs at y=670: [(np.int64(20), np.int64(45)), (np.int64(82), np.int64(94)), (np.int64(106), np.int64(118)), (np.int64(802), np.int64(815)), (np.int64(827), np.int64(839)), (np.int64(888), np.int64(900))]
+      run [802, 815] OVERLAPS interior [120, 820] by 13 px
+    interior marker pixels at y=670: x=[802, 803, 804, 805, 806, 807, 808, 809, 810, 811, 812, 813, 814]
+
+  row 5 side markers (near QR strip): expected y=[1020, 1120]
+    actual y range: [1005, 1103] (expected [1020, 1120])
+    y overshoot top: 15 px, bottom: -17 px
+    marker x-runs at y=1070: [(np.int64(20), np.int64(45)), (np.int64(57), np.int64(82)), (np.int64(94), np.int64(118)), (np.int64(802), np.int64(827)), (np.int64(876), np.int64(900))]
+      run [802, 827] OVERLAPS interior [120, 820] by 18 px
+    interior marker pixels at y=1070: x=[802, 803, 804, 805, 806, 807, 808, 809, 810, 811, 812, 813, 814, 815, 816, 817, 818, 819]
+
+  row 6 bottom markers: expected y=[1220, 1320]
+    actual y range: [1202, 1300] (expected [1220, 1320])
+    y overshoot top: 18 px, bottom: -20 px
+    marker x-runs at y=1270: [(np.int64(20), np.int64(57)), (np.int64(70), np.int64(82)), (np.int64(94), np.int64(118)), (np.int64(216), np.int64(241)), (np.int64(290), np.int64(314)), (np.int64(411), np.int64(448)), (np.int64(461), np.int64(473)), (np.int64(497), np.int64(509)), (np.int64(607), np.int64(632)), (np.int64(657), np.int64(669)), (np.int64(681), np.int64(705)), (np.int64(802), np.int64(815)), (np.int64(827), np.int64(852)), (np.int64(888), np.int64(900))]
+      run [216, 241] OVERLAPS interior [120, 820] by 25 px
+      run [290, 314] OVERLAPS interior [120, 820] by 24 px
+      run [411, 448] OVERLAPS interior [120, 820] by 37 px
+      run [461, 473] OVERLAPS interior [120, 820] by 12 px
+      run [497, 509] OVERLAPS interior [120, 820] by 12 px
+      run [607, 632] OVERLAPS interior [120, 820] by 25 px
+      run [657, 669] OVERLAPS interior [120, 820] by 12 px
+      run [681, 705] OVERLAPS interior [120, 820] by 24 px
+      run [802, 815] OVERLAPS interior [120, 820] by 13 px
+    interior marker pixels at y=1270: x=[216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 411, 412, 413, 414, 415, 416, 417, 418, 419, 420, 421, 422, 423, 424, 425, 426, 427, 428, 429, 430, 431, 432, 433, 434, 435, 436, 437, 438, 439, 440, 441, 442, 443, 444, 445, 446, 447, 461, 462, 463, 464, 465, 466, 467, 468, 469, 470, 471, 472, 497, 498, 499, 500, 501, 502, 503, 504, 505, 506, 507, 508, 607, 608, 609, 610, 611, 612, 613, 614, 615, 616, 617, 618, 619, 620, 621, 622, 623, 624, 625, 626, 627, 628, 629, 630, 631, 657, 658, 659, 660, 661, 662, 663, 664, 665, 666, 667, 668, 681, 682, 683, 684, 685, 686, 687, 688, 689, 690, 691, 692, 693, 694, 695, 696, 697, 698, 699, 700, 701, 702, 703, 704, 802, 803, 804, 805, 806, 807, 808, 809, 810, 811, 812, 813, 814]
+
+=== DETAILED OVERLAP ANALYSIS ===
+
+  RIGHT BOUNDARY analysis (near x=820):
+
+  BOTTOM BOUNDARY analysis (near y=1220):
+    x=220: marker px near bottom: y=[1202, 1203, 1204, 1205, 1206, 1207, 1208, 1209, 1210, 1211, 1212, 1213, 1214, 1215, 1216, 1217, 1218, 1219, 1220, 1221, 1222, 1223, 1224, 1225, 1226, 1227, 1228, 1229, 1230, 1231, 1232, 1233, 1234, 1235, 1236, 1237, 1238, 1239, 1240, 1241, 1242, 1243, 1244, 1245, 1246, 1247, 1248, 1249]
+    x=420: marker px near bottom: y=[1202, 1203, 1204, 1205, 1206, 1207, 1208, 1209, 1210, 1211, 1212, 1213, 1214, 1215, 1216, 1217, 1218, 1219, 1220, 1221, 1222, 1223, 1224, 1225, 1226, 1227, 1228, 1229, 1230, 1231, 1232, 1233, 1234, 1235, 1236, 1237, 1238, 1239, 1240, 1241, 1242, 1243, 1244, 1245, 1246, 1247, 1248, 1249]
+    x=620: marker px near bottom: y=[1202, 1203, 1204, 1205, 1206, 1207, 1208, 1209, 1210, 1211, 1212, 1213, 1214, 1215, 1216, 1217, 1218, 1219, 1220, 1221, 1222, 1223, 1224, 1225, 1226, 1227, 1228, 1229, 1230, 1231, 1232, 1233, 1234, 1235, 1236, 1237, 1238, 1239, 1240, 1241, 1242, 1243, 1244, 1245, 1246, 1247, 1248, 1249]
+
+  QR STRIP MARKER OVERLAP:
+  Total marker pixels in QR strip region: 5430
+    y=1100: 18 px, runs=[(np.int64(802), np.int64(820))]
+    y=1101: 18 px, runs=[(np.int64(802), np.int64(820))]
+    y=1102: 18 px, runs=[(np.int64(802), np.int64(820))]
+    y=1202: 312 px, runs=[(np.int64(216), np.int64(314)), (np.int64(411), np.int64(509)), (np.int64(607), np.int64(705)), (np.int64(802), np.int64(820))]
+    y=1203: 312 px, runs=[(np.int64(216), np.int64(314)), (np.int64(411), np.int64(509)), (np.int64(607), np.int64(705)), (np.int64(802), np.int64(820))]
+    y=1204: 312 px, runs=[(np.int64(216), np.int64(314)), (np.int64(411), np.int64(509)), (np.int64(607), np.int64(705)), (np.int64(802), np.int64(820))]
+    y=1205: 312 px, runs=[(np.int64(216), np.int64(314)), (np.int64(411), np.int64(509)), (np.int64(607), np.int64(705)), (np.int64(802), np.int64(820))]
+    y=1206: 312 px, runs=[(np.int64(216), np.int64(314)), (np.int64(411), np.int64(509)), (np.int64(607), np.int64(705)), (np.int64(802), np.int64(820))]
+    y=1207: 312 px, runs=[(np.int64(216), np.int64(314)), (np.int64(411), np.int64(509)), (np.int64(607), np.int64(705)), (np.int64(802), np.int64(820))]
+    y=1208: 312 px, runs=[(np.int64(216), np.int64(314)), (np.int64(411), np.int64(509)), (np.int64(607), np.int64(705)), (np.int64(802), np.int64(820))]
+    y=1209: 312 px, runs=[(np.int64(216), np.int64(314)), (np.int64(411), np.int64(509)), (np.int64(607), np.int64(705)), (np.int64(802), np.int64(820))]
+    y=1210: 312 px, runs=[(np.int64(216), np.int64(314)), (np.int64(411), np.int64(509)), (np.int64(607), np.int64(705)), (np.int64(802), np.int64(820))]
+    y=1211: 312 px, runs=[(np.int64(216), np.int64(314)), (np.int64(411), np.int64(509)), (np.int64(607), np.int64(705)), (np.int64(802), np.int64(820))]
+    y=1212: 312 px, runs=[(np.int64(216), np.int64(314)), (np.int64(411), np.int64(509)), (np.int64(607), np.int64(705)), (np.int64(802), np.int64(820))]
+    y=1213: 312 px, runs=[(np.int64(216), np.int64(314)), (np.int64(411), np.int64(509)), (np.int64(607), np.int64(705)), (np.int64(802), np.int64(820))]
+    y=1214: 312 px, runs=[(np.int64(216), np.int64(314)), (np.int64(411), np.int64(509)), (np.int64(607), np.int64(705)), (np.int64(802), np.int64(820))]
+    y=1215: 264 px, runs=[(np.int64(216), np.int64(290)), (np.int64(302), np.int64(314)), (np.int64(411), np.int64(485)), (np.int64(497), np.int64(509)), (np.int64(607), np.int64(669)), (np.int64(693), np.int64(705)), (np.int64(802), np.int64(820))]
+    y=1216: 264 px, runs=[(np.int64(216), np.int64(290)), (np.int64(302), np.int64(314)), (np.int64(411), np.int64(485)), (np.int64(497), np.int64(509)), (np.int64(607), np.int64(669)), (np.int64(693), np.int64(705)), (np.int64(802), np.int64(820))]
+    y=1217: 264 px, runs=[(np.int64(216), np.int64(290)), (np.int64(302), np.int64(314)), (np.int64(411), np.int64(485)), (np.int64(497), np.int64(509)), (np.int64(607), np.int64(669)), (np.int64(693), np.int64(705)), (np.int64(802), np.int64(820))]
+    y=1218: 264 px, runs=[(np.int64(216), np.int64(290)), (np.int64(302), np.int64(314)), (np.int64(411), np.int64(485)), (np.int64(497), np.int64(509)), (np.int64(607), np.int64(669)), (np.int64(693), np.int64(705)), (np.int64(802), np.int64(820))]
+    y=1219: 264 px, runs=[(np.int64(216), np.int64(290)), (np.int64(302), np.int64(314)), (np.int64(411), np.int64(485)), (np.int64(497), np.int64(509)), (np.int64(607), np.int64(669)), (np.int64(693), np.int64(705)), (np.int64(802), np.int64(820))]
+
+=== OVERLAP SUMMARY ===
+  Marker pixels in interior:   13226
+  Marker pixels in piece area: 7796
+  Marker pixels in QR strip:   5430
+
+=== TEXT LINE POSITION ===
+  Text baseline y=1096, piece area bottom y=1100
+  Text approx top y=1084
+  Text is 16 px ABOVE piece area bottom (positive=safe, negative=overlap)
+  Baseline to piece bottom gap: 4 px
+
+=== REGION SUMMARY TABLE ===
+  Region                  x0    y0    x1    y1     W     H
+  ------------------------------------------------------------
+  Board                    0     0   920  1320   920  1320
+  Left ring band           0     0   120  1320   120  1320
+  Right ring band        820     0   920  1320   100  1320
+  Top ring band            0     0   920   120   920   120
+  Bottom ring band         0  1220   920  1320   920   100
+  Interior               120   120   820  1220   700  1100
+  Piece area             120   120   820  1100   700   980
+  QR strip               120  1100   820  1220   700   120
