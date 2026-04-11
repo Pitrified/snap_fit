@@ -15,7 +15,7 @@ from qrcode.constants import ERROR_CORRECT_L
 from qrcode.constants import ERROR_CORRECT_M
 from qrcode.constants import ERROR_CORRECT_Q
 
-from snap_fit.data_models.basemodel_kwargs import BaseModelKwargs
+from snap_fit.utils.basemodel_kwargs import BaseModelKwargs
 
 if TYPE_CHECKING:
     from snap_fit.config.aruco.aruco_board_config import ArucoBoardConfig

@@ -3,7 +3,7 @@
 import cv2
 from pydantic import Field
 
-from snap_fit.data_models.basemodel_kwargs import BaseModelKwargs
+from snap_fit.utils.basemodel_kwargs import BaseModelKwargs
 
 
 class ArucoBoardConfig(BaseModelKwargs):

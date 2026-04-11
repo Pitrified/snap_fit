@@ -4,7 +4,7 @@ import cv2
 from pydantic import Field
 
 from snap_fit.config.aruco.aruco_board_config import ArucoBoardConfig
-from snap_fit.data_models.basemodel_kwargs import BaseModelKwargs
+from snap_fit.utils.basemodel_kwargs import BaseModelKwargs
 
 
 class ArucoDetectorConfig(BaseModelKwargs):

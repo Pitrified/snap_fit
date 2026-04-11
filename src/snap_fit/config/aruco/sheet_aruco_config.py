@@ -4,7 +4,7 @@ from pydantic import Field
 
 from snap_fit.config.aruco.aruco_detector_config import ArucoDetectorConfig
 from snap_fit.config.aruco.metadata_zone_config import MetadataZoneConfig
-from snap_fit.data_models.basemodel_kwargs import BaseModelKwargs
+from snap_fit.utils.basemodel_kwargs import BaseModelKwargs
 
 
 class SheetArucoConfig(BaseModelKwargs):

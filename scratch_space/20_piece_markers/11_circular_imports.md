@@ -48,6 +48,7 @@ Copy the `BaseModelKwargs` class verbatim from `data_models/basemodel_kwargs.py`
 
 **3. Replace `src/snap_fit/data_models/basemodel_kwargs.py` with a re-export shim**  
 Keep the file so existing `from snap_fit.data_models.basemodel_kwargs import BaseModelKwargs` calls continue to work without touching every caller immediately.
+UPDATE: no, just delete this file entirely and update all callers to import from the new utils path. It's a simple find-replace and avoids leaving a redundant shim file around.
 
 ```python
 # backward-compat shim - import from the canonical location instead
@@ -69,6 +70,7 @@ Each file currently has `from snap_fit.data_models.basemodel_kwargs import BaseM
 
 **5. Restore eager import in `src/snap_fit/data_models/__init__.py`**  
 Remove the `__getattr__` function and restore the direct import. Also add `BaseModelKwargs` to the public exports so callers that do `from snap_fit.data_models import BaseModelKwargs` work (none currently do this, but it is the expected place to find it).
+UPDATE: no, callers will just import from the utils path directly. No need to re-export it from data_models at all.
 
 ```python
 from snap_fit.data_models.match_result import MatchResult
@@ -76,9 +78,9 @@ from snap_fit.data_models.piece_id import PieceId
 from snap_fit.data_models.piece_record import PieceRecord
 from snap_fit.data_models.segment_id import SegmentId
 from snap_fit.data_models.sheet_record import SheetRecord
-from snap_fit.utils.basemodel_kwargs import BaseModelKwargs
+from snap_fit.utils.basemodel_kwargs import BaseModelKwargs # UPDATE: no need to re-export this from data_models at all
 
-__all__ = ["BaseModelKwargs", "MatchResult", "PieceId", "PieceRecord", "SegmentId", "SheetRecord"]
+__all__ = ["MatchResult", "PieceId", "PieceRecord", "SegmentId", "SheetRecord"]
 ```
 
 ### Verification
@@ -90,3 +92,4 @@ uv run pytest && uv run ruff check . && uv run pyright
 ### Optional follow-up (not in this task)
 
 Once all callers have been updated in step 4 and tests pass, `src/snap_fit/data_models/basemodel_kwargs.py` can be deleted entirely - it is only a shim at that point.
+UPDATE: redundant shim file is removed as part of step 4 - no need for a separate follow-up step. All callers are updated to import from the new utils path directly, and the old shim file is deleted immediately.
