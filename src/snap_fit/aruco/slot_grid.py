@@ -96,7 +96,7 @@ class SlotGrid:
     # ------------------------------------------------------------------
 
     def render_labels(self, board_img: np.ndarray) -> np.ndarray:
-        """Draw slot label text at the top-left of each slot.
+        """Draw slot label text centred in each slot.
 
         Args:
             board_img: BGR (or grayscale) board image to annotate.
@@ -105,18 +105,29 @@ class SlotGrid:
             A copy of board_img with labels drawn.
         """
         img = board_img.copy()
-        inset = self.grid_config.label_inset_px
         font = cv2.FONT_HERSHEY_SIMPLEX
-        baseline_offset = 12  # pixels below the slot top to hit the text baseline
+        font_scale = 0.5
+        thickness = 1
 
         for row in range(self.grid_config.rows):
             for col in range(self.grid_config.cols):
                 label = self.label_for_slot(col, row)
-                x = int(self._interior_x0 + col * self._slot_w) + inset
-                y_base = int(self._interior_y0 + row * self._slot_h)
-                y = y_base + inset + baseline_offset
+                cx = int(self._interior_x0 + (col + 0.5) * self._slot_w)
+                cy = int(self._interior_y0 + (row + 0.5) * self._slot_h)
+                (text_w, text_h), _ = cv2.getTextSize(
+                    label, font, font_scale, thickness
+                )
+                x = cx - text_w // 2
+                y = cy + text_h // 2
                 cv2.putText(
-                    img, label, (x, y), font, 0.5, (128, 128, 128), 1, cv2.LINE_AA
+                    img,
+                    label,
+                    (x, y),
+                    font,
+                    font_scale,
+                    (128, 128, 128),
+                    thickness,
+                    cv2.LINE_AA,
                 )
 
         return img
