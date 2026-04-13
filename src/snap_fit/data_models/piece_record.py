@@ -36,6 +36,7 @@ class PieceRecord(BaseModel):
     contour_point_count: int
     contour_region: tuple[int, int, int, int]
     label: str | None = None
+    sheet_origin: tuple[int, int] = (0, 0)
 
     @classmethod
     def from_piece(cls, piece: "Piece") -> "PieceRecord":
@@ -58,4 +59,5 @@ class PieceRecord(BaseModel):
             contour_point_count=len(piece.contour.cv_contour),
             contour_region=tuple(piece.contour.region),  # type: ignore[arg-type]
             label=piece.label,
+            sheet_origin=piece.sheet_origin,
         )

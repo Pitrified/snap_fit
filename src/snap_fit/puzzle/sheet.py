@@ -39,11 +39,13 @@ class Sheet:
         image: np.ndarray | None = None,
         sheet_id: str | None = None,
         slot_grid: SlotGrid | None = None,
+        crop_offset: int = 0,
     ) -> None:
         """Initialize the sheet with the image file path."""
         self.img_fp = img_fp
         self.min_area = min_area
         self.sheet_id = sheet_id or img_fp.stem
+        self.crop_offset = crop_offset
 
         self.metadata: SheetMetadata | None = None
         self.slot_grid: SlotGrid | None = slot_grid
@@ -113,7 +115,9 @@ class Sheet:
             )
             if self.slot_grid is not None:
                 cx, cy = contour.centroid
-                slot = self.slot_grid.slot_for_centroid(cx, cy)
+                cx_board = cx + self.crop_offset
+                cy_board = cy + self.crop_offset
+                slot = self.slot_grid.slot_for_centroid(cx_board, cy_board)
                 if slot is not None:
                     piece.label = self.slot_grid.label_for_slot(*slot)
             self.pieces.append(piece)

@@ -192,6 +192,8 @@ class TestPieceRecordFromPiece:
 
         piece.label = None
 
+        piece.sheet_origin = (10, 20)
+
         return piece
 
     def test_from_piece_basic(self, mock_piece: MagicMock) -> None:

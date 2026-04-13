@@ -378,6 +378,7 @@ def create_mock_sheet_for_persistence(sheet_id: str) -> MagicMock:
         }
         piece.contour = contour
         piece.label = None
+        piece.sheet_origin = (5, 10)
 
         pieces.append(piece)
 

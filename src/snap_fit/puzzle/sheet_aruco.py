@@ -56,6 +56,7 @@ class SheetAruco:
         lg.info("Detecting ArUco markers and correcting perspective...")
         rectified = self.aruco_detector.rectify(img_orig)
 
+        crop_offset = 0
         if rectified is not None:
             img_final = rectified
 
@@ -66,6 +67,18 @@ class SheetAruco:
                     self.crop_margin : w - self.crop_margin,
                 ]
                 lg.info(f"Cropped margin of {self.crop_margin} pixels.")
+                crop_offset = int(
+                    self.crop_margin
+                    - self.config.detector.rect_margin
+                    + self.config.detector.board.margin
+                )
+
+            if self.config.metadata_zone is not None:
+                board_config = self.config.detector.board
+                qr_strip_h = board_config.margin + board_config.marker_length
+                h_now = img_final.shape[0]
+                img_final = img_final[: h_now - qr_strip_h, :]
+                lg.info(f"Cropped QR strip ({qr_strip_h} px from bottom).")
         else:
             lg.warning("Perspective correction failed. Using original image.")
             img_final = img_orig
@@ -84,6 +97,7 @@ class SheetAruco:
             min_area=self.config.min_area,
             image=img_final,
             slot_grid=slot_grid,
+            crop_offset=crop_offset,
         )
         sheet.metadata = metadata
 

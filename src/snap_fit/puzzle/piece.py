@@ -46,6 +46,7 @@ class Piece:
         img_orig: np.ndarray,
         img_bw: np.ndarray,
         contour: Contour,
+        sheet_origin: tuple[int, int] = (0, 0),
     ) -> None:
         """Initialize the piece with the contour, region, and area.
 
@@ -55,12 +56,15 @@ class Piece:
             img_orig (np.ndarray): The original image.
             img_bw (np.ndarray): The black and white image.
             contour (Contour): The contour of the piece.
+            sheet_origin (tuple[int, int]): The origin of the piece's padded
+                region in sheet (cropped image) coordinates.
         """
         self.piece_id = piece_id
         self.img_fp = img_fp
         self.img_orig = img_orig
         self.img_bw = img_bw
         self.contour = contour
+        self.sheet_origin = sheet_origin
         self.contour_loc = contour.cv_contour
 
         self.name = img_fp.stem
@@ -104,14 +108,22 @@ class Piece:
         img_bw_cut = cut_rect_from_image(full_img_bw, region_pad)
         # translate the contour to the new coordinates
         contour_cut = contour.translate(-region_pad[0], -region_pad[1])
+        sheet_origin = (region_pad[0], region_pad[1])
         c = cls(
             piece_id=piece_id,
             img_fp=img_fp,
             img_orig=img_orig_cut,
             img_bw=img_bw_cut,
             contour=contour_cut,
+            sheet_origin=sheet_origin,
         )
         return c
+
+    @property
+    def centroid_in_sheet(self) -> tuple[int, int]:
+        """Return the piece centroid in sheet (cropped image) coordinates."""
+        cx, cy = self.contour.centroid
+        return (cx + self.sheet_origin[0], cy + self.sheet_origin[1])
 
     def build_cross_masked(self) -> None:
         """Build a cross mask for the piece and apply it."""
