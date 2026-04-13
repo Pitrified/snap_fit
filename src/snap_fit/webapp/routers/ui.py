@@ -12,6 +12,8 @@ from snap_fit.webapp.core.settings import get_settings
 from snap_fit.webapp.services.piece_service import PieceService
 from snap_fit.webapp.services.puzzle_service import PuzzleService
 
+SettingsDep = Annotated[Settings, Depends(get_settings)]
+
 router = APIRouter()
 
 
@@ -135,5 +137,23 @@ async def matches_page(
             "matches": matches,
             "total_count": total_count,
             "limit": limit,
+        },
+    )
+
+
+@router.get("/settings", response_class=HTMLResponse, summary="Settings page")
+async def settings_page(
+    request: Request,
+    settings: SettingsDep,
+) -> HTMLResponse:
+    """Render the settings page for dataset selection."""
+    templates = request.app.state.templates
+    return templates.TemplateResponse(
+        request,
+        "settings.html",
+        {
+            "title": "Settings",
+            "available_datasets": settings.available_datasets(),
+            "active_dataset": settings.active_dataset,
         },
     )

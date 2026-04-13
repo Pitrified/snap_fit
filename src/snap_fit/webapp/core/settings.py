@@ -3,6 +3,7 @@
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import PrivateAttr
 from pydantic_settings import BaseSettings
 from pydantic_settings import SettingsConfigDict
 
@@ -28,6 +29,12 @@ class Settings(BaseSettings):
     data_dir: str = "data"
     cache_dir: str = "cache"
 
+    # Dataset selection - can also be set at runtime via set_dataset()
+    current_dataset: str | None = None
+
+    # Runtime-mutable dataset override (not persisted to env)
+    _current_dataset_override: str | None = PrivateAttr(default=None)
+
     @property
     def cache_path(self) -> Path:
         """Return the cache directory as a Path."""
@@ -37,6 +44,19 @@ class Settings(BaseSettings):
     def data_path(self) -> Path:
         """Return the data directory as a Path."""
         return Path(self.data_dir)
+
+    @property
+    def active_dataset(self) -> str | None:
+        """Return the active dataset (runtime override takes precedence)."""
+        return self._current_dataset_override or self.current_dataset
+
+    def set_dataset(self, tag: str | None) -> None:
+        """Set the active dataset tag at runtime."""
+        self._current_dataset_override = tag
+
+    def available_datasets(self) -> list[str]:
+        """List tag names that have a dataset.db in cache_path."""
+        return sorted(p.parent.name for p in self.cache_path.glob("*/dataset.db"))
 
 
 @lru_cache

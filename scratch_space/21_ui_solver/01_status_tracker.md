@@ -6,7 +6,7 @@ Track sub-plans location and high-level status for the UI solver feature.
 
 | # | File | Title | Status | Dependencies |
 |---|------|-------|--------|--------------|
-| 02 | [02_dataset_selector.md](02_dataset_selector.md) | Dataset selector & settings page | **not started** | - |
+| 02 | [02_dataset_selector.md](02_dataset_selector.md) | Dataset selector & settings page | **done** | - |
 | 03 | [03_piece_image_endpoint.md](03_piece_image_endpoint.md) | Piece image endpoint | **not started** | - |
 | 04 | [04_session_crud.md](04_session_crud.md) | Session CRUD & PlacementState persistence | **not started** | 02 |
 | 05 | [05_suggestion_engine.md](05_suggestion_engine.md) | Suggestion engine | **not started** | 04, 06 |

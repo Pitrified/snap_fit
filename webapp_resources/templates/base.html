@@ -171,12 +171,20 @@
 <body>
     <header>
         <div class="container">
-            <h1>🧩 snap_fit Admin</h1>
+            <div style="display:flex; align-items:baseline; gap:1rem;">
+                <h1>🧩 snap_fit Admin</h1>
+                {% set active_dataset = get_active_dataset() %}
+                {% if active_dataset %}
+                <span class="badge badge-info" style="font-size:0.85rem;">{{ active_dataset }}</span>
+                {% endif %}
+            </div>
             <nav>
                 <a href="/" {% if request.url.path == '/' %}class="active"{% endif %}>Home</a>
                 <a href="/sheets" {% if '/sheets' in request.url.path %}class="active"{% endif %}>Sheets</a>
                 <a href="/pieces" {% if '/pieces' in request.url.path %}class="active"{% endif %}>Pieces</a>
                 <a href="/matches" {% if '/matches' in request.url.path %}class="active"{% endif %}>Matches</a>
+                <a href="/solver" {% if '/solver' in request.url.path %}class="active"{% endif %}>Solver</a>
+                <a href="/settings" {% if '/settings' in request.url.path %}class="active"{% endif %}>Settings</a>
                 <a href="/api/docs" target="_blank">API Docs</a>
             </nav>
         </div>

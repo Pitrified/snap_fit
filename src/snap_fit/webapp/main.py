@@ -11,6 +11,7 @@ from snap_fit.webapp.routers import debug
 from snap_fit.webapp.routers import interactive
 from snap_fit.webapp.routers import piece_ingestion
 from snap_fit.webapp.routers import puzzle_solve
+from snap_fit.webapp.routers import settings_router
 from snap_fit.webapp.routers import ui
 from snap_fit.webapp.utils.paths import resource_path
 
@@ -45,7 +46,11 @@ def create_app() -> FastAPI:
     # --- Templates ---
     templates_dir = resource_path("templates")
     if templates_dir.exists():
-        app.state.templates = Jinja2Templates(directory=templates_dir)
+        templates = Jinja2Templates(directory=templates_dir)
+        templates.env.globals["get_active_dataset"] = (
+            lambda: get_settings().active_dataset
+        )
+        app.state.templates = templates
 
     # --- API Routers ---
     api_v1 = "/api/v1"
@@ -57,6 +62,7 @@ def create_app() -> FastAPI:
         interactive.router, prefix=f"{api_v1}/interactive", tags=["Interactive"]
     )
     app.include_router(debug.router, prefix=f"{api_v1}/debug", tags=["Debug"])
+    app.include_router(settings_router.router, prefix=f"{api_v1}", tags=["Settings"])
 
     # --- UI Router (HTML pages) ---
     app.include_router(ui.router, tags=["UI"])
