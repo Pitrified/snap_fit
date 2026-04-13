@@ -12,6 +12,7 @@
         <thead>
             <tr>
                 <th>Sheet ID</th>
+                <th>Tag</th>
                 <th>Image Path</th>
                 <th>Pieces</th>
                 <th>Threshold</th>
@@ -23,6 +24,7 @@
             {% for sheet in sheets %}
             <tr>
                 <td><a href="/sheets/{{ sheet.sheet_id }}">{{ sheet.sheet_id }}</a></td>
+                <td>{{ sheet.metadata.tag_name if sheet.metadata else '-' }}</td>
                 <td><code>{{ sheet.img_path }}</code></td>
                 <td><span class="badge badge-info">{{ sheet.piece_count }}</span></td>
                 <td>{{ sheet.threshold }}</td>

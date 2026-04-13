@@ -13,6 +13,7 @@
             <tr>
                 <th>Piece ID</th>
                 <th>Sheet</th>
+                <th>Label</th>
                 <th>Type</th>
                 <th>Flat Edges</th>
                 <th>Contour Points</th>
@@ -24,6 +25,7 @@
             <tr>
                 <td><a href="/pieces/{{ piece.piece_id }}">{{ piece.piece_id }}</a></td>
                 <td><a href="/sheets/{{ piece.piece_id.sheet_id }}">{{ piece.piece_id.sheet_id }}</a></td>
+                <td>{{ piece.label if piece.label else '-' }}</td>
                 <td>
                     {% if piece.oriented_piece_type %}
                     <span class="badge badge-info">{{ piece.oriented_piece_type.piece_type }}</span>

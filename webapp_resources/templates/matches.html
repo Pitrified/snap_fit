@@ -28,11 +28,11 @@
             <tr>
                 <td>
                     <a href="/pieces/{{ match.seg_id1.piece_id }}">{{ match.seg_id1.piece_id }}</a>
-                    <span class="badge badge-info">{{ match.seg_id1.edge_pos }}</span>
+                    <span class="badge badge-info">{{ match.seg_id1.edge_pos.value }}</span>
                 </td>
                 <td>
                     <a href="/pieces/{{ match.seg_id2.piece_id }}">{{ match.seg_id2.piece_id }}</a>
-                    <span class="badge badge-info">{{ match.seg_id2.edge_pos }}</span>
+                    <span class="badge badge-info">{{ match.seg_id2.edge_pos.value }}</span>
                 </td>
                 <td>
                     <span class="badge {% if match.similarity < 0.1 %}badge-success{% elif match.similarity < 0.3 %}badge-warning{% else %}badge{% endif %}">
@@ -40,8 +40,8 @@
                     </span>
                 </td>
                 <td>
-                    {% if match.similarity_manual is not none %}
-                    <span class="badge badge-warning">{{ "%.4f"|format(match.similarity_manual) }}</span>
+                    {% if match.similarity_manual_ is not none %}
+                    <span class="badge badge-warning">{{ "%.4f"|format(match.similarity_manual_) }}</span>
                     {% else %}
                     -
                     {% endif %}

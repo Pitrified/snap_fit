@@ -32,6 +32,34 @@
     </div>
 </div>
 
+{% if sheet.metadata %}
+<div class="card">
+    <h2>Sheet Metadata</h2>
+    <div class="detail-grid">
+        <div class="detail-item">
+            <div class="label">Tag Name</div>
+            <div class="value">{{ sheet.metadata.tag_name }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="label">Sheet Index</div>
+            <div class="value">{{ sheet.metadata.sheet_index }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="label">Total Sheets</div>
+            <div class="value">{{ sheet.metadata.total_sheets if sheet.metadata.total_sheets is not none else '-' }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="label">Board Config</div>
+            <div class="value">{{ sheet.metadata.board_config_id }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="label">Printed</div>
+            <div class="value">{{ sheet.metadata.printed_at }}</div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <div class="card">
     <h2>Pieces ({{ pieces|length }})</h2>
     {% if pieces %}
@@ -39,6 +67,7 @@
         <thead>
             <tr>
                 <th>Piece ID</th>
+                <th>Label</th>
                 <th>Type</th>
                 <th>Flat Edges</th>
                 <th>Contour Points</th>
@@ -49,6 +78,7 @@
             {% for piece in pieces %}
             <tr>
                 <td><a href="/pieces/{{ piece.piece_id }}">{{ piece.piece_id }}</a></td>
+                <td>{{ piece.label if piece.label else '-' }}</td>
                 <td>
                     {% if piece.oriented_piece_type %}
                     <span class="badge badge-info">{{ piece.oriented_piece_type.piece_type }}</span>

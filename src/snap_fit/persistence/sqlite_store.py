@@ -1,5 +1,6 @@
 """SQLite-backed persistence store for a single dataset."""
 
+import contextlib
 import json
 from pathlib import Path
 import sqlite3
@@ -7,6 +8,7 @@ from sqlite3 import Row
 
 from loguru import logger as lg
 
+from snap_fit.aruco.sheet_metadata import SheetMetadata
 from snap_fit.data_models.match_result import MatchResult
 from snap_fit.data_models.piece_record import PieceRecord
 from snap_fit.data_models.sheet_record import SheetRecord
@@ -22,7 +24,8 @@ CREATE TABLE IF NOT EXISTS sheets (
     piece_count INTEGER NOT NULL,
     threshold   INTEGER NOT NULL,
     min_area    INTEGER NOT NULL,
-    created_at  TEXT    NOT NULL
+    created_at  TEXT    NOT NULL,
+    metadata    TEXT
 )"""
 
 _DDL_PIECES = """\
@@ -35,7 +38,9 @@ CREATE TABLE IF NOT EXISTS pieces (
     oriented_piece_type  TEXT,
     flat_edges           TEXT    NOT NULL,
     contour_point_count  INTEGER NOT NULL,
-    contour_region       TEXT    NOT NULL
+    contour_region       TEXT    NOT NULL,
+    label                TEXT,
+    sheet_origin         TEXT
 )"""
 
 _DDL_MATCHES = """\
@@ -61,6 +66,11 @@ _DDL_IDX_SEG2 = (
 )
 _DDL_IDX_SIM = "CREATE INDEX IF NOT EXISTS idx_matches_sim ON matches (similarity)"
 
+# Migrations for existing databases that lack new columns.
+_MIGRATE_SHEETS_METADATA = "ALTER TABLE sheets ADD COLUMN metadata TEXT"
+_MIGRATE_PIECES_LABEL = "ALTER TABLE pieces ADD COLUMN label TEXT"
+_MIGRATE_PIECES_SHEET_ORIGIN = "ALTER TABLE pieces ADD COLUMN sheet_origin TEXT"
+
 _DDL_ALL = (
     _DDL_SHEETS,
     _DDL_PIECES,
@@ -76,14 +86,15 @@ _DDL_ALL = (
 
 _INS_SHEET = """\
 INSERT OR REPLACE INTO sheets
-  (sheet_id, img_path, piece_count, threshold, min_area, created_at)
-  VALUES (?, ?, ?, ?, ?, ?)"""
+  (sheet_id, img_path, piece_count, threshold, min_area, created_at, metadata)
+  VALUES (?, ?, ?, ?, ?, ?, ?)"""
 
 _INS_PIECE = """\
 INSERT OR REPLACE INTO pieces
   (piece_id, sheet_id, piece_idx, corners, segment_shapes,
-   oriented_piece_type, flat_edges, contour_point_count, contour_region)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"""
+   oriented_piece_type, flat_edges, contour_point_count, contour_region,
+   label, sheet_origin)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
 
 _INS_MATCH = """\
 INSERT INTO matches
@@ -178,14 +189,30 @@ class DatasetStore:
         with self._conn:
             for stmt in _DDL_ALL:
                 self._conn.execute(stmt)
+            self._apply_migrations()
+
+    def _apply_migrations(self) -> None:
+        """Add columns that may be missing from an older schema."""
+        for stmt in (
+            _MIGRATE_SHEETS_METADATA,
+            _MIGRATE_PIECES_LABEL,
+            _MIGRATE_PIECES_SHEET_ORIGIN,
+        ):
+            with contextlib.suppress(sqlite3.OperationalError):
+                self._conn.execute(stmt)
 
     # -------------------------------------------------------------------------
     # Row conversion helpers
     # -------------------------------------------------------------------------
 
     @staticmethod
-    def _sheet_to_row(r: SheetRecord) -> tuple[str, str, int, int, int, str]:
+    def _sheet_to_row(
+        r: SheetRecord,
+    ) -> tuple[str, str, int, int, int, str, str | None]:
         """Return a values tuple for an ``INSERT INTO sheets`` statement."""
+        metadata_json: str | None = None
+        if r.metadata is not None:
+            metadata_json = r.metadata.model_dump_json()
         return (
             r.sheet_id,
             str(r.img_path),
@@ -193,11 +220,18 @@ class DatasetStore:
             r.threshold,
             r.min_area,
             r.created_at.isoformat(),
+            metadata_json,
         )
 
     @staticmethod
     def _row_to_sheet(row: Row) -> SheetRecord:
         """Reconstruct a ``SheetRecord`` from a sheets table row."""
+        metadata_raw: str | None = row["metadata"]
+        metadata = (
+            SheetMetadata.model_validate_json(metadata_raw)
+            if metadata_raw is not None
+            else None
+        )
         return SheetRecord.model_validate(
             {
                 "sheet_id": row["sheet_id"],
@@ -206,13 +240,14 @@ class DatasetStore:
                 "threshold": row["threshold"],
                 "min_area": row["min_area"],
                 "created_at": row["created_at"],
+                "metadata": metadata,
             }
         )
 
     @staticmethod
     def _piece_to_row(
         r: PieceRecord,
-    ) -> tuple[str, str, int, str, str, str | None, str, int, str]:
+    ) -> tuple[str, str, int, str, str, str | None, str, int, str, str | None, str]:
         """Return a values tuple for an ``INSERT INTO pieces`` statement."""
         data = r.model_dump(mode="json")
         opt = data["oriented_piece_type"]
@@ -226,6 +261,8 @@ class DatasetStore:
             json.dumps(data["flat_edges"]),
             r.contour_point_count,
             json.dumps(data["contour_region"]),
+            r.label,
+            json.dumps(data["sheet_origin"]),
         )
 
     @staticmethod
@@ -233,6 +270,9 @@ class DatasetStore:
         """Reconstruct a ``PieceRecord`` from a pieces table row."""
         opt_raw: str | None = row["oriented_piece_type"]
         oriented = json.loads(opt_raw) if opt_raw is not None else None
+        label: str | None = row["label"]
+        origin_raw: str | None = row["sheet_origin"]
+        sheet_origin = json.loads(origin_raw) if origin_raw is not None else (0, 0)
         return PieceRecord.model_validate(
             {
                 "piece_id": {
@@ -245,6 +285,8 @@ class DatasetStore:
                 "flat_edges": json.loads(row["flat_edges"]),
                 "contour_point_count": row["contour_point_count"],
                 "contour_region": json.loads(row["contour_region"]),
+                "label": label,
+                "sheet_origin": sheet_origin,
             }
         )
 

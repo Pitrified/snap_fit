@@ -7,6 +7,7 @@ import sqlite3
 
 import pytest
 
+from snap_fit.aruco.sheet_metadata import SheetMetadata
 from snap_fit.config.types import EdgePos
 from snap_fit.data_models.match_result import MatchResult
 from snap_fit.data_models.piece_id import PieceId
@@ -37,7 +38,15 @@ _SEGMENT_SHAPES = {
 }
 
 
-def _make_sheet(n: int) -> SheetRecord:
+def _make_sheet(n: int, *, with_metadata: bool = False) -> SheetRecord:
+    metadata = None
+    if with_metadata:
+        metadata = SheetMetadata(
+            tag_name="oca",
+            sheet_index=n,
+            total_sheets=3,
+            board_config_id="oca",
+        )
     return SheetRecord(
         sheet_id=f"sheet_{n}.jpg",
         img_path=Path(f"data/sheet_{n}.jpg"),
@@ -45,11 +54,17 @@ def _make_sheet(n: int) -> SheetRecord:
         threshold=130,
         min_area=80_000,
         created_at=datetime(2026, 1, n + 1, tzinfo=UTC),
+        metadata=metadata,
     )
 
 
 def _make_piece(
-    sheet_id: str, piece_idx: int, *, with_opt: bool = False
+    sheet_id: str,
+    piece_idx: int,
+    *,
+    with_opt: bool = False,
+    label: str | None = None,
+    sheet_origin: tuple[int, int] = (0, 0),
 ) -> PieceRecord:
     opt = None
     if with_opt:
@@ -64,6 +79,8 @@ def _make_piece(
         flat_edges=["top"],
         contour_point_count=500,
         contour_region=(10, 20, 80, 60),
+        label=label,
+        sheet_origin=sheet_origin,
     )
 
 
@@ -231,6 +248,28 @@ def test_save_sheets_idempotent(store: DatasetStore) -> None:
     assert len(store.load_sheets()) == 1
 
 
+def test_save_load_sheet_with_metadata(store: DatasetStore) -> None:
+    """SheetRecord with metadata round-trips correctly."""
+    sheet = _make_sheet(0, with_metadata=True)
+    store.save_sheets([sheet])
+    loaded = store.load_sheet(sheet.sheet_id)
+    assert loaded is not None
+    assert loaded.metadata is not None
+    assert loaded.metadata.tag_name == "oca"
+    assert loaded.metadata.sheet_index == 0
+    assert loaded.metadata.total_sheets == 3
+    assert loaded.metadata.board_config_id == "oca"
+
+
+def test_save_load_sheet_without_metadata(store: DatasetStore) -> None:
+    """SheetRecord with metadata=None round-trips correctly."""
+    sheet = _make_sheet(0, with_metadata=False)
+    store.save_sheets([sheet])
+    loaded = store.load_sheet(sheet.sheet_id)
+    assert loaded is not None
+    assert loaded.metadata is None
+
+
 # ---------------------------------------------------------------------------
 # Pieces tests
 # ---------------------------------------------------------------------------
@@ -253,6 +292,8 @@ def test_save_load_pieces_round_trip(
         assert reloaded.flat_edges == original.flat_edges
         assert reloaded.contour_point_count == original.contour_point_count
         assert reloaded.contour_region == original.contour_region
+        assert reloaded.label == original.label
+        assert reloaded.sheet_origin == original.sheet_origin
 
 
 def test_save_load_piece_with_oriented_piece_type(store: DatasetStore) -> None:
@@ -273,6 +314,28 @@ def test_save_load_piece_with_none_oriented_piece_type(store: DatasetStore) -> N
 
     assert loaded is not None
     assert loaded.oriented_piece_type is None
+
+
+def test_save_load_piece_with_label(store: DatasetStore) -> None:
+    """PieceRecord with a label round-trips correctly."""
+    piece = _make_piece("s.jpg", 0, label="A1", sheet_origin=(120, 340))
+    store.save_pieces([piece])
+    loaded = store.load_piece(str(piece.piece_id))
+
+    assert loaded is not None
+    assert loaded.label == "A1"
+    assert loaded.sheet_origin == (120, 340)
+
+
+def test_save_load_piece_without_label(store: DatasetStore) -> None:
+    """PieceRecord with label=None and default sheet_origin round-trips correctly."""
+    piece = _make_piece("s.jpg", 0)
+    store.save_pieces([piece])
+    loaded = store.load_piece(str(piece.piece_id))
+
+    assert loaded is not None
+    assert loaded.label is None
+    assert loaded.sheet_origin == (0, 0)
 
 
 def test_load_piece_by_id(store: DatasetStore, pieces: list[PieceRecord]) -> None:
