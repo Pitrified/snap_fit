@@ -27,10 +27,14 @@
             {% for match in matches %}
             <tr>
                 <td>
+                    <img src="/api/v1/pieces/{{ match.seg_id1.piece_id }}/img?size=60" loading="lazy"
+                         style="height:60px; object-fit:contain; background:#f1f5f9; border-radius:3px; vertical-align:middle; margin-right:0.5rem;">
                     <a href="/pieces/{{ match.seg_id1.piece_id }}">{{ match.seg_id1.piece_id }}</a>
                     <span class="badge badge-info">{{ match.seg_id1.edge_pos.value }}</span>
                 </td>
                 <td>
+                    <img src="/api/v1/pieces/{{ match.seg_id2.piece_id }}/img?size=60" loading="lazy"
+                         style="height:60px; object-fit:contain; background:#f1f5f9; border-radius:3px; vertical-align:middle; margin-right:0.5rem;">
                     <a href="/pieces/{{ match.seg_id2.piece_id }}">{{ match.seg_id2.piece_id }}</a>
                     <span class="badge badge-info">{{ match.seg_id2.edge_pos.value }}</span>
                 </td>

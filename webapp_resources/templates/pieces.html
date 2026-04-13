@@ -11,6 +11,7 @@
     <table>
         <thead>
             <tr>
+                <th>Thumb</th>
                 <th>Piece ID</th>
                 <th>Sheet</th>
                 <th>Label</th>
@@ -23,6 +24,12 @@
         <tbody>
             {% for piece in pieces %}
             <tr>
+                <td style="padding:0.25rem;">
+                    <a href="/pieces/{{ piece.piece_id }}">
+                        <img src="/api/v1/pieces/{{ piece.piece_id }}/img?size=80" loading="lazy"
+                             style="height:80px; object-fit:contain; background:#f1f5f9; border-radius:3px; display:block;">
+                    </a>
+                </td>
                 <td><a href="/pieces/{{ piece.piece_id }}">{{ piece.piece_id }}</a></td>
                 <td><a href="/sheets/{{ piece.piece_id.sheet_id }}">{{ piece.piece_id.sheet_id }}</a></td>
                 <td>{{ piece.label if piece.label else '-' }}</td>

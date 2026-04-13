@@ -3,9 +3,12 @@
 Integrates with SheetManager for persistence and data access.
 """
 
+from functools import lru_cache
 from pathlib import Path
 
+import cv2
 from loguru import logger as lg
+import numpy as np
 
 from snap_fit.config.aruco.sheet_aruco_config import SheetArucoConfig
 from snap_fit.data_models.piece_record import PieceRecord
@@ -14,20 +17,33 @@ from snap_fit.persistence.sqlite_store import DatasetStore
 from snap_fit.puzzle.sheet_aruco import SheetAruco
 from snap_fit.puzzle.sheet_manager import SheetManager
 
+_ROTATE_MAP: dict[int, int] = {
+    90: cv2.ROTATE_90_CLOCKWISE,
+    180: cv2.ROTATE_180,
+    270: cv2.ROTATE_90_COUNTERCLOCKWISE,
+}
+
 
 class PieceService:
     """Service for piece and sheet data operations."""
 
-    def __init__(self, cache_dir: Path, dataset_tag: str | None = None) -> None:
+    def __init__(
+        self,
+        cache_dir: Path,
+        data_dir: Path | None = None,
+        dataset_tag: str | None = None,
+    ) -> None:
         """Initialize service with cache directory.
 
         Args:
             cache_dir: Root cache directory.  Each dataset lives under
                 ``cache_dir / sheets_tag /`` with its own dataset.db and
                 contours/ sub-directory.
+            data_dir: Root data directory used to resolve sheet image paths.
             dataset_tag: When set, all queries are scoped to this dataset only.
         """
         self.cache_dir = cache_dir
+        self.data_dir = data_dir
         self.dataset_tag = dataset_tag
 
     # ------------------------------------------------------------------
@@ -185,3 +201,89 @@ class PieceService:
                 if records:
                     return records
         return []
+
+    def get_piece_img(
+        self,
+        piece_id: str,
+        size: int | None = None,
+        orientation: int = 0,
+    ) -> bytes | None:
+        """Load sheet image, crop piece region, encode as PNG.
+
+        Args:
+            piece_id: Piece identifier.
+            size: Optional max dimension for resizing (preserves aspect ratio).
+            orientation: Rotation in degrees (0, 90, 180, 270).
+
+        Returns:
+            PNG bytes, or None if piece or sheet image not found.
+        """
+        if orientation not in (0, 90, 180, 270):
+            msg = "orientation must be 0, 90, 180, or 270"
+            raise ValueError(msg)
+
+        piece = self.get_piece(piece_id)
+        if piece is None:
+            return None
+
+        sheet = self.get_sheet(piece.piece_id.sheet_id)
+        if sheet is None:
+            return None
+
+        img_path = self._resolve_img_path(sheet.img_path)
+        if img_path is None or not img_path.exists():
+            lg.warning(f"Sheet image not found: {sheet.img_path}")
+            return None
+
+        full_img = _load_sheet_image(str(img_path))
+        if full_img is None:
+            return None
+
+        x0, y0 = piece.sheet_origin
+        cx, cy, cw, ch = piece.contour_region
+        # Reconstruct the padded crop dimensions using the piece-local contour offset
+        x1 = x0 + 2 * cx + cw
+        y1 = y0 + 2 * cy + ch
+        crop = full_img[y0:y1, x0:x1]
+
+        if orientation != 0:
+            crop = cv2.rotate(crop, _ROTATE_MAP[orientation])
+
+        if size is not None and size > 0:
+            h_crop, w_crop = crop.shape[:2]
+            scale = size / max(h_crop, w_crop)
+            new_w = max(1, int(w_crop * scale))
+            new_h = max(1, int(h_crop * scale))
+            crop = cv2.resize(crop, (new_w, new_h), interpolation=cv2.INTER_AREA)
+
+        ok, buf = cv2.imencode(".png", crop)
+        if not ok:
+            return None
+        return buf.tobytes()
+
+    def _resolve_img_path(self, img_path: Path) -> Path | None:
+        """Resolve an image path to an existing file.
+
+        Tries in order:
+        1. Absolute path - use as-is.
+        2. Relative path from cwd (handles paths stored without data_root stripping).
+        3. Relative to data_dir (handles paths stored relative to data_dir).
+        """
+        if img_path.is_absolute():
+            return img_path
+        if img_path.exists():
+            return img_path
+        if self.data_dir is not None:
+            candidate = self.data_dir / img_path
+            if candidate.exists():
+                return candidate
+        return img_path
+
+
+@lru_cache(maxsize=8)
+def _load_sheet_image(img_path: str) -> np.ndarray | None:
+    """Load a sheet image from disk, cached by path."""
+    img = cv2.imread(img_path)
+    if img is None:
+        lg.warning(f"Could not read image: {img_path}")
+    return img

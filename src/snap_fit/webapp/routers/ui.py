@@ -21,7 +21,11 @@ def get_piece_service(
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> PieceService:
     """Dependency to get PieceService instance."""
-    return PieceService(settings.cache_path, dataset_tag=settings.active_dataset)
+    return PieceService(
+        settings.cache_path,
+        data_dir=settings.data_path,
+        dataset_tag=settings.active_dataset,
+    )
 
 
 def get_puzzle_service(

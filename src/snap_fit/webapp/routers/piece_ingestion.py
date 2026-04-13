@@ -8,6 +8,7 @@ from typing import Annotated
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
+from fastapi.responses import Response
 
 from snap_fit.data_models.piece_record import PieceRecord
 from snap_fit.data_models.sheet_record import SheetRecord
@@ -24,7 +25,11 @@ def get_piece_service(
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> PieceService:
     """Dependency to get PieceService instance."""
-    return PieceService(settings.cache_path, dataset_tag=settings.active_dataset)
+    return PieceService(
+        settings.cache_path,
+        data_dir=settings.data_path,
+        dataset_tag=settings.active_dataset,
+    )
 
 
 @router.get("/", summary="List all pieces")
@@ -68,6 +73,27 @@ async def list_pieces_for_sheet(
 ) -> list[PieceRecord]:
     """Return all pieces belonging to a specific sheet."""
     return service.get_pieces_for_sheet(sheet_id)
+
+
+@router.get("/{piece_id}/img", summary="Get piece image")
+async def get_piece_img(
+    piece_id: str,
+    service: Annotated[PieceService, Depends(get_piece_service)],
+    size: int | None = None,
+    orientation: int = 0,
+) -> Response:
+    """Return a PNG image of the piece cropped from its sheet photo."""
+    if orientation not in (0, 90, 180, 270):
+        raise HTTPException(
+            status_code=400, detail="orientation must be 0, 90, 180, or 270"
+        )
+    try:
+        img_bytes = service.get_piece_img(piece_id, size=size, orientation=orientation)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if img_bytes is None:
+        raise HTTPException(status_code=404, detail=f"Piece {piece_id} not found")
+    return Response(content=img_bytes, media_type="image/png")
 
 
 @router.get("/{piece_id}", summary="Get piece by ID")

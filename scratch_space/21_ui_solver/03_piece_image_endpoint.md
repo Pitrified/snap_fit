@@ -1,6 +1,6 @@
 # 03 - Piece Image Endpoint
 
-> **Status:** not started
+> **Status:** done
 > **Depends on:** -
 > **Main plan ref:** Phase 1, Preliminary changes #3
 
@@ -163,3 +163,20 @@ _ROTATE_MAP = {
 - Integration test: `GET /api/v1/pieces/{piece_id}/img` returns 200 with `image/png` content type
 - Integration test: `GET /api/v1/pieces/nonexistent/img` returns 404
 - Manual: open URL in browser, see cropped piece image
+
+---
+
+## Step 6: UI integration (show thumbnails across templates)
+
+Wire `<img src="/api/v1/pieces/{piece_id}/img?size=N">` into each existing template.
+
+| Template | Location | Size |
+|----------|----------|------|
+| `piece_detail.html` | Top of piece card, before detail grid | 250 |
+| `pieces.html` | Thumbnail column in list table | 80 |
+| `sheet_detail.html` | Thumbnail column in pieces table | 80 |
+| `matches.html` | Beside each segment ID in match rows | 60 |
+
+Images are lazy-loaded (`loading="lazy"`) and have a fixed height with `object-fit: contain` so
+the table layout stays stable even before images load. A grey fallback background helps with
+pieces that are missing images.
