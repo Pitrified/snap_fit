@@ -15,19 +15,28 @@ from snap_fit.persistence.sqlite_store import DatasetStore
 class PuzzleService:
     """Service for puzzle solving and match operations."""
 
-    def __init__(self, cache_dir: Path) -> None:
+    def __init__(self, cache_dir: Path, dataset_tag: str | None = None) -> None:
         """Initialize service with cache directory.
 
         Args:
             cache_dir: Root cache directory.  Dataset databases live under
                 ``cache_dir / sheets_tag / dataset.db``.
+            dataset_tag: When set, all queries are scoped to this dataset only.
         """
         self.cache_dir = cache_dir
+        self.dataset_tag = dataset_tag
 
     def _all_db_paths(self) -> list[Path]:
-        """Return all dataset.db files found across dataset sub-directories."""
+        """Return dataset.db paths to query.
+
+        When dataset_tag is set, returns only that tag's database.
+        Otherwise returns all database files found across sub-directories.
+        """
         if not self.cache_dir.exists():
             return []
+        if self.dataset_tag is not None:
+            db = self.cache_dir / self.dataset_tag / "dataset.db"
+            return [db] if db.exists() else []
         return [
             p / "dataset.db"
             for p in self.cache_dir.iterdir()

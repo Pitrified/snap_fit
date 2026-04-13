@@ -1,6 +1,6 @@
 # 02 - Dataset Selector & Settings Page
 
-> **Status:** not started
+> **Status:** done
 > **Depends on:** -
 > **Main plan ref:** Preliminary changes #1
 
@@ -111,12 +111,18 @@ In `webapp_resources/templates/base.html`, add:
 - "Solver" link in nav bar (for sub-plan 08)
 - Show current dataset badge in the header if one is selected
 
-### Step 6: Scope services (optional for now)
+### Step 6: Scope services (implemented)
 
-When `settings.active_dataset` is set, `PieceService` and `PuzzleService` should
-filter to that tag only. This can be done by passing the tag to their constructors
-or adding a filter parameter. Not strictly required for Phase 1 - the solver
-session itself carries `dataset_tag`, so scoping is enforced at the session level.
+When `settings.active_dataset` is set, `PieceService` and `PuzzleService` filter
+their iteration helpers to that tag only:
+
+- `PieceService.__init__` accepts `dataset_tag: str | None = None`; `_all_tag_dirs()`
+  returns only `cache_dir / dataset_tag` when set, otherwise all sub-directories.
+- `PuzzleService.__init__` accepts `dataset_tag: str | None = None`; `_all_db_paths()`
+  returns only `cache_dir / dataset_tag / dataset.db` when set, otherwise scans all.
+- All four `get_piece_service` / `get_puzzle_service` dependency factories (in
+  `piece_ingestion.py`, `puzzle_solve.py`, and `ui.py`) now pass
+  `dataset_tag=settings.active_dataset` to the constructors.
 
 ---
 
@@ -125,9 +131,13 @@ session itself carries `dataset_tag`, so scoping is enforced at the session leve
 | File | Change |
 |------|--------|
 | `src/snap_fit/webapp/core/settings.py` | Add `current_dataset`, `available_datasets()`, `set_dataset()` |
-| `src/snap_fit/webapp/routers/settings.py` | **NEW** - settings API router |
+| `src/snap_fit/webapp/routers/settings.py` | **NEW** - settings API router (`settings_router.py`) |
 | `src/snap_fit/webapp/schemas/settings.py` | **NEW** - `SetDatasetRequest` |
-| `src/snap_fit/webapp/routers/ui.py` | Add `GET /settings` page route |
+| `src/snap_fit/webapp/services/piece_service.py` | Add `dataset_tag` param; scope `_all_tag_dirs()` |
+| `src/snap_fit/webapp/services/puzzle_service.py` | Add `dataset_tag` param; scope `_all_db_paths()` |
+| `src/snap_fit/webapp/routers/ui.py` | Add `GET /settings`; pass `active_dataset` to service factories |
+| `src/snap_fit/webapp/routers/piece_ingestion.py` | Pass `active_dataset` to `PieceService` factory |
+| `src/snap_fit/webapp/routers/puzzle_solve.py` | Pass `active_dataset` to `PuzzleService` factory |
 | `src/snap_fit/webapp/main.py` | Register settings router |
 | `webapp_resources/templates/settings.html` | **NEW** - settings page |
 | `webapp_resources/templates/base.html` | Add Settings + Solver nav links, dataset badge |

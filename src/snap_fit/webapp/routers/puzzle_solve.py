@@ -23,7 +23,7 @@ def get_puzzle_service(
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> PuzzleService:
     """Dependency to get PuzzleService instance."""
-    return PuzzleService(settings.cache_path)
+    return PuzzleService(settings.cache_path, dataset_tag=settings.active_dataset)
 
 
 @router.get("/matches", summary="List all matches")

@@ -24,7 +24,7 @@ def get_piece_service(
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> PieceService:
     """Dependency to get PieceService instance."""
-    return PieceService(settings.cache_path)
+    return PieceService(settings.cache_path, dataset_tag=settings.active_dataset)
 
 
 @router.get("/", summary="List all pieces")

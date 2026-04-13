@@ -18,15 +18,17 @@ from snap_fit.puzzle.sheet_manager import SheetManager
 class PieceService:
     """Service for piece and sheet data operations."""
 
-    def __init__(self, cache_dir: Path) -> None:
+    def __init__(self, cache_dir: Path, dataset_tag: str | None = None) -> None:
         """Initialize service with cache directory.
 
         Args:
             cache_dir: Root cache directory.  Each dataset lives under
                 ``cache_dir / sheets_tag /`` with its own dataset.db and
                 contours/ sub-directory.
+            dataset_tag: When set, all queries are scoped to this dataset only.
         """
         self.cache_dir = cache_dir
+        self.dataset_tag = dataset_tag
 
     # ------------------------------------------------------------------
     # Helpers
@@ -37,9 +39,16 @@ class PieceService:
         return self.cache_dir / sheets_tag
 
     def _all_tag_dirs(self) -> list[Path]:
-        """Return all existing dataset sub-directories inside cache_dir."""
+        """Return dataset sub-directories to query.
+
+        When dataset_tag is set, returns only that tag's directory.
+        Otherwise returns all existing sub-directories.
+        """
         if not self.cache_dir.exists():
             return []
+        if self.dataset_tag is not None:
+            tag_dir = self.cache_dir / self.dataset_tag
+            return [tag_dir] if tag_dir.is_dir() else []
         return [p for p in self.cache_dir.iterdir() if p.is_dir()]
 
     def _db_path(self, tag_dir: Path) -> Path:
