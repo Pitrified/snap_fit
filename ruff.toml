@@ -81,6 +81,9 @@ ignore = [
     "D103",    # Missing docstring in public function
     "D417",    # Missing argument descriptions in the docstring
     "RUF100",  # Unused noqa directive - noqa comments become stale when rules are globally suppressed
+    "T20",     # print found
+    "E501",    # Line too long - exploratory code often has long lines that are hard to wrap
+    "ERA001",  # Found commented-out code - common in exploratory code
 ]
 
 [lint.pylint]
