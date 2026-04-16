@@ -6,7 +6,7 @@ This document tracks six UI improvement features for the snap_fit solver and pie
 
 | # | Feature | Plan | Status | Complexity |
 |---|---------|------|--------|------------|
-| 11 | Placed piece labels | [11_placed_piece_labels.md](11_placed_piece_labels.md) | not started | low |
+| 11 | Placed piece labels | [11_placed_piece_labels.md](11_placed_piece_labels.md) | done | low |
 | 12 | Orientation of suggested pieces | [12_orientation_display.md](12_orientation_display.md) | not started | low |
 | 13 | Side-by-side matching preview | [13_matching_preview.md](13_matching_preview.md) | not started | high |
 | 14 | Rotated label on piece image | [14_rotated_piece_label.md](14_rotated_piece_label.md) | not started | medium |

@@ -38,7 +38,7 @@
           {% set pos_key = ro ~ "," ~ co %}
           {% set placement = session.placement.get(pos_key) %}
           {% set suggestion_slot = session.pending_suggestion.slot if session.pending_suggestion else none %}
-          {{ grid_cell(pos_key, placement=placement, is_target=(pos_key == suggestion_slot)) }}
+          {{ grid_cell(pos_key, placement=placement, is_target=(pos_key == suggestion_slot), labels=piece_labels) }}
         {% endfor %}
       {% endfor %}
     </div>

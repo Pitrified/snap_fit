@@ -246,6 +246,10 @@ async def solver_page(
     all_pieces = piece_service.list_pieces()
     placed_ids = {pid for pid, _orient in session.placement.values()}
     unplaced = [p for p in all_pieces if str(p.piece_id) not in placed_ids]
+    piece_labels = {
+        str(p.piece_id): p.label if p.label else f"#{str(p.piece_id).split(':')[-1]}"
+        for p in all_pieces
+    }
     return templates.TemplateResponse(
         request,
         "solver.html",
@@ -253,6 +257,7 @@ async def solver_page(
             "title": f"Solver: {session_id[:8]}",
             "session": session,
             "unplaced": unplaced,
+            "piece_labels": piece_labels,
         },
     )
 

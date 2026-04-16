@@ -59,7 +59,7 @@
 {% endmacro %}
 
 
-{% macro grid_cell(pos, placement=none, slot_type=none, is_target=false) %}
+{% macro grid_cell(pos, placement=none, slot_type=none, is_target=false, labels=none) %}
 <div class="grid-cell
             {{ 'grid-cell--filled' if placement else 'grid-cell--empty' }}
             {{ 'grid-cell--target' if is_target else '' }}"
@@ -71,7 +71,11 @@
     <img src="/api/v1/pieces/{{ piece_id }}/img?size=80"
          style="transform: rotate({{ orientation }}deg)"
          loading="lazy">
-    <span class="grid-cell__label">{{ piece_id }}</span>
+    {% if labels and piece_id in labels %}
+      <span class="grid-cell__label">{{ labels[piece_id] }}</span>
+    {% else %}
+      <span class="grid-cell__label">#{{ piece_id.split(":")[-1] }}</span>
+    {% endif %}
   {% else %}
     {% if slot_type %}
       <span class="grid-cell__type">{{ slot_type }}</span>
