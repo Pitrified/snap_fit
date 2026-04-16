@@ -13,6 +13,7 @@
 | Getting started | guides/getting_started.md | complete | 2026-04-07 | Do not edit directly |
 | FastAPI webapp | guides/fastapi.md | complete | 2026-04-07 | |
 | Updating docs | guides/update_docs.md | complete | 2026-04-07 | Meta guide for this workflow |
+| Coordinate spaces | guides/coordinate_spaces.md | complete | 2026-04-16 | Image cropping, slot assignment, 4 coordinate spaces |
 
 ---
 

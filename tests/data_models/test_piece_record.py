@@ -194,6 +194,9 @@ class TestPieceRecordFromPiece:
 
         piece.sheet_origin = (10, 20)
 
+        # Mock img_orig shape for padded_size computation
+        piece.img_orig.shape = (150, 140, 3)  # h=150, w=140
+
         return piece
 
     def test_from_piece_basic(self, mock_piece: MagicMock) -> None:
@@ -223,3 +226,11 @@ class TestPieceRecordFromPiece:
         assert record.segment_shapes["bottom"] == "out"
         assert record.segment_shapes["right"] == "edge"
         assert record.segment_shapes["top"] == "in"
+
+    def test_from_piece_padded_size(self, mock_piece: MagicMock) -> None:
+        """Test that padded_size is set from piece image dimensions."""
+        record = PieceRecord.from_piece(mock_piece)
+
+        # img_orig.shape is (h=150, w=140, channels=3)
+        # padded_size should be (width, height) = (140, 150)
+        assert record.padded_size == (140, 150)

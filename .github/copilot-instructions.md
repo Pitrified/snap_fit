@@ -51,6 +51,14 @@ Config classes extend `BaseModelKwargs` (not plain `BaseModel`) when their field
 **`GridModel` and orientations**  
 `GridModel(rows, cols)` pre-computes slot types (corner / edge / inner) and their required `Orientation` values based on position. Use `grid_model.corners`, `.edges`, `.inners` for iteration, and `_slot_types[pos]` to look up an `OrientedPieceType`.
 
+## Coordinate spaces and image cropping
+
+When working on piece image cropping, slot assignment, or overlay visualization, always consult [docs/guides/coordinate_spaces.md](../../docs/guides/coordinate_spaces.md). Key rules:
+
+- The pipeline has four coordinate spaces: board-image, object-coord, rectified, and cropped-sheet. Piece coordinates (`sheet_origin`, `contour_region`, `padded_size`) are in **cropped-sheet** space.
+- Never apply cropped-sheet coordinates to the original photo. Load the processed sheet image from `cache/{tag}/sheets/{sheet_id}.jpg` instead.
+- `SlotGrid` works in board-image space. Convert via `Sheet.crop_offset` before/after calling `slot_for_centroid()` or `slot_centers()`.
+
 ## Style rules
 
 - Never use em dashes (`--` or `---` or Unicode `\u2014` and `\u2013`). Use a hyphen `-` or rewrite the sentence.

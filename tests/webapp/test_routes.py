@@ -208,3 +208,111 @@ class TestWithCachedData:
         # Cleanup
         get_settings.cache_clear()
         del os.environ["CACHE_DIR"]
+
+    def test_piece_img_from_processed_sheet(self, tmp_path: Path) -> None:
+        """Piece image endpoint crops from the processed sheet image."""
+        import os
+
+        import cv2
+        import numpy as np
+
+        from snap_fit.data_models.piece_record import PieceRecord
+        from snap_fit.data_models.sheet_record import SheetRecord
+        from snap_fit.persistence.sqlite_store import DatasetStore
+
+        # Create a synthetic processed sheet image (200x300 BGR)
+        sheet_img = np.zeros((200, 300, 3), dtype=np.uint8)
+        # Paint a recognizable region at (x0=10, y0=20, w=50, h=40) red
+        sheet_img[20:60, 10:60] = (0, 0, 255)
+
+        tag_dir = tmp_path / "test_tag"
+        sheets_dir = tag_dir / "sheets"
+        sheets_dir.mkdir(parents=True)
+        cv2.imwrite(str(sheets_dir / "test_sheet.jpg"), sheet_img)
+
+        sheet_record = SheetRecord.model_validate(
+            {
+                "sheet_id": "test_sheet",
+                "img_path": "data/test.png",
+                "piece_count": 1,
+                "threshold": 130,
+                "min_area": 80000,
+                "created_at": "2025-01-01T00:00:00",
+            }
+        )
+        piece_record = PieceRecord.model_validate(
+            {
+                "piece_id": {"sheet_id": "test_sheet", "piece_id": 0},
+                "corners": {
+                    "TL": [0, 0],
+                    "TR": [100, 0],
+                    "BR": [100, 100],
+                    "BL": [0, 100],
+                },
+                "segment_shapes": {
+                    "TOP": "OUT",
+                    "RIGHT": "IN",
+                    "BOTTOM": "OUT",
+                    "LEFT": "IN",
+                },
+                "oriented_piece_type": {"piece_type": 0, "orientation": 0},
+                "flat_edges": [],
+                "contour_point_count": 100,
+                "contour_region": [0, 0, 50, 40],
+                "sheet_origin": [10, 20],
+                "padded_size": [50, 40],
+            }
+        )
+
+        db_path = tag_dir / "dataset.db"
+        with DatasetStore(db_path) as store:
+            store.save_sheets([sheet_record])
+            store.save_pieces([piece_record])
+
+        os.environ["CACHE_DIR"] = str(tmp_path)
+        from snap_fit.webapp.core.settings import get_settings
+
+        get_settings.cache_clear()
+
+        app = create_app()
+        client = TestClient(app)
+
+        response = client.get("/api/v1/pieces/test_sheet:0/img")
+        assert response.status_code == 200
+        assert response.headers["content-type"] == "image/png"
+
+        # Verify PNG header
+        assert response.content[:4] == b"\x89PNG"
+
+        # Decode and verify dimensions match padded_size (w=50, h=40)
+        img_array = np.frombuffer(response.content, dtype=np.uint8)
+        decoded = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+        assert decoded is not None
+        assert decoded.shape[0] == 40  # height
+        assert decoded.shape[1] == 50  # width
+
+        # Verify the crop contains the red region
+        # (JPEG lossy compression reduces values)
+        assert decoded[0, 0, 2] > 100  # red channel should be high
+
+        # Cleanup
+        get_settings.cache_clear()
+        del os.environ["CACHE_DIR"]
+
+    def test_piece_img_not_found(self, tmp_path: Path) -> None:
+        """Piece image returns 404 for nonexistent piece."""
+        import os
+
+        os.environ["CACHE_DIR"] = str(tmp_path)
+        from snap_fit.webapp.core.settings import get_settings
+
+        get_settings.cache_clear()
+
+        app = create_app()
+        client = TestClient(app)
+
+        response = client.get("/api/v1/pieces/nonexistent:0/img")
+        assert response.status_code == 404
+
+        get_settings.cache_clear()
+        del os.environ["CACHE_DIR"]

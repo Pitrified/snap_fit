@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+import cv2
 from loguru import logger as lg
 import numpy as np
 
@@ -317,6 +318,24 @@ class SheetManager:
             json_path.write_text(json.dumps(corner_indices, indent=2))
 
         lg.info(f"Saved contour cache for {len(self.sheets)} sheets to {cache_dir}")
+
+    def save_sheet_images(self, sheets_dir: Path) -> None:
+        """Save processed (rectified + cropped) sheet images to disk.
+
+        These images are needed by ``get_piece_img()`` to crop individual
+        piece thumbnails. Coordinates stored in ``PieceRecord`` (``sheet_origin``,
+        ``padded_size``) are in the coordinate space of these processed images.
+
+        Args:
+            sheets_dir: Directory to store sheet JPEG files.
+        """
+        sheets_dir.mkdir(parents=True, exist_ok=True)
+
+        for sheet_id, sheet in self.sheets.items():
+            out_path = sheets_dir / f"{sheet_id}.jpg"
+            cv2.imwrite(str(out_path), sheet.img_orig)
+
+        lg.info(f"Saved {len(self.sheets)} sheet images to {sheets_dir}")
 
     @staticmethod
     def load_metadata(path: Path) -> dict[str, Any]:

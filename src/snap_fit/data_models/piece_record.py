@@ -26,6 +26,7 @@ class PieceRecord(BaseModel):
         flat_edges: List of flat edge positions (EdgePos.value).
         contour_point_count: Number of points in the contour.
         contour_region: Bounding rectangle (x, y, width, height).
+        padded_size: (width, height) of the padded piece crop image.
     """
 
     piece_id: PieceId
@@ -37,6 +38,7 @@ class PieceRecord(BaseModel):
     contour_region: tuple[int, int, int, int]
     label: str | None = None
     sheet_origin: tuple[int, int] = (0, 0)
+    padded_size: tuple[int, int] = (0, 0)
 
     @classmethod
     def from_piece(cls, piece: "Piece") -> "PieceRecord":
@@ -60,4 +62,5 @@ class PieceRecord(BaseModel):
             contour_region=tuple(piece.contour.region),  # type: ignore[arg-type]
             label=piece.label,
             sheet_origin=piece.sheet_origin,
+            padded_size=(piece.img_orig.shape[1], piece.img_orig.shape[0]),
         )

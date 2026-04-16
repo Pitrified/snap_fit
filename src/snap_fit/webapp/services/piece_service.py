@@ -174,6 +174,7 @@ class PieceService:
         manager.save_metadata(tag_dir / "metadata.json")
         manager.save_metadata_db(tag_dir / "dataset.db")
         manager.save_contour_cache(tag_dir / "contours")
+        manager.save_sheet_images(tag_dir / "sheets")
 
         records = manager.to_records()
         return {
@@ -208,7 +209,11 @@ class PieceService:
         size: int | None = None,
         orientation: int = 0,
     ) -> bytes | None:
-        """Load sheet image, crop piece region, encode as PNG.
+        """Load processed sheet image, crop piece region, encode as PNG.
+
+        The processed (rectified + cropped) sheet image is loaded from the
+        cache, not the original photo. Piece coordinates (``sheet_origin``,
+        ``padded_size``) are in the processed-sheet coordinate space.
 
         Args:
             piece_id: Piece identifier.
@@ -226,25 +231,26 @@ class PieceService:
         if piece is None:
             return None
 
-        sheet = self.get_sheet(piece.piece_id.sheet_id)
-        if sheet is None:
-            return None
-
-        img_path = self._resolve_img_path(sheet.img_path)
-        if img_path is None or not img_path.exists():
-            lg.warning(f"Sheet image not found: {sheet.img_path}")
-            return None
-
-        full_img = _load_sheet_image(str(img_path))
-        if full_img is None:
+        # Load the processed (rectified + cropped) sheet image from cache.
+        sheet_img = self._load_processed_sheet(piece.piece_id.sheet_id)
+        if sheet_img is None:
+            lg.warning(f"Processed sheet image not found for {piece.piece_id.sheet_id}")
             return None
 
         x0, y0 = piece.sheet_origin
-        cx, cy, cw, ch = piece.contour_region
-        # Reconstruct the padded crop dimensions using the piece-local contour offset
-        x1 = x0 + 2 * cx + cw
-        y1 = y0 + 2 * cy + ch
-        crop = full_img[y0:y1, x0:x1]
+        pw, ph = piece.padded_size
+        if pw > 0 and ph > 0:
+            crop = sheet_img[y0 : y0 + ph, x0 : x0 + pw]
+        else:
+            # Fallback for old data without padded_size
+            cx, cy, cw, ch = piece.contour_region
+            est_w = 2 * cx + cw
+            est_h = 2 * cy + ch
+            crop = sheet_img[y0 : y0 + est_h, x0 : x0 + est_w]
+
+        if crop.size == 0:
+            lg.warning(f"Empty crop for piece {piece_id}")
+            return None
 
         if orientation != 0:
             crop = cv2.rotate(crop, _ROTATE_MAP[orientation])
@@ -260,6 +266,24 @@ class PieceService:
         if not ok:
             return None
         return buf.tobytes()
+
+    def _load_processed_sheet(self, sheet_id: str) -> np.ndarray | None:
+        """Load a processed sheet image from the cache.
+
+        Searches all dataset tag directories for a matching sheet image
+        at ``cache/{tag}/sheets/{sheet_id}.jpg``.
+
+        Args:
+            sheet_id: The sheet identifier.
+
+        Returns:
+            The loaded image array, or None if not found.
+        """
+        for tag_dir in self._all_tag_dirs():
+            img_path = tag_dir / "sheets" / f"{sheet_id}.jpg"
+            if img_path.exists():
+                return _load_sheet_image(str(img_path))
+        return None
 
     def _resolve_img_path(self, img_path: Path) -> Path | None:
         """Resolve an image path to an existing file.

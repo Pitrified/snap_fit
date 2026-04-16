@@ -40,7 +40,8 @@ CREATE TABLE IF NOT EXISTS pieces (
     contour_point_count  INTEGER NOT NULL,
     contour_region       TEXT    NOT NULL,
     label                TEXT,
-    sheet_origin         TEXT
+    sheet_origin         TEXT,
+    padded_size          TEXT
 )"""
 
 _DDL_MATCHES = """\
@@ -70,6 +71,7 @@ _DDL_IDX_SIM = "CREATE INDEX IF NOT EXISTS idx_matches_sim ON matches (similarit
 _MIGRATE_SHEETS_METADATA = "ALTER TABLE sheets ADD COLUMN metadata TEXT"
 _MIGRATE_PIECES_LABEL = "ALTER TABLE pieces ADD COLUMN label TEXT"
 _MIGRATE_PIECES_SHEET_ORIGIN = "ALTER TABLE pieces ADD COLUMN sheet_origin TEXT"
+_MIGRATE_PIECES_PADDED_SIZE = "ALTER TABLE pieces ADD COLUMN padded_size TEXT"
 
 _DDL_ALL = (
     _DDL_SHEETS,
@@ -93,8 +95,8 @@ _INS_PIECE = """\
 INSERT OR REPLACE INTO pieces
   (piece_id, sheet_id, piece_idx, corners, segment_shapes,
    oriented_piece_type, flat_edges, contour_point_count, contour_region,
-   label, sheet_origin)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
+   label, sheet_origin, padded_size)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
 
 _INS_MATCH = """\
 INSERT INTO matches
@@ -197,6 +199,7 @@ class DatasetStore:
             _MIGRATE_SHEETS_METADATA,
             _MIGRATE_PIECES_LABEL,
             _MIGRATE_PIECES_SHEET_ORIGIN,
+            _MIGRATE_PIECES_PADDED_SIZE,
         ):
             with contextlib.suppress(sqlite3.OperationalError):
                 self._conn.execute(stmt)
@@ -247,7 +250,9 @@ class DatasetStore:
     @staticmethod
     def _piece_to_row(
         r: PieceRecord,
-    ) -> tuple[str, str, int, str, str, str | None, str, int, str, str | None, str]:
+    ) -> tuple[
+        str, str, int, str, str, str | None, str, int, str, str | None, str, str
+    ]:
         """Return a values tuple for an ``INSERT INTO pieces`` statement."""
         data = r.model_dump(mode="json")
         opt = data["oriented_piece_type"]
@@ -263,6 +268,7 @@ class DatasetStore:
             json.dumps(data["contour_region"]),
             r.label,
             json.dumps(data["sheet_origin"]),
+            json.dumps(data["padded_size"]),
         )
 
     @staticmethod
@@ -273,6 +279,8 @@ class DatasetStore:
         label: str | None = row["label"]
         origin_raw: str | None = row["sheet_origin"]
         sheet_origin = json.loads(origin_raw) if origin_raw is not None else (0, 0)
+        padded_raw: str | None = row["padded_size"]
+        padded_size = json.loads(padded_raw) if padded_raw is not None else (0, 0)
         return PieceRecord.model_validate(
             {
                 "piece_id": {
@@ -287,6 +295,7 @@ class DatasetStore:
                 "contour_region": json.loads(row["contour_region"]),
                 "label": label,
                 "sheet_origin": sheet_origin,
+                "padded_size": padded_size,
             }
         )
 

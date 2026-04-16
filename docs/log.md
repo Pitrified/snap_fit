@@ -8,6 +8,10 @@ Grep tip: `grep "^## \[" docs/log.md | tail -10` shows the last 10 entries.
 
 ---
 
+## [2026-04-16] write | guides/coordinate_spaces
+
+New technical guide documenting the four pixel coordinate spaces (board-image, object-coord, rectified, cropped-sheet), transformation chain, crop_offset, piece image cropping pipeline, and pitfalls. Created to support the image crop fix in get_piece_img().
+
 ## [2026-04-07] write | all modules (full package)
 
 Complete library documentation for all 35 tracked modules across 10 subpackages:

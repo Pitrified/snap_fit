@@ -379,6 +379,7 @@ def create_mock_sheet_for_persistence(sheet_id: str) -> MagicMock:
         piece.contour = contour
         piece.label = None
         piece.sheet_origin = (5, 10)
+        piece.img_orig = np.zeros((130, 110, 3), dtype=np.uint8)
 
         pieces.append(piece)
 
@@ -638,3 +639,24 @@ def test_save_metadata_db_vs_json_parity(
     json_piece = PieceRecord.model_validate(json_raw["pieces"][0])
     assert db_piece.piece_id == json_piece.piece_id
     assert db_piece.contour_point_count == json_piece.contour_point_count
+
+
+def test_save_sheet_images(sheet_manager: SheetManager, tmp_path: Path) -> None:
+    """save_sheet_images writes a JPEG per sheet from img_orig."""
+    import cv2
+
+    sheet = create_mock_sheet_for_persistence("img_sheet")
+    # Replace the mock img_orig with a real numpy array
+    sheet.img_orig = np.zeros((100, 150, 3), dtype=np.uint8)
+    sheet.img_orig[10:20, 10:20] = (0, 0, 255)
+    sheet_manager.add_sheet(sheet, "img_sheet")
+
+    sheets_dir = tmp_path / "sheets"
+    sheet_manager.save_sheet_images(sheets_dir)
+
+    out_path = sheets_dir / "img_sheet.jpg"
+    assert out_path.exists()
+
+    loaded = cv2.imread(str(out_path))
+    assert loaded is not None
+    assert loaded.shape == (100, 150, 3)

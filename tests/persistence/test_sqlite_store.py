@@ -65,6 +65,7 @@ def _make_piece(
     with_opt: bool = False,
     label: str | None = None,
     sheet_origin: tuple[int, int] = (0, 0),
+    padded_size: tuple[int, int] = (0, 0),
 ) -> PieceRecord:
     opt = None
     if with_opt:
@@ -81,6 +82,7 @@ def _make_piece(
         contour_region=(10, 20, 80, 60),
         label=label,
         sheet_origin=sheet_origin,
+        padded_size=padded_size,
     )
 
 
@@ -336,6 +338,18 @@ def test_save_load_piece_without_label(store: DatasetStore) -> None:
     assert loaded is not None
     assert loaded.label is None
     assert loaded.sheet_origin == (0, 0)
+    assert loaded.padded_size == (0, 0)
+
+
+def test_save_load_piece_with_padded_size(store: DatasetStore) -> None:
+    """PieceRecord with padded_size round-trips correctly."""
+    piece = _make_piece("s.jpg", 0, sheet_origin=(50, 60), padded_size=(140, 160))
+    store.save_pieces([piece])
+    loaded = store.load_piece(str(piece.piece_id))
+
+    assert loaded is not None
+    assert loaded.padded_size == (140, 160)
+    assert loaded.sheet_origin == (50, 60)
 
 
 def test_load_piece_by_id(store: DatasetStore, pieces: list[PieceRecord]) -> None:
