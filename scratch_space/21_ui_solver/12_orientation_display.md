@@ -1,6 +1,6 @@
 # 12 - Orientation of Suggested Pieces
 
-**Status:** not started
+**Status:** done
 **Parent:** [10_ui_notes.md](10_ui_notes.md)
 
 ## Goal

@@ -191,6 +191,16 @@
 .suggestion-scores p {
   margin: 0.25rem 0;
 }
+.suggestion-orientation {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0.25rem 0 0;
+}
+.suggestion-slot-info {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: 0.15rem 0 0;
+}
 .suggestion-actions {
   display: flex;
   gap: 0.5rem;

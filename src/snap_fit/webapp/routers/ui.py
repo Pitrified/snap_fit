@@ -8,8 +8,10 @@ from fastapi import Request
 from fastapi.responses import HTMLResponse
 
 from snap_fit.config.types import EdgePos
+from snap_fit.grid.grid_model import GridModel
 from snap_fit.grid.orientation import Orientation
 from snap_fit.grid.orientation_utils import get_original_edge_pos
+from snap_fit.grid.types import GridPos
 from snap_fit.webapp.core.settings import Settings
 from snap_fit.webapp.core.settings import get_settings
 from snap_fit.webapp.services.interactive_service import InteractiveService
@@ -250,6 +252,16 @@ async def solver_page(
         str(p.piece_id): p.label if p.label else f"#{str(p.piece_id).split(':')[-1]}"
         for p in all_pieces
     }
+    slot_type_name: str | None = None
+    if session.pending_suggestion and session.pending_suggestion.slot:
+        parts = session.pending_suggestion.slot.split(",")
+        if len(parts) == 2:  # noqa: PLR2004
+            try:
+                pos = GridPos(ro=int(parts[0]), co=int(parts[1]))
+                grid_model = GridModel(session.grid_rows, session.grid_cols)
+                slot_type_name = grid_model.get_slot_type(pos).piece_type.name
+            except (ValueError, KeyError):
+                pass
     return templates.TemplateResponse(
         request,
         "solver.html",
@@ -258,6 +270,7 @@ async def solver_page(
             "session": session,
             "unplaced": unplaced,
             "piece_labels": piece_labels,
+            "slot_type_name": slot_type_name,
         },
     )
 
