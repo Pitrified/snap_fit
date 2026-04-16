@@ -7,6 +7,9 @@ from fastapi import Depends
 from fastapi import Request
 from fastapi.responses import HTMLResponse
 
+from snap_fit.config.types import EdgePos
+from snap_fit.grid.orientation import Orientation
+from snap_fit.grid.orientation_utils import get_original_edge_pos
 from snap_fit.webapp.core.settings import Settings
 from snap_fit.webapp.core.settings import get_settings
 from snap_fit.webapp.services.interactive_service import InteractiveService
@@ -250,5 +253,52 @@ async def solver_page(
             "title": f"Solver: {session_id[:8]}",
             "session": session,
             "unplaced": unplaced,
+        },
+    )
+
+
+# ------------------------------------------------------------------
+# Debug pages
+# ------------------------------------------------------------------
+
+_ORIENTATION_DEGREES = [0, 90, 180, 270]
+
+
+@router.get(
+    "/debug/orientations",
+    response_class=HTMLResponse,
+    summary="Orientation debug page",
+)
+async def orientation_debug_page(
+    request: Request,
+    piece_id: str | None = None,
+    service: Annotated[PieceService, Depends(get_piece_service)] = None,  # type: ignore[assignment]
+) -> HTMLResponse:
+    """Show pieces in all 4 orientations for visual verification."""
+    templates = request.app.state.templates
+    if piece_id:
+        piece = service.get_piece(piece_id)
+        pieces = [piece] if piece else []
+    else:
+        pieces = service.list_pieces()[:12]
+
+    # Pre-compute {deg: {rotated_edge_value: original_edge_value}} server-side
+    # so templates don't need to call Python functions.
+    edge_map: dict[int, dict[str, str]] = {
+        deg: {
+            edge.value: get_original_edge_pos(edge, Orientation(deg)).value
+            for edge in EdgePos
+        }
+        for deg in _ORIENTATION_DEGREES
+    }
+
+    return templates.TemplateResponse(
+        request,
+        "debug_orientations.html",
+        {
+            "title": "Orientation Debug",
+            "pieces": pieces,
+            "edge_map": edge_map,
+            "orientations": _ORIENTATION_DEGREES,
         },
     )

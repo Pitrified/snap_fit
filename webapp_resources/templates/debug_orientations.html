@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="breadcrumb">
+    <a href="/">Home</a>
+    <span>›</span>
+    <span>Orientation Debug</span>
+</div>
+
+<h1 style="margin-bottom:0.5rem;">Orientation Debug</h1>
+<p style="color:var(--text-muted); margin-bottom:1.5rem;">
+    Each piece shown in all 4 orientations. Compare backend-rotated (via
+    <code>?orientation=</code> query param) against CSS rotation to verify
+    they match. Edge shapes shown per rotated position help confirm the
+    <code>get_original_edge_pos</code> mapping is correct.
+</p>
+
+<div class="card" style="margin-bottom:1rem;">
+    <h2>Convention reference</h2>
+    <ul style="padding-left:1.2rem; margin-top:0.5rem; line-height:2;">
+        <li><strong>DEG_0</strong> - Original photo orientation. TOP edge is physically at top.</li>
+        <li><strong>DEG_90</strong> - Rotated 90° CW. Original TOP now faces RIGHT.</li>
+        <li><strong>DEG_180</strong> - Rotated 180°. Original TOP now faces BOTTOM.</li>
+        <li><strong>DEG_270</strong> - Rotated 270° CW (= 90° CCW). Original TOP now faces LEFT.</li>
+    </ul>
+    <p style="margin-top:0.75rem; font-size:0.875rem; color:var(--text-muted);">
+        Verification: pick a CORNER or EDGE piece with a visible flat side.
+        In DEG_0 the flat side should be on the expected edge.
+        In DEG_90 the same flat side should be rotated 90° clockwise.
+        Backend-rotated and CSS-rotated images must be visually identical.
+    </p>
+</div>
+
+<form method="get" action="/debug/orientations" style="margin-bottom:1.5rem; display:flex; gap:0.5rem; align-items:center;">
+    <label for="piece_id" style="font-size:0.875rem; color:var(--text-muted);">Filter by piece ID:</label>
+    <input id="piece_id" name="piece_id" type="text"
+           value="{{ request.query_params.get('piece_id', '') }}"
+           placeholder="e.g. oca|01|5"
+           style="padding:0.375rem 0.625rem; border:1px solid var(--border); border-radius:4px; font-size:0.875rem; width:220px;">
+    <button type="submit" class="btn btn-primary" style="padding:0.375rem 0.75rem; font-size:0.875rem;">
+        Filter
+    </button>
+    {% if request.query_params.get('piece_id') %}
+    <a href="/debug/orientations" style="font-size:0.875rem;">Clear</a>
+    {% endif %}
+</form>
+
+{% if not pieces %}
+<div class="empty-state">
+    <p>No pieces found{% if request.query_params.get('piece_id') %} for ID <em>{{ request.query_params.get('piece_id') }}</em>{% endif %}.</p>
+</div>
+{% else %}
+
+<div style="overflow-x:auto;">
+<table class="debug-orient-table">
+    <thead>
+        <tr>
+            <th class="debug-orient-th debug-orient-th--piece">Piece</th>
+            {% for deg in orientations %}
+            <th class="debug-orient-th">DEG_{{ deg }}</th>
+            {% endfor %}
+        </tr>
+    </thead>
+    <tbody>
+    {% for piece in pieces %}
+    <tr>
+        <td class="debug-orient-td debug-orient-td--piece">
+            <div style="font-size:0.75rem; word-break:break-all; margin-bottom:0.25rem;">
+                <a href="/pieces/{{ piece.piece_id }}">{{ piece.piece_id }}</a>
+            </div>
+            {% if piece.label %}
+            <span class="badge badge-info">{{ piece.label }}</span>
+            {% endif %}
+            <div style="margin-top:0.25rem; font-size:0.75rem; color:var(--text-muted);">
+                {% if piece.oriented_piece_type %}
+                {{ piece.oriented_piece_type.piece_type.name }}
+                {% else %}
+                ?
+                {% endif %}
+            </div>
+        </td>
+
+        {% for deg in orientations %}
+        <td class="debug-orient-td">
+            <div class="debug-orient-cell">
+
+                {# ---- Backend-rotated image ---- #}
+                <div class="debug-orient-method">
+                    <span class="debug-orient-method-label">Backend rotate</span>
+                    <div class="debug-orient-img-wrap">
+                        <img src="/api/v1/pieces/{{ piece.piece_id }}/img?size=120&orientation={{ deg }}"
+                             width="120" height="120"
+                             alt="piece {{ piece.piece_id }} deg {{ deg }}"
+                             loading="lazy">
+                        {# Edge labels overlay on the backend-rotated image #}
+                        <span class="debug-edge-label debug-edge-label--top">T</span>
+                        <span class="debug-edge-label debug-edge-label--right">R</span>
+                        <span class="debug-edge-label debug-edge-label--bottom">B</span>
+                        <span class="debug-edge-label debug-edge-label--left">L</span>
+                    </div>
+                </div>
+
+                {# ---- CSS-rotated image ---- #}
+                <div class="debug-orient-method">
+                    <span class="debug-orient-method-label">CSS rotate</span>
+                    <div class="debug-orient-css-wrap">
+                        <img src="/api/v1/pieces/{{ piece.piece_id }}/img?size=120"
+                             style="transform: rotate({{ deg }}deg); transform-origin: center; display:block;"
+                             width="120" height="120"
+                             alt="piece {{ piece.piece_id }} css {{ deg }}"
+                             loading="lazy">
+                    </div>
+                </div>
+
+                {# ---- Edge shape mapping after this rotation ---- #}
+                <div class="debug-orient-shapes">
+                    {% for rotated_edge in ['top', 'right', 'bottom', 'left'] %}
+                    {% set original_edge = edge_map[deg][rotated_edge] %}
+                    {% set shape = piece.segment_shapes.get(original_edge, '?') %}
+                    <div class="debug-orient-shape-row">
+                        <span class="debug-orient-shape-edge">{{ rotated_edge[0].upper() }}</span>
+                        <span class="debug-orient-shape-arrow">→</span>
+                        <span class="debug-orient-shape-badge debug-orient-shape-badge--{{ shape | lower }}">{{ shape }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+
+            </div>
+        </td>
+        {% endfor %}
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>
+
+<p style="margin-top:1rem; font-size:0.8rem; color:var(--text-muted);">
+    Showing {{ pieces | length }} piece{% if pieces | length != 1 %}s{% endif %}.
+    {% if not request.query_params.get('piece_id') %}
+    Displaying first 12 pieces - use the filter above to inspect a specific piece.
+    {% endif %}
+</p>
+
+{% endif %}
+{% endblock %}

@@ -226,3 +226,127 @@
   gap: 4px;
   padding: 8px 0;
 }
+
+/* =========================================================
+   Orientation debug page
+   ========================================================= */
+
+.debug-orient-table {
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+.debug-orient-th {
+  border: 1px solid #d1d5db;
+  padding: 6px 8px;
+  text-align: center;
+  background: #f3f4f6;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.debug-orient-th--piece {
+  width: 100px;
+}
+.debug-orient-td {
+  border: 1px solid #d1d5db;
+  padding: 8px;
+  vertical-align: top;
+}
+.debug-orient-td--piece {
+  vertical-align: middle;
+  width: 100px;
+  font-size: 0.75rem;
+}
+
+/* Column for one orientation - contains both method boxes side-by-side */
+.debug-orient-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+/* A single rotation method (backend or CSS) */
+.debug-orient-method {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.debug-orient-method-label {
+  font-size: 10px;
+  color: #6b7280;
+  text-align: center;
+}
+
+/* Image container with edge label overlays */
+.debug-orient-img-wrap {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  background: #f3f4f6;
+}
+.debug-orient-img-wrap img {
+  display: block;
+  width: 120px;
+  height: 120px;
+  object-fit: contain;
+}
+
+/* CSS-rotated image container - clip to 120x120 */
+.debug-orient-css-wrap {
+  width: 120px;
+  height: 120px;
+  overflow: hidden;
+  background: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Edge position labels overlaid on the backend-rotated image */
+.debug-edge-label {
+  position: absolute;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 1px 3px;
+  border-radius: 2px;
+}
+.debug-edge-label--top    { top: 2px;  left: 50%; transform: translateX(-50%); color: #dc2626; }
+.debug-edge-label--right  { right: 2px; top: 50%; transform: translateY(-50%); color: #2563eb; }
+.debug-edge-label--bottom { bottom: 2px; left: 50%; transform: translateX(-50%); color: #16a34a; }
+.debug-edge-label--left   { left: 2px; top: 50%; transform: translateY(-50%); color: #d97706; }
+
+/* Edge -> shape mapping table (4 rows per orientation) */
+.debug-orient-shapes {
+  font-size: 0.7rem;
+  width: 120px;
+}
+.debug-orient-shape-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 0;
+}
+.debug-orient-shape-edge {
+  width: 10px;
+  font-weight: 700;
+  color: #374151;
+}
+.debug-orient-shape-arrow {
+  color: #9ca3af;
+  font-size: 9px;
+}
+.debug-orient-shape-badge {
+  padding: 1px 4px;
+  border-radius: 2px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.debug-orient-shape-badge--in    { background: #dbeafe; color: #1e40af; }
+.debug-orient-shape-badge--out   { background: #fee2e2; color: #991b1b; }
+.debug-orient-shape-badge--edge  { background: #f3f4f6; color: #374151; }
+.debug-orient-shape-badge--weird { background: #fef3c7; color: #92400e; }
+.debug-orient-shape-badge--?     { background: #f3f4f6; color: #9ca3af; }
