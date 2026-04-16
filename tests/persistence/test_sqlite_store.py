@@ -157,7 +157,7 @@ def matches() -> list[MatchResult]:
 
 
 def test_create_store_creates_tables(db_path: Path) -> None:
-    """Opening a DatasetStore creates all three tables."""
+    """Opening a DatasetStore creates all four tables."""
     with DatasetStore(db_path) as s:
         conn = s._conn
         cursor = conn.execute(
@@ -165,7 +165,7 @@ def test_create_store_creates_tables(db_path: Path) -> None:
         )
         # sqlite_sequence is an internal SQLite table for AUTOINCREMENT tracking
         names = {row[0] for row in cursor.fetchall()} - {"sqlite_sequence"}
-    assert names == {"sheets", "pieces", "matches"}
+    assert names == {"sheets", "pieces", "matches", "sessions"}
 
 
 def test_create_store_creates_indexes(db_path: Path) -> None:
@@ -540,3 +540,128 @@ def test_query_matches_for_piece_as_second_segment(store: DatasetStore) -> None:
     store.save_matches(data)
     result = store.query_matches_for_piece("target.jpg:0")
     assert len(result) == 1
+
+
+# ---------------------------------------------------------------------------
+# Sessions tests
+# ---------------------------------------------------------------------------
+
+_SESSION_TEMPLATE: dict[str, object] = {
+    "session_id": "sess-001",
+    "dataset_tag": "demo",
+    "grid_rows": 3,
+    "grid_cols": 3,
+    "placement": {},
+    "rejected": {},
+    "undo_stack": [],
+    "complete": False,
+    "score": None,
+    "created_at": "2026-04-16T00:00:00+00:00",
+    "updated_at": "2026-04-16T00:00:00+00:00",
+}
+
+
+def _make_session(**overrides: object) -> dict[str, object]:
+    return {**_SESSION_TEMPLATE, **overrides}
+
+
+def test_create_store_creates_sessions_table(db_path: Path) -> None:
+    """Opening a DatasetStore creates the sessions table."""
+    with DatasetStore(db_path) as s:
+        cursor = s._conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
+        )
+        names = {row[0] for row in cursor.fetchall()} - {"sqlite_sequence"}
+    assert "sessions" in names
+
+
+def test_save_load_session_round_trip(store: DatasetStore) -> None:
+    """Session dict survives save/load round-trip."""
+    data = _make_session()
+    store.save_session(data)
+    loaded = store.load_session("sess-001")
+
+    assert loaded is not None
+    assert loaded["session_id"] == "sess-001"
+    assert loaded["dataset_tag"] == "demo"
+    assert loaded["grid_rows"] == 3
+    assert loaded["grid_cols"] == 3
+    assert loaded["placement"] == {}
+    assert loaded["rejected"] == {}
+    assert loaded["undo_stack"] == []
+    assert loaded["complete"] is False
+    assert loaded["score"] is None
+
+
+def test_save_session_with_placement(store: DatasetStore) -> None:
+    """Session with non-empty placement JSON round-trips."""
+    placement = {"0,0": ["sheet1:0", 0], "1,1": ["sheet1:1", 90]}
+    data = _make_session(
+        placement=placement,
+        undo_stack=["0,0", "1,1"],
+        score=12.5,
+    )
+    store.save_session(data)
+    loaded = store.load_session("sess-001")
+
+    assert loaded is not None
+    assert loaded["placement"] == placement
+    assert loaded["undo_stack"] == ["0,0", "1,1"]
+    assert loaded["score"] == 12.5
+
+
+def test_save_session_with_rejected(store: DatasetStore) -> None:
+    """Session with rejected pieces round-trips."""
+    rejected = {"0,0": ["sheet1:2", "sheet1:3"]}
+    data = _make_session(rejected=rejected)
+    store.save_session(data)
+    loaded = store.load_session("sess-001")
+    assert loaded is not None
+    assert loaded["rejected"] == rejected
+
+
+def test_load_session_missing(store: DatasetStore) -> None:
+    """load_session returns None for unknown session_id."""
+    assert store.load_session("nonexistent") is None
+
+
+def test_load_sessions_ordered_by_updated_at(store: DatasetStore) -> None:
+    """load_sessions returns newest first."""
+    store.save_session(
+        _make_session(
+            session_id="old",
+            updated_at="2026-01-01T00:00:00+00:00",
+        )
+    )
+    store.save_session(
+        _make_session(
+            session_id="new",
+            updated_at="2026-04-16T00:00:00+00:00",
+        )
+    )
+    loaded = store.load_sessions()
+    assert len(loaded) == 2
+    assert loaded[0]["session_id"] == "new"
+    assert loaded[1]["session_id"] == "old"
+
+
+def test_delete_session(store: DatasetStore) -> None:
+    """delete_session removes the row and returns True."""
+    store.save_session(_make_session())
+    assert store.delete_session("sess-001") is True
+    assert store.load_session("sess-001") is None
+
+
+def test_delete_session_missing(store: DatasetStore) -> None:
+    """delete_session returns False for unknown session_id."""
+    assert store.delete_session("nonexistent") is False
+
+
+def test_save_session_upsert(store: DatasetStore) -> None:
+    """Saving the same session_id twice updates the row."""
+    store.save_session(_make_session(score=None))
+    store.save_session(_make_session(score=42.0, complete=True))
+    loaded = store.load_session("sess-001")
+    assert loaded is not None
+    assert loaded["score"] == 42.0
+    assert loaded["complete"] is True

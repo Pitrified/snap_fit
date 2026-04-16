@@ -4,11 +4,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from snap_fit.data_models.piece_id import PieceId
+from snap_fit.grid.orientation import Orientation
+from snap_fit.grid.types import GridPos
+
 if TYPE_CHECKING:
-    from snap_fit.data_models.piece_id import PieceId
     from snap_fit.grid.grid_model import GridModel
-    from snap_fit.grid.orientation import Orientation
-    from snap_fit.grid.types import GridPos
 
 
 class PlacementState:
@@ -167,3 +168,35 @@ class PlacementState:
             f"PlacementState(grid={self._grid.rows}x{self._grid.cols}, "
             f"placed={self.placed_count}/{self._grid.total_cells})"
         )
+
+    def to_dict(self) -> dict[str, tuple[str, int]]:
+        """Serialize placements to a JSON-friendly dict.
+
+        Returns:
+            Mapping of ``"ro,co"`` to ``("sheet_id:piece_idx", orientation_deg)``.
+        """
+        return {
+            f"{pos.ro},{pos.co}": (str(piece_id), orientation.value)
+            for pos, (piece_id, orientation) in self._placements.items()
+        }
+
+    @classmethod
+    def from_dict(
+        cls,
+        grid: GridModel,
+        data: dict[str, tuple[str, int]],
+    ) -> PlacementState:
+        """Reconstruct from serialized dict.
+
+        Args:
+            grid: The GridModel for validation.
+            data: Output of ``to_dict()``.
+        """
+        state = cls(grid)
+        for pos_str, (pid_str, orient_val) in data.items():
+            ro_str, co_str = pos_str.split(",")
+            pos = GridPos(ro=int(ro_str), co=int(co_str))
+            piece_id = PieceId.from_str(pid_str)
+            orientation = Orientation(orient_val)
+            state.place(piece_id, pos, orientation)
+        return state

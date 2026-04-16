@@ -67,6 +67,21 @@ _DDL_IDX_SEG2 = (
 )
 _DDL_IDX_SIM = "CREATE INDEX IF NOT EXISTS idx_matches_sim ON matches (similarity)"
 
+_DDL_SESSIONS = """\
+CREATE TABLE IF NOT EXISTS sessions (
+    session_id  TEXT    PRIMARY KEY,
+    dataset_tag TEXT    NOT NULL,
+    grid_rows   INTEGER NOT NULL,
+    grid_cols   INTEGER NOT NULL,
+    placement   TEXT    NOT NULL DEFAULT '{}',
+    rejected    TEXT    NOT NULL DEFAULT '{}',
+    undo_stack  TEXT    NOT NULL DEFAULT '[]',
+    complete    INTEGER NOT NULL DEFAULT 0,
+    score       REAL,
+    created_at  TEXT    NOT NULL,
+    updated_at  TEXT    NOT NULL
+)"""
+
 # Migrations for existing databases that lack new columns.
 _MIGRATE_SHEETS_METADATA = "ALTER TABLE sheets ADD COLUMN metadata TEXT"
 _MIGRATE_PIECES_LABEL = "ALTER TABLE pieces ADD COLUMN label TEXT"
@@ -77,6 +92,7 @@ _DDL_ALL = (
     _DDL_SHEETS,
     _DDL_PIECES,
     _DDL_MATCHES,
+    _DDL_SESSIONS,
     _DDL_IDX_SEG1,
     _DDL_IDX_SEG2,
     _DDL_IDX_SIM,
@@ -97,6 +113,17 @@ INSERT OR REPLACE INTO pieces
    oriented_piece_type, flat_edges, contour_point_count, contour_region,
    label, sheet_origin, padded_size)
   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
+
+_INS_SESSION = """\
+INSERT OR REPLACE INTO sessions
+  (session_id, dataset_tag, grid_rows, grid_cols,
+   placement, rejected, undo_stack, complete, score,
+   created_at, updated_at)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
+
+_SEL_SESSION = "SELECT * FROM sessions WHERE session_id = ?"
+_SEL_SESSIONS = "SELECT * FROM sessions ORDER BY updated_at DESC"
+_DEL_SESSION = "DELETE FROM sessions WHERE session_id = ?"
 
 _INS_MATCH = """\
 INSERT INTO matches
@@ -495,3 +522,78 @@ class DatasetStore:
         cursor = self._conn.execute(_SEL_MATCH_COUNT)
         row = cursor.fetchone()
         return int(row[0])
+
+    # -------------------------------------------------------------------------
+    # Sessions
+    # -------------------------------------------------------------------------
+
+    def save_session(self, data: dict[str, object]) -> None:
+        """Insert or replace a session record.
+
+        Args:
+            data: Session dict with keys matching the sessions table columns.
+                ``placement``, ``rejected``, and ``undo_stack`` may be dicts/lists
+                (they are JSON-serialized automatically).
+        """
+        row = (
+            data["session_id"],
+            data["dataset_tag"],
+            data["grid_rows"],
+            data["grid_cols"],
+            json.dumps(data.get("placement", {})),
+            json.dumps(data.get("rejected", {})),
+            json.dumps(data.get("undo_stack", [])),
+            int(bool(data.get("complete", False))),
+            data.get("score"),
+            data["created_at"],
+            data["updated_at"],
+        )
+        with self._conn:
+            self._conn.execute(_INS_SESSION, row)
+
+    def load_session(self, session_id: str) -> dict[str, object] | None:
+        """Return a session dict by ID, or ``None`` if not found.
+
+        Args:
+            session_id: The session identifier.
+        """
+        cursor = self._conn.execute(_SEL_SESSION, (session_id,))
+        row = cursor.fetchone()
+        if row is None:
+            return None
+        return self._row_to_session_dict(row)
+
+    def load_sessions(self) -> list[dict[str, object]]:
+        """Return all session dicts ordered by most recently updated."""
+        cursor = self._conn.execute(_SEL_SESSIONS)
+        return [self._row_to_session_dict(row) for row in cursor.fetchall()]
+
+    def delete_session(self, session_id: str) -> bool:
+        """Delete a session by ID.
+
+        Args:
+            session_id: The session identifier.
+
+        Returns:
+            ``True`` if a row was deleted, ``False`` otherwise.
+        """
+        with self._conn:
+            cursor = self._conn.execute(_DEL_SESSION, (session_id,))
+        return cursor.rowcount > 0
+
+    @staticmethod
+    def _row_to_session_dict(row: Row) -> dict[str, object]:
+        """Convert a sessions table row to a plain dict."""
+        return {
+            "session_id": row["session_id"],
+            "dataset_tag": row["dataset_tag"],
+            "grid_rows": row["grid_rows"],
+            "grid_cols": row["grid_cols"],
+            "placement": json.loads(row["placement"]),
+            "rejected": json.loads(row["rejected"]),
+            "undo_stack": json.loads(row["undo_stack"]),
+            "complete": bool(row["complete"]),
+            "score": row["score"],
+            "created_at": row["created_at"],
+            "updated_at": row["updated_at"],
+        }

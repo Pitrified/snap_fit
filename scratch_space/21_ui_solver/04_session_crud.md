@@ -1,6 +1,6 @@
 # 04 - Session CRUD & PlacementState Persistence
 
-> **Status:** not started
+> **Status:** done
 > **Depends on:** 02 (dataset selector)
 > **Main plan ref:** Phase 2
 

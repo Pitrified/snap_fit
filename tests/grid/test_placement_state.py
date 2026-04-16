@@ -183,3 +183,54 @@ class TestPlacementStateClone:
         state = PlacementState(grid_3x3)
         clone = state.clone()
         assert clone.grid is state.grid
+
+
+class TestPlacementStateSerialization:
+    """Tests for to_dict / from_dict round-trip."""
+
+    def test_empty_round_trip(self, grid_3x3: GridModel) -> None:
+        """Empty state serializes to empty dict and restores."""
+        state = PlacementState(grid_3x3)
+        d = state.to_dict()
+        assert d == {}
+        restored = PlacementState.from_dict(grid_3x3, d)
+        assert restored.placed_count == 0
+
+    def test_single_piece_round_trip(
+        self, grid_3x3: GridModel, piece_a: PieceId
+    ) -> None:
+        """Single placement survives serialization."""
+        state = PlacementState(grid_3x3)
+        pos = GridPos(ro=1, co=2)
+        state.place(piece_a, pos, Orientation.DEG_90)
+
+        d = state.to_dict()
+        assert d == {"1,2": ("sheet1:0", 90)}
+
+        restored = PlacementState.from_dict(grid_3x3, d)
+        assert restored.placed_count == 1
+        result = restored.get_placement(pos)
+        assert result is not None
+        assert result[0] == piece_a
+        assert result[1] == Orientation.DEG_90
+
+    def test_multiple_pieces_round_trip(
+        self, grid_3x3: GridModel, piece_a: PieceId, piece_b: PieceId
+    ) -> None:
+        """Multiple placements survive serialization."""
+        state = PlacementState(grid_3x3)
+        state.place(piece_a, GridPos(ro=0, co=0), Orientation.DEG_0)
+        state.place(piece_b, GridPos(ro=2, co=2), Orientation.DEG_270)
+
+        d = state.to_dict()
+        restored = PlacementState.from_dict(grid_3x3, d)
+
+        assert restored.placed_count == 2
+        assert restored.get_placement(GridPos(ro=0, co=0)) == (
+            piece_a,
+            Orientation.DEG_0,
+        )
+        assert restored.get_placement(GridPos(ro=2, co=2)) == (
+            piece_b,
+            Orientation.DEG_270,
+        )
