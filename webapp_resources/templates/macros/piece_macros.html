@@ -1,0 +1,90 @@
+{% macro piece_card(piece, size=100, show_label=true, show_type=true, show_shapes=true) %}
+<div class="piece-card" data-piece-id="{{ piece.piece_id }}">
+  <div class="piece-card__img">
+    <img src="/api/v1/pieces/{{ piece.piece_id }}/img?size={{ size }}"
+         alt="Piece {{ piece.piece_id }}"
+         loading="lazy"
+         width="{{ size }}" height="{{ size }}">
+    {% if show_label and piece.label %}
+      <span class="piece-card__label">{{ piece.label }}</span>
+    {% endif %}
+  </div>
+  {% if show_type and piece.oriented_piece_type %}
+    <span class="badge badge--type">
+      {{ piece.oriented_piece_type.piece_type.name }}
+    </span>
+  {% endif %}
+  {% if show_shapes %}
+    <div class="piece-card__shapes">
+      {% for edge, shape in piece.segment_shapes.items() %}
+        <span class="shape-dot shape-dot--{{ shape | lower }}"
+              title="{{ edge }}: {{ shape }}">
+        </span>
+      {% endfor %}
+    </div>
+  {% endif %}
+</div>
+{% endmacro %}
+
+
+{% macro match_card(match, size=80, show_actions=false) %}
+<div class="match-card" data-seg1="{{ match.seg_id1 }}" data-seg2="{{ match.seg_id2 }}">
+  <div class="match-card__pieces">
+    <div class="match-card__piece">
+      <img src="/api/v1/pieces/{{ match.seg_id1.piece_id }}/img?size={{ size }}"
+           loading="lazy" width="{{ size }}" height="{{ size }}">
+      <span class="edge-badge edge-badge--{{ match.seg_id1.edge_pos.value | lower }}">
+        {{ match.seg_id1.edge_pos.value }}
+      </span>
+    </div>
+    <div class="match-card__vs">vs</div>
+    <div class="match-card__piece">
+      <img src="/api/v1/pieces/{{ match.seg_id2.piece_id }}/img?size={{ size }}"
+           loading="lazy" width="{{ size }}" height="{{ size }}">
+      <span class="edge-badge edge-badge--{{ match.seg_id2.edge_pos.value | lower }}">
+        {{ match.seg_id2.edge_pos.value }}
+      </span>
+    </div>
+  </div>
+  <div class="match-card__score {{ 'score--good' if match.similarity < 0.3 else ('score--ok' if match.similarity < 0.7 else 'score--bad') }}">
+    {{ "%.3f" | format(match.similarity) }}
+  </div>
+  {% if show_actions %}
+    <div class="match-card__actions">
+      <button class="btn btn--accept" data-action="accept">Accept</button>
+      <button class="btn btn--reject" data-action="reject">Reject</button>
+    </div>
+  {% endif %}
+</div>
+{% endmacro %}
+
+
+{% macro grid_cell(pos, placement=none, slot_type=none, is_target=false) %}
+<div class="grid-cell
+            {{ 'grid-cell--filled' if placement else 'grid-cell--empty' }}
+            {{ 'grid-cell--target' if is_target else '' }}"
+     data-pos="{{ pos }}"
+     {% if not placement %}onclick="selectSlot('{{ pos }}')"{% endif %}>
+  {% if placement %}
+    {% set piece_id = placement[0] %}
+    {% set orientation = placement[1] %}
+    <img src="/api/v1/pieces/{{ piece_id }}/img?size=80"
+         style="transform: rotate({{ orientation }}deg)"
+         loading="lazy">
+    <span class="grid-cell__label">{{ piece_id }}</span>
+  {% else %}
+    {% if slot_type %}
+      <span class="grid-cell__type">{{ slot_type }}</span>
+    {% endif %}
+  {% endif %}
+</div>
+{% endmacro %}
+
+
+{% macro score_badge(score) %}
+{% set confidence = 1.0 / (1.0 + score) %}
+<span class="score-badge"
+      style="background-color: hsl({{ (confidence * 120) | int }}, 70%, 50%)">
+  {{ "%.3f" | format(score) }}
+</span>
+{% endmacro %}

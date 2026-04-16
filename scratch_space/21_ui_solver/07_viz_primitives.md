@@ -1,6 +1,6 @@
 # 07 - Visualization Primitives
 
-> **Status:** not started
+> **Status:** done
 > **Depends on:** 03 (piece image endpoint)
 > **Main plan ref:** Preliminary changes #4
 

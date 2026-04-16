@@ -1,0 +1,146 @@
+/* =========================================================
+   Visualization component styles for snap_fit
+   ========================================================= */
+
+/* ----- Piece card ----- */
+.piece-card {
+  display: inline-block;
+  text-align: center;
+  margin: 4px;
+}
+.piece-card__img {
+  position: relative;
+}
+.piece-card__label {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  padding: 1px 4px;
+  font-size: 11px;
+  border-radius: 2px;
+}
+
+/* ----- Shape dots ----- */
+.shape-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin: 1px;
+}
+.shape-dot--in    { background: #3b82f6; }
+.shape-dot--out   { background: #ef4444; }
+.shape-dot--edge  { background: #9ca3af; }
+.shape-dot--weird { background: #eab308; }
+
+/* ----- Match card ----- */
+.match-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  margin: 4px 0;
+}
+.match-card__pieces {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.match-card__piece {
+  position: relative;
+  text-align: center;
+}
+.match-card__vs {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  padding: 0 4px;
+}
+.match-card__score {
+  font-weight: 600;
+  font-size: 0.875rem;
+  margin-left: auto;
+}
+.match-card__actions {
+  display: flex;
+  gap: 4px;
+}
+
+/* ----- Edge badges ----- */
+.edge-badge {
+  display: inline-block;
+  font-size: 10px;
+  padding: 1px 4px;
+  border-radius: 2px;
+  background: #f3f4f6;
+  color: #374151;
+  text-transform: uppercase;
+}
+.edge-badge--top    { background: #dbeafe; color: #1e40af; }
+.edge-badge--bottom { background: #fce7f3; color: #9d174d; }
+.edge-badge--left   { background: #d1fae5; color: #065f46; }
+.edge-badge--right  { background: #fef3c7; color: #92400e; }
+
+/* ----- Score colors ----- */
+.score--good { color: #16a34a; }
+.score--ok   { color: #ca8a04; }
+.score--bad  { color: #dc2626; }
+
+/* ----- Score badge ----- */
+.score-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+/* ----- Grid cell ----- */
+.grid-cell {
+  width: 90px;
+  height: 90px;
+  border: 1px solid #d1d5db;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+.grid-cell--empty {
+  border-style: dashed;
+  background: #f9fafb;
+}
+.grid-cell--filled {
+  border-style: solid;
+  background: #fff;
+}
+.grid-cell--target {
+  border-color: #3b82f6;
+  border-width: 2px;
+}
+.grid-cell__type {
+  font-size: 10px;
+  color: #9ca3af;
+  text-transform: uppercase;
+}
+.grid-cell__label {
+  position: absolute;
+  bottom: 2px;
+  left: 2px;
+  font-size: 9px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  padding: 1px 3px;
+  border-radius: 2px;
+}
+
+/* ----- Badge type (piece type) ----- */
+.badge--type {
+  background: #ede9fe;
+  color: #5b21b6;
+}
