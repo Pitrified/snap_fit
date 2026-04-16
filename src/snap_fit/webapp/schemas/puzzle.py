@@ -31,3 +31,19 @@ class MatchQueryParams(BaseModel):
     limit: int = 100
     min_similarity: float | None = None
     piece_id: str | None = None
+
+
+class RunMatchingRequest(BaseModel):
+    """Request to run segment matching for a dataset."""
+
+    dataset_tag: str
+    force: bool = False
+
+
+class RunMatchingResponse(BaseModel):
+    """Response from run_matching."""
+
+    success: bool
+    message: str
+    match_count: int
+    duration_seconds: float

@@ -14,6 +14,8 @@ from snap_fit.webapp.core.settings import Settings
 from snap_fit.webapp.core.settings import get_settings
 from snap_fit.webapp.schemas.puzzle import PuzzleSolveRequest
 from snap_fit.webapp.schemas.puzzle import PuzzleSolveResponse
+from snap_fit.webapp.schemas.puzzle import RunMatchingRequest
+from snap_fit.webapp.schemas.puzzle import RunMatchingResponse
 from snap_fit.webapp.services.puzzle_service import PuzzleService
 
 router = APIRouter()
@@ -23,7 +25,11 @@ def get_puzzle_service(
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> PuzzleService:
     """Dependency to get PuzzleService instance."""
-    return PuzzleService(settings.cache_path, dataset_tag=settings.active_dataset)
+    return PuzzleService(
+        settings.cache_path,
+        data_dir=settings.data_path,
+        dataset_tag=settings.active_dataset,
+    )
 
 
 @router.get("/matches", summary="List all matches")
@@ -121,3 +127,29 @@ async def solve_puzzle(
         config_path=request.config_path,
     )
     return PuzzleSolveResponse(**result)
+
+
+@router.post("/run_matching", summary="Run segment matching")
+async def run_matching(
+    request: RunMatchingRequest,
+    service: Annotated[PuzzleService, Depends(get_puzzle_service)],
+) -> RunMatchingResponse:
+    """Run PieceMatcher.match_all() for a dataset.
+
+    This is a blocking call that may take several minutes for large datasets.
+
+    Args:
+        request: Dataset tag and force flag.
+        service: PuzzleService instance (injected).
+
+    Returns:
+        Summary of the matching run including match count and duration.
+    """
+    try:
+        result = service.run_matching(
+            dataset_tag=request.dataset_tag,
+            force=request.force,
+        )
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return RunMatchingResponse(**result)

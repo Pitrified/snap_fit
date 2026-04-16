@@ -42,6 +42,68 @@
     <div id="status-msg" style="margin-top:1rem; font-size:0.95rem;"></div>
 </div>
 
+<div class="card" style="margin-top:1.5rem;">
+    <h2>Run Matching</h2>
+    <p>Compute segment similarity scores for a dataset. This may take several minutes.</p>
+
+    {% if active_dataset %}
+    <p style="margin-top:0.75rem;">
+        Active dataset: <strong class="badge badge-info">{{ active_dataset }}</strong>
+    </p>
+    <div style="margin-top:1rem; display:flex; gap:1rem; align-items:center; flex-wrap:wrap;">
+        <button
+            id="run-matching-btn"
+            onclick="runMatching(false)"
+            style="padding:0.5rem 1.25rem; background:var(--primary); color:white; border:none; border-radius:4px; cursor:pointer;"
+        >Run Matching</button>
+        <button
+            id="run-matching-force-btn"
+            onclick="runMatching(true)"
+            style="padding:0.5rem 1.25rem; background:transparent; color:var(--text-muted); border:1px solid var(--border); border-radius:4px; cursor:pointer;"
+        >Force Re-run</button>
+    </div>
+    <div id="matching-status" style="margin-top:1rem; font-size:0.95rem;"></div>
+    {% else %}
+    <p style="margin-top:0.75rem; color:var(--text-muted);">Select a dataset above to enable matching.</p>
+    {% endif %}
+</div>
+
+<script>
+async function runMatching(force) {
+    const btn = document.getElementById('run-matching-btn');
+    const forceBtn = document.getElementById('run-matching-force-btn');
+    const statusEl = document.getElementById('matching-status');
+    btn.disabled = true;
+    forceBtn.disabled = true;
+    btn.textContent = 'Running...';
+    statusEl.textContent = 'Matching in progress - this may take several minutes...';
+    statusEl.style.color = 'var(--text-muted)';
+    try {
+        const res = await fetch('/api/v1/puzzle/run_matching', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({dataset_tag: '{{ active_dataset }}', force: force}),
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+            statusEl.textContent = data.message;
+            statusEl.style.color = 'var(--success, green)';
+        } else {
+            const detail = data.detail || data.message || 'Unknown error';
+            statusEl.textContent = 'Error: ' + detail;
+            statusEl.style.color = 'var(--danger, red)';
+        }
+    } catch (err) {
+        statusEl.textContent = 'Request failed: ' + err;
+        statusEl.style.color = 'var(--danger, red)';
+    } finally {
+        btn.disabled = false;
+        forceBtn.disabled = false;
+        btn.textContent = 'Run Matching';
+    }
+}
+</script>
+
 <script>
 async function selectDataset(tag) {
     const res = await fetch('/api/v1/settings/dataset', {

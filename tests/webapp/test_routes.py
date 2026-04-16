@@ -316,3 +316,58 @@ class TestWithCachedData:
 
         get_settings.cache_clear()
         del os.environ["CACHE_DIR"]
+
+
+class TestRunMatchingEndpoint:
+    """Tests for the run_matching endpoint."""
+
+    def test_run_matching_unknown_tag_returns_400(self, client: TestClient) -> None:
+        """run_matching returns 400 when the dataset config is not found."""
+        response = client.post(
+            "/api/v1/puzzle/run_matching",
+            json={"dataset_tag": "nonexistent_dataset"},
+        )
+        assert response.status_code == 400
+
+    def test_run_matching_skips_when_matches_exist(self, tmp_path: Path) -> None:
+        """run_matching with force=False returns existing count without re-running."""
+        import os
+
+        from snap_fit.config.types import EdgePos
+        from snap_fit.data_models.match_result import MatchResult
+        from snap_fit.data_models.piece_id import PieceId
+        from snap_fit.data_models.segment_id import SegmentId
+        from snap_fit.persistence.sqlite_store import DatasetStore
+        from snap_fit.webapp.core.settings import get_settings
+
+        tag_dir = tmp_path / "demo"
+        tag_dir.mkdir(parents=True)
+        db_path = tag_dir / "dataset.db"
+
+        seg1 = SegmentId(
+            piece_id=PieceId(sheet_id="s1", piece_id=0), edge_pos=EdgePos.TOP
+        )
+        seg2 = SegmentId(
+            piece_id=PieceId(sheet_id="s1", piece_id=1), edge_pos=EdgePos.BOTTOM
+        )
+        match = MatchResult(seg_id1=seg1, seg_id2=seg2, similarity=0.5)
+        with DatasetStore(db_path) as store:
+            store.save_matches([match])
+
+        os.environ["CACHE_DIR"] = str(tmp_path)
+        get_settings.cache_clear()
+        app = create_app()
+        local_client = TestClient(app)
+
+        response = local_client.post(
+            "/api/v1/puzzle/run_matching",
+            json={"dataset_tag": "demo", "force": False},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert data["match_count"] == 1
+        assert data["duration_seconds"] == 0.0
+
+        get_settings.cache_clear()
+        del os.environ["CACHE_DIR"]
