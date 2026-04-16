@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% from "macros/piece_macros.html" import piece_card, grid_cell, score_badge %}
+
+{% block content %}
+<div class="breadcrumb">
+  <a href="/solver">Solver</a> <span>&rsaquo;</span> {{ session.session_id[:12] }}
+</div>
+
+{# Info bar #}
+<div class="card solver-info">
+  <div style="display:flex; align-items:center; gap:1.5rem; flex-wrap:wrap;">
+    <span><strong>Dataset:</strong> {{ session.dataset_tag }}</span>
+    <span><strong>Grid:</strong> {{ session.grid_rows }}&times;{{ session.grid_cols }}</span>
+    <span>
+      <strong>Placed:</strong> {{ session.placed_count }} / {{ session.total_cells }}
+    </span>
+    <progress value="{{ session.placed_count }}" max="{{ session.total_cells }}"
+              style="height:20px; flex:1; min-width:120px;"></progress>
+    {% if session.score is not none %}
+      <span><strong>Score:</strong> {{ "%.2f" | format(session.score) }}</span>
+    {% endif %}
+    <span class="badge {{ 'badge-success' if session.complete else 'badge-info' }}">
+      {{ "Complete" if session.complete else "In Progress" }}
+    </span>
+  </div>
+</div>
+
+{# Main layout: grid + suggestion panel #}
+<div class="solver-layout">
+  {# Grid canvas #}
+  <div class="card solver-grid-container">
+    <h2>Grid</h2>
+    <div class="solver-grid"
+         style="grid-template-columns: repeat({{ session.grid_cols }}, 90px);
+                grid-template-rows: repeat({{ session.grid_rows }}, 90px);">
+      {% for ro in range(session.grid_rows) %}
+        {% for co in range(session.grid_cols) %}
+          {% set pos_key = ro ~ "," ~ co %}
+          {% set placement = session.placement.get(pos_key) %}
+          {% set suggestion_slot = session.pending_suggestion.slot if session.pending_suggestion else none %}
+          {{ grid_cell(pos_key, placement=placement, is_target=(pos_key == suggestion_slot)) }}
+        {% endfor %}
+      {% endfor %}
+    </div>
+  </div>
+
+  {# Suggestion panel #}
+  <div class="card solver-suggestion-panel">
+    {% if session.pending_suggestion %}
+      {% set suggestion = session.pending_suggestion %}
+      {% set candidate = suggestion.candidates[suggestion.current_index] if suggestion.candidates else none %}
+      <h2>Suggestion for slot {{ suggestion.slot }}</h2>
+      {% if candidate %}
+        <div class="suggestion-candidate">
+          <div class="suggestion-candidate__img">
+            <img src="/api/v1/pieces/{{ candidate.piece_id }}/img?size=150"
+                 style="transform: rotate({{ candidate.orientation }}deg)"
+                 loading="lazy" width="150" height="150">
+            {% if candidate.piece_label %}
+              <span class="piece-card__label" style="font-size:14px;">{{ candidate.piece_label }}</span>
+            {% endif %}
+          </div>
+          <div class="suggestion-scores">
+            <p><strong>Total:</strong> {{ score_badge(candidate.score) }}</p>
+            {% for pos, score in candidate.neighbor_scores.items() %}
+              <p>vs {{ pos }}: {{ score_badge(score) }}</p>
+            {% endfor %}
+          </div>
+          <div style="color:var(--text-muted); font-size:0.85rem; margin-top:0.5rem;">
+            Candidate {{ suggestion.current_index + 1 }} / {{ suggestion.candidates | length }}
+          </div>
+        </div>
+        <div class="suggestion-actions">
+          <button onclick="acceptSuggestion()" class="btn btn--accept">Accept</button>
+          <button onclick="skipSuggestion()" class="btn btn--skip">Skip</button>
+          <button onclick="undoLast()" class="btn btn--undo"
+                  {% if not session.undo_stack %}disabled{% endif %}>Undo</button>
+        </div>
+      {% else %}
+        <p style="color:var(--text-muted);">No candidates available for slot {{ suggestion.slot }}.</p>
+        <div class="suggestion-actions">
+          <button onclick="undoLast()" class="btn btn--undo"
+                  {% if not session.undo_stack %}disabled{% endif %}>Undo</button>
+        </div>
+      {% endif %}
+    {% else %}
+      <h2>Suggestions</h2>
+      {% if session.complete %}
+        <div class="empty-state" style="padding:2rem;">
+          <p>Puzzle complete!</p>
+        </div>
+      {% else %}
+        <div class="empty-state" style="padding:2rem;">
+          <p>Click an empty slot or press the button below.</p>
+        </div>
+        <div class="suggestion-actions">
+          <button onclick="nextSuggestion()" class="btn btn--accept">Get Suggestion</button>
+          <button onclick="undoLast()" class="btn btn--undo"
+                  {% if not session.undo_stack %}disabled{% endif %}>Undo</button>
+        </div>
+      {% endif %}
+    {% endif %}
+  </div>
+</div>
+
+{# Unplaced pieces #}
+<div class="card">
+  <h2>Unplaced Pieces ({{ unplaced | length }})</h2>
+  {% if unplaced %}
+  <div class="unplaced-pieces__scroll">
+    {% for piece in unplaced %}
+      {{ piece_card(piece, size=60, show_shapes=false) }}
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state" style="padding:1rem;">
+    <p>All pieces placed.</p>
+  </div>
+  {% endif %}
+</div>
+
+<script src="/static/js/solver.js"></script>
+<script>
+  initSolver({{ session.session_id | tojson }}, {{ session.dataset_tag | tojson }});
+</script>
+{% endblock %}

@@ -9,6 +9,7 @@ from fastapi.responses import HTMLResponse
 
 from snap_fit.webapp.core.settings import Settings
 from snap_fit.webapp.core.settings import get_settings
+from snap_fit.webapp.services.interactive_service import InteractiveService
 from snap_fit.webapp.services.piece_service import PieceService
 from snap_fit.webapp.services.puzzle_service import PuzzleService
 
@@ -33,6 +34,13 @@ def get_puzzle_service(
 ) -> PuzzleService:
     """Dependency to get PuzzleService instance."""
     return PuzzleService(settings.cache_path, dataset_tag=settings.active_dataset)
+
+
+def get_interactive_service(
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> InteractiveService:
+    """Dependency to get InteractiveService instance."""
+    return InteractiveService(settings.cache_path, settings.data_path)
 
 
 @router.get("/", response_class=HTMLResponse, summary="Home page")
@@ -159,5 +167,88 @@ async def settings_page(
             "title": "Settings",
             "available_datasets": settings.available_datasets(),
             "active_dataset": settings.active_dataset,
+        },
+    )
+
+
+# ------------------------------------------------------------------
+# Solver pages
+# ------------------------------------------------------------------
+
+
+@router.get("/solver", response_class=HTMLResponse, summary="Solver home")
+async def solver_home(
+    request: Request,
+    settings: SettingsDep,
+    service: Annotated[InteractiveService, Depends(get_interactive_service)],
+) -> HTMLResponse:
+    """Render the solver session list and create form."""
+    templates = request.app.state.templates
+    tag = settings.active_dataset
+    sessions = service.list_sessions(tag) if tag else []
+    return templates.TemplateResponse(
+        request,
+        "solver_home.html",
+        {
+            "title": "Solver",
+            "datasets": settings.available_datasets(),
+            "sessions": sessions,
+            "current_tag": tag,
+        },
+    )
+
+
+@router.get(
+    "/solver/{session_id}",
+    response_class=HTMLResponse,
+    summary="Interactive solver view",
+)
+async def solver_page(
+    request: Request,
+    session_id: str,
+    settings: SettingsDep,
+    interactive_service: Annotated[
+        InteractiveService, Depends(get_interactive_service)
+    ],
+    piece_service: Annotated[PieceService, Depends(get_piece_service)],
+) -> HTMLResponse:
+    """Render the interactive solver view for a session."""
+    templates = request.app.state.templates
+    tag = settings.active_dataset
+    if tag is None:
+        return templates.TemplateResponse(
+            request,
+            "solver_home.html",
+            {
+                "title": "Solver",
+                "datasets": settings.available_datasets(),
+                "sessions": [],
+                "current_tag": None,
+                "error": "Select a dataset first.",
+            },
+        )
+    session = interactive_service.get_session(tag, session_id)
+    if session is None:
+        return templates.TemplateResponse(
+            request,
+            "solver_home.html",
+            {
+                "title": "Solver",
+                "datasets": settings.available_datasets(),
+                "sessions": interactive_service.list_sessions(tag),
+                "current_tag": tag,
+                "error": f"Session {session_id} not found.",
+            },
+        )
+    all_pieces = piece_service.list_pieces()
+    placed_ids = {pid for pid, _orient in session.placement.values()}
+    unplaced = [p for p in all_pieces if str(p.piece_id) not in placed_ids]
+    return templates.TemplateResponse(
+        request,
+        "solver.html",
+        {
+            "title": f"Solver: {session_id[:8]}",
+            "session": session,
+            "unplaced": unplaced,
         },
     )

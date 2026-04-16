@@ -12,7 +12,7 @@ Track sub-plans location and high-level status for the UI solver feature.
 | 05 | [05_suggestion_engine.md](05_suggestion_engine.md) | Suggestion engine | **done** | 04, 06 |
 | 06 | [06_run_matching.md](06_run_matching.md) | Run matching endpoint | **done** | - |
 | 07 | [07_viz_primitives.md](07_viz_primitives.md) | Visualization primitives (Jinja2 macros) | **done** | 03 |
-| 08 | [08_solver_ui_templates.md](08_solver_ui_templates.md) | Solver UI templates | **not started** | 03, 04, 05, 07 |
+| 08 | [08_solver_ui_templates.md](08_solver_ui_templates.md) | Solver UI templates | **done** | 03, 04, 05, 07 |
 | 09 | [09_orientation_debug.md](09_orientation_debug.md) | Orientation debug page | **not started** | 03 |
 
 ## Dependency graph

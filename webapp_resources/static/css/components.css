@@ -144,3 +144,85 @@
   background: #ede9fe;
   color: #5b21b6;
 }
+
+/* ----- Solver layout ----- */
+.solver-layout {
+  display: grid;
+  grid-template-columns: auto 320px;
+  gap: 1rem;
+  align-items: start;
+  margin-bottom: 1rem;
+}
+@media (max-width: 900px) {
+  .solver-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.solver-grid {
+  display: grid;
+  gap: 2px;
+}
+.solver-grid-container {
+  overflow-x: auto;
+}
+
+/* ----- Suggestion panel ----- */
+.solver-suggestion-panel {
+  min-width: 280px;
+}
+.suggestion-candidate {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+.suggestion-candidate__img {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 0.5rem;
+}
+.suggestion-scores {
+  text-align: left;
+  font-size: 0.85rem;
+}
+.suggestion-scores p {
+  margin: 0.25rem 0;
+}
+.suggestion-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+/* ----- Action buttons ----- */
+.btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.btn--accept {
+  background: #22c55e;
+  color: #fff;
+}
+.btn--skip {
+  background: #f59e0b;
+  color: #fff;
+}
+.btn--undo {
+  background: #6b7280;
+  color: #fff;
+}
+
+/* ----- Unplaced pieces row ----- */
+.unplaced-pieces__scroll {
+  display: flex;
+  overflow-x: auto;
+  gap: 4px;
+  padding: 8px 0;
+}

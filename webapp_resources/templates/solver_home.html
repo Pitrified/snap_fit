@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block content %}
+{% if error %}
+<div class="card" style="border-color: var(--warning); background: #fef3c7;">
+  <p style="color: #92400e;">{{ error }}</p>
+</div>
+{% endif %}
+
+<div class="card">
+  <h2>New Session</h2>
+  {% if current_tag %}
+  <form id="create-session-form" style="display:flex; gap:1rem; align-items:flex-end; flex-wrap:wrap;">
+    <div>
+      <label style="display:block; font-size:0.75rem; color:var(--text-muted); text-transform:uppercase;">Dataset</label>
+      <input type="text" id="session-tag" value="{{ current_tag }}" readonly
+             style="padding:0.5rem; border:1px solid var(--border); border-radius:4px; background:var(--bg); width:140px;">
+    </div>
+    <div>
+      <label style="display:block; font-size:0.75rem; color:var(--text-muted); text-transform:uppercase;">Rows</label>
+      <input type="number" id="session-rows" min="1" max="20" value="4"
+             style="padding:0.5rem; border:1px solid var(--border); border-radius:4px; width:80px;">
+    </div>
+    <div>
+      <label style="display:block; font-size:0.75rem; color:var(--text-muted); text-transform:uppercase;">Cols</label>
+      <input type="number" id="session-cols" min="1" max="20" value="6"
+             style="padding:0.5rem; border:1px solid var(--border); border-radius:4px; width:80px;">
+    </div>
+    <button type="submit"
+            style="padding:0.5rem 1.5rem; background:var(--primary); color:white; border:none; border-radius:4px; cursor:pointer; font-size:0.875rem;">
+      Create Session
+    </button>
+  </form>
+  {% else %}
+  <p style="color:var(--text-muted);">
+    <a href="/settings">Select a dataset</a> before creating a session.
+  </p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2>Sessions{% if current_tag %} ({{ current_tag }}){% endif %}</h2>
+  {% if sessions %}
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Session ID</th>
+        <th>Grid</th>
+        <th>Placed</th>
+        <th>Status</th>
+        <th>Created</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in sessions %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td style="font-family:monospace; font-size:0.85rem;">{{ s.session_id[:12] }}</td>
+        <td>{{ s.grid_rows }}&times;{{ s.grid_cols }}</td>
+        <td>{{ s.placed_count }} / {{ s.total_cells }}</td>
+        <td>
+          {% if s.complete %}
+            <span class="badge badge-success">Complete</span>
+          {% else %}
+            <span class="badge badge-info">Active</span>
+          {% endif %}
+        </td>
+        <td style="font-size:0.85rem; color:var(--text-muted);">{{ s.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+        <td style="display:flex; gap:0.5rem;">
+          <a href="/solver/{{ s.session_id }}"
+             style="padding:0.25rem 0.75rem; background:var(--primary); color:white; border-radius:4px; font-size:0.8rem; text-decoration:none;">
+            Open
+          </a>
+          <button onclick="deleteSession('{{ s.session_id }}')"
+                  style="padding:0.25rem 0.75rem; background:transparent; color:#dc2626; border:1px solid #dc2626; border-radius:4px; font-size:0.8rem; cursor:pointer;">
+            Delete
+          </button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    <p>No sessions found.{% if current_tag %} Create one above.{% endif %}</p>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+const CURRENT_TAG = {{ current_tag | tojson }};
+
+document.getElementById('create-session-form')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const tag = document.getElementById('session-tag').value;
+  const rows = parseInt(document.getElementById('session-rows').value, 10);
+  const cols = parseInt(document.getElementById('session-cols').value, 10);
+  const res = await fetch('/api/v1/interactive/sessions', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({dataset_tag: tag, grid_rows: rows, grid_cols: cols}),
+  });
+  if (res.ok) {
+    const data = await res.json();
+    window.location.href = '/solver/' + data.session_id;
+  } else {
+    const err = await res.json();
+    alert('Error: ' + (err.detail || JSON.stringify(err)));
+  }
+});
+
+async function deleteSession(sessionId) {
+  if (!confirm('Delete session ' + sessionId.slice(0, 12) + '?')) return;
+  const params = CURRENT_TAG ? '?dataset_tag=' + encodeURIComponent(CURRENT_TAG) : '';
+  const res = await fetch('/api/v1/interactive/sessions/' + sessionId + params, {
+    method: 'DELETE',
+  });
+  if (res.ok) {
+    location.reload();
+  } else {
+    const err = await res.json();
+    alert('Error: ' + (err.detail || JSON.stringify(err)));
+  }
+}
+</script>
+{% endblock %}

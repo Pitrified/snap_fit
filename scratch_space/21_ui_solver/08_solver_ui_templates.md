@@ -1,6 +1,6 @@
 # 08 - Solver UI Templates
 
-> **Status:** not started
+> **Status:** done
 > **Depends on:** 03 (piece images), 04 (session CRUD), 05 (suggestion engine), 07 (viz primitives)
 > **Main plan ref:** Phase 5
 
