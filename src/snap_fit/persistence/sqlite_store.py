@@ -69,17 +69,18 @@ _DDL_IDX_SIM = "CREATE INDEX IF NOT EXISTS idx_matches_sim ON matches (similarit
 
 _DDL_SESSIONS = """\
 CREATE TABLE IF NOT EXISTS sessions (
-    session_id  TEXT    PRIMARY KEY,
-    dataset_tag TEXT    NOT NULL,
-    grid_rows   INTEGER NOT NULL,
-    grid_cols   INTEGER NOT NULL,
-    placement   TEXT    NOT NULL DEFAULT '{}',
-    rejected    TEXT    NOT NULL DEFAULT '{}',
-    undo_stack  TEXT    NOT NULL DEFAULT '[]',
-    complete    INTEGER NOT NULL DEFAULT 0,
-    score       REAL,
-    created_at  TEXT    NOT NULL,
-    updated_at  TEXT    NOT NULL
+    session_id          TEXT    PRIMARY KEY,
+    dataset_tag         TEXT    NOT NULL,
+    grid_rows           INTEGER NOT NULL,
+    grid_cols           INTEGER NOT NULL,
+    placement           TEXT    NOT NULL DEFAULT '{}',
+    rejected            TEXT    NOT NULL DEFAULT '{}',
+    undo_stack          TEXT    NOT NULL DEFAULT '[]',
+    complete            INTEGER NOT NULL DEFAULT 0,
+    score               REAL,
+    pending_suggestion  TEXT,
+    created_at          TEXT    NOT NULL,
+    updated_at          TEXT    NOT NULL
 )"""
 
 # Migrations for existing databases that lack new columns.
@@ -87,6 +88,7 @@ _MIGRATE_SHEETS_METADATA = "ALTER TABLE sheets ADD COLUMN metadata TEXT"
 _MIGRATE_PIECES_LABEL = "ALTER TABLE pieces ADD COLUMN label TEXT"
 _MIGRATE_PIECES_SHEET_ORIGIN = "ALTER TABLE pieces ADD COLUMN sheet_origin TEXT"
 _MIGRATE_PIECES_PADDED_SIZE = "ALTER TABLE pieces ADD COLUMN padded_size TEXT"
+_MIGRATE_SESSIONS_PENDING = "ALTER TABLE sessions ADD COLUMN pending_suggestion TEXT"
 
 _DDL_ALL = (
     _DDL_SHEETS,
@@ -118,8 +120,8 @@ _INS_SESSION = """\
 INSERT OR REPLACE INTO sessions
   (session_id, dataset_tag, grid_rows, grid_cols,
    placement, rejected, undo_stack, complete, score,
-   created_at, updated_at)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
+   pending_suggestion, created_at, updated_at)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
 
 _SEL_SESSION = "SELECT * FROM sessions WHERE session_id = ?"
 _SEL_SESSIONS = "SELECT * FROM sessions ORDER BY updated_at DESC"
@@ -133,6 +135,16 @@ INSERT INTO matches
   VALUES (?, ?, ?, ?, ?, ?, ?, ?)"""
 
 _DEL_MATCHES = "DELETE FROM matches"
+
+_UPD_MATCH_MANUAL = """\
+UPDATE matches
+SET similarity_manual = ?
+WHERE
+  (seg_id1_sheet_id = ? AND seg_id1_piece_idx = ? AND seg_id1_edge_pos = ?
+   AND seg_id2_sheet_id = ? AND seg_id2_piece_idx = ? AND seg_id2_edge_pos = ?)
+  OR
+  (seg_id1_sheet_id = ? AND seg_id1_piece_idx = ? AND seg_id1_edge_pos = ?
+   AND seg_id2_sheet_id = ? AND seg_id2_piece_idx = ? AND seg_id2_edge_pos = ?)"""
 
 # ---------------------------------------------------------------------------
 # Queries
@@ -227,6 +239,7 @@ class DatasetStore:
             _MIGRATE_PIECES_LABEL,
             _MIGRATE_PIECES_SHEET_ORIGIN,
             _MIGRATE_PIECES_PADDED_SIZE,
+            _MIGRATE_SESSIONS_PENDING,
         ):
             with contextlib.suppress(sqlite3.OperationalError):
                 self._conn.execute(stmt)
@@ -532,9 +545,11 @@ class DatasetStore:
 
         Args:
             data: Session dict with keys matching the sessions table columns.
-                ``placement``, ``rejected``, and ``undo_stack`` may be dicts/lists
-                (they are JSON-serialized automatically).
+                ``placement``, ``rejected``, ``undo_stack``, and
+                ``pending_suggestion`` may be dicts/lists (they are
+                JSON-serialized automatically).
         """
+        ps = data.get("pending_suggestion")
         row = (
             data["session_id"],
             data["dataset_tag"],
@@ -545,6 +560,7 @@ class DatasetStore:
             json.dumps(data.get("undo_stack", [])),
             int(bool(data.get("complete", False))),
             data.get("score"),
+            json.dumps(ps) if ps is not None else None,
             data["created_at"],
             data["updated_at"],
         )
@@ -584,6 +600,7 @@ class DatasetStore:
     @staticmethod
     def _row_to_session_dict(row: Row) -> dict[str, object]:
         """Convert a sessions table row to a plain dict."""
+        ps_raw: str | None = row["pending_suggestion"]
         return {
             "session_id": row["session_id"],
             "dataset_tag": row["dataset_tag"],
@@ -594,6 +611,41 @@ class DatasetStore:
             "undo_stack": json.loads(row["undo_stack"]),
             "complete": bool(row["complete"]),
             "score": row["score"],
+            "pending_suggestion": json.loads(ps_raw) if ps_raw is not None else None,
             "created_at": row["created_at"],
             "updated_at": row["updated_at"],
         }
+
+    def update_match_manual_score(
+        self,
+        seg_id1: object,
+        seg_id2: object,
+        value: float,
+    ) -> None:
+        """Update ``similarity_manual`` for a specific segment pair.
+
+        The pair is looked up in both orderings ``(seg1, seg2)`` and
+        ``(seg2, seg1)``.  No error is raised if no matching row is found.
+
+        Args:
+            seg_id1: First ``SegmentId``.
+            seg_id2: Second ``SegmentId``.
+            value: The new ``similarity_manual`` value.
+        """
+        params = (
+            value,
+            seg_id1.piece_id.sheet_id,  # type: ignore[union-attr]
+            seg_id1.piece_id.piece_id,  # type: ignore[union-attr]
+            seg_id1.edge_pos.value,  # type: ignore[union-attr]
+            seg_id2.piece_id.sheet_id,  # type: ignore[union-attr]
+            seg_id2.piece_id.piece_id,  # type: ignore[union-attr]
+            seg_id2.edge_pos.value,  # type: ignore[union-attr]
+            seg_id2.piece_id.sheet_id,  # type: ignore[union-attr]
+            seg_id2.piece_id.piece_id,  # type: ignore[union-attr]
+            seg_id2.edge_pos.value,  # type: ignore[union-attr]
+            seg_id1.piece_id.sheet_id,  # type: ignore[union-attr]
+            seg_id1.piece_id.piece_id,  # type: ignore[union-attr]
+            seg_id1.edge_pos.value,  # type: ignore[union-attr]
+        )
+        with self._conn:
+            self._conn.execute(_UPD_MATCH_MANUAL, params)

@@ -24,7 +24,7 @@ _NEIGHBOR_DIRECTION_TO_EDGE: dict[tuple[int, int], EdgePos] = {
 }
 
 
-def _get_facing_edges(pos1: GridPos, pos2: GridPos) -> tuple[EdgePos, EdgePos] | None:
+def get_facing_edges(pos1: GridPos, pos2: GridPos) -> tuple[EdgePos, EdgePos] | None:
     """Determine which edges face each other between two adjacent positions.
 
     Args:
@@ -72,7 +72,7 @@ def score_edge(
         return None
 
     # Determine facing edges
-    facing = _get_facing_edges(pos1, pos2)
+    facing = get_facing_edges(pos1, pos2)
     if facing is None:
         return None
 

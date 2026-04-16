@@ -21,6 +21,13 @@ class PlaceRequest(BaseModel):
     orientation: int
 
 
+class SuggestionRequest(BaseModel):
+    """Request body for generating a next-slot suggestion."""
+
+    override_pos: str | None = None
+    top_k: int = 5
+
+
 class SuggestionCandidate(BaseModel):
     """A single candidate for a grid slot."""
 
@@ -53,5 +60,6 @@ class SolveSessionResponse(BaseModel):
     total_cells: int
     complete: bool
     score: float | None = None
+    pending_suggestion: SuggestionBundle | None = None
     created_at: datetime
     updated_at: datetime

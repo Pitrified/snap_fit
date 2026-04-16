@@ -372,3 +372,217 @@ class TestInteractiveRoutes:
         """List sessions without dataset_tag returns 400."""
         resp = client.get("/api/v1/interactive/sessions")
         assert resp.status_code == 400
+
+
+# ---------------------------------------------------------------------------
+# Suggestion engine service tests
+# ---------------------------------------------------------------------------
+
+
+def _seed_with_matches(
+    cache_dir: Path,
+    *,
+    tag: str = _TAG,
+    n_pieces: int = 4,
+) -> None:
+    """Seed a dataset with pieces AND an empty matches table so suggest_next works."""
+    _seed_dataset(cache_dir, tag=tag, n_pieces=n_pieces)
+    # The matches table is created by _ensure_schema but has no rows.
+    # suggest_next still works - uncached pairs get score 1e6.
+
+
+class TestSuggestNext:
+    """Tests for InteractiveService.suggest_next."""
+
+    def test_suggest_no_pieces_placed_returns_bundle(self, cache_dir: Path) -> None:
+        """suggest_next on an empty grid returns a bundle for a corner slot."""
+        _seed_with_matches(cache_dir)
+        svc = InteractiveService(cache_dir, data_path=cache_dir)
+        sess = svc.create_session(_TAG, 2, 2)
+        # Place one piece so the solver has a neighbor to score against
+        svc.place_piece(_TAG, sess.session_id, "s.jpg:0", "0,0", 0)
+
+        bundle = svc.suggest_next(_TAG, sess.session_id)
+        assert bundle.slot != ""
+        assert isinstance(bundle.candidates, list)
+        assert bundle.current_index == 0
+
+    def test_suggest_stores_pending_in_session(self, cache_dir: Path) -> None:
+        """suggest_next persists pending_suggestion in the session."""
+        _seed_with_matches(cache_dir)
+        svc = InteractiveService(cache_dir, data_path=cache_dir)
+        sess = svc.create_session(_TAG, 2, 2)
+        svc.place_piece(_TAG, sess.session_id, "s.jpg:0", "0,0", 0)
+
+        svc.suggest_next(_TAG, sess.session_id)
+        reloaded = svc.get_session(_TAG, sess.session_id)
+        assert reloaded is not None
+        assert reloaded.pending_suggestion is not None
+
+    def test_suggest_complete_grid_returns_empty_bundle(self, cache_dir: Path) -> None:
+        """suggest_next on a filled grid returns an empty bundle."""
+        _seed_with_matches(cache_dir)
+        svc = InteractiveService(cache_dir, data_path=cache_dir)
+        sess = svc.create_session(_TAG, 2, 2)
+        for i, pos in enumerate(["0,0", "0,1", "1,0", "1,1"]):
+            svc.place_piece(_TAG, sess.session_id, f"s.jpg:{i}", pos, 0)
+
+        bundle = svc.suggest_next(_TAG, sess.session_id)
+        assert bundle.slot == ""
+        assert bundle.candidates == []
+
+    def test_suggest_missing_session_raises(self, cache_dir: Path) -> None:
+        """suggest_next raises for unknown session."""
+        _seed_with_matches(cache_dir)
+        svc = InteractiveService(cache_dir, data_path=cache_dir)
+        with pytest.raises(ValueError, match="not found"):
+            svc.suggest_next(_TAG, "nonexistent")
+
+    def test_suggest_override_pos(self, cache_dir: Path) -> None:
+        """suggest_next with override_pos targets the requested slot."""
+        _seed_with_matches(cache_dir)
+        svc = InteractiveService(cache_dir, data_path=cache_dir)
+        sess = svc.create_session(_TAG, 2, 2)
+        svc.place_piece(_TAG, sess.session_id, "s.jpg:0", "0,0", 0)
+
+        bundle = svc.suggest_next(_TAG, sess.session_id, override_pos="1,0")
+        assert bundle.slot == "1,0"
+
+
+class TestAcceptSuggestion:
+    """Tests for InteractiveService.accept."""
+
+    def test_accept_places_piece(self, cache_dir: Path) -> None:
+        """Accept places the top candidate and clears pending_suggestion."""
+        _seed_with_matches(cache_dir)
+        svc = InteractiveService(cache_dir, data_path=cache_dir)
+        sess = svc.create_session(_TAG, 2, 2)
+        svc.place_piece(_TAG, sess.session_id, "s.jpg:0", "0,0", 0)
+        bundle = svc.suggest_next(_TAG, sess.session_id)
+
+        if not bundle.candidates:
+            pytest.skip("No candidates generated (no matches in DB)")
+
+        resp = svc.accept(_TAG, sess.session_id)
+        assert resp.placed_count == 2
+        assert resp.pending_suggestion is None
+        assert bundle.slot in resp.placement
+
+    def test_accept_no_pending_raises(self, cache_dir: Path) -> None:
+        """Accept without a pending suggestion raises ValueError."""
+        _seed_with_matches(cache_dir)
+        svc = InteractiveService(cache_dir, data_path=cache_dir)
+        sess = svc.create_session(_TAG, 2, 2)
+        with pytest.raises(ValueError, match="No pending suggestion"):
+            svc.accept(_TAG, sess.session_id)
+
+    def test_accept_missing_session_raises(self, cache_dir: Path) -> None:
+        """Accept on unknown session raises ValueError."""
+        _seed_with_matches(cache_dir)
+        svc = InteractiveService(cache_dir, data_path=cache_dir)
+        with pytest.raises(ValueError, match="not found"):
+            svc.accept(_TAG, "nonexistent")
+
+
+class TestRejectSuggestion:
+    """Tests for InteractiveService.reject."""
+
+    def test_reject_advances_index(self, cache_dir: Path) -> None:
+        """Reject moves current_index forward when candidates remain."""
+        _seed_with_matches(cache_dir)
+        svc = InteractiveService(cache_dir, data_path=cache_dir)
+        sess = svc.create_session(_TAG, 2, 2)
+        svc.place_piece(_TAG, sess.session_id, "s.jpg:0", "0,0", 0)
+        bundle = svc.suggest_next(_TAG, sess.session_id, top_k=3)
+
+        if len(bundle.candidates) < 2:
+            pytest.skip("Fewer than 2 candidates - cannot test index advance")
+
+        updated = svc.reject(_TAG, sess.session_id)
+        assert updated.slot == bundle.slot
+        assert updated.current_index == 1
+
+    def test_reject_adds_to_rejected_set(self, cache_dir: Path) -> None:
+        """Reject records the piece in the session's rejected dict."""
+        _seed_with_matches(cache_dir)
+        svc = InteractiveService(cache_dir, data_path=cache_dir)
+        sess = svc.create_session(_TAG, 2, 2)
+        svc.place_piece(_TAG, sess.session_id, "s.jpg:0", "0,0", 0)
+        bundle = svc.suggest_next(_TAG, sess.session_id, top_k=2)
+
+        if not bundle.candidates:
+            pytest.skip("No candidates generated")
+
+        rejected_piece_id = bundle.candidates[0].piece_id
+        svc.reject(_TAG, sess.session_id)
+        reloaded = svc.get_session(_TAG, sess.session_id)
+        assert reloaded is not None
+        slot_rejected = reloaded.rejected.get(bundle.slot, [])
+        assert rejected_piece_id in slot_rejected
+
+    def test_reject_no_pending_raises(self, cache_dir: Path) -> None:
+        """Reject without a pending suggestion raises ValueError."""
+        _seed_with_matches(cache_dir)
+        svc = InteractiveService(cache_dir, data_path=cache_dir)
+        sess = svc.create_session(_TAG, 2, 2)
+        with pytest.raises(ValueError, match="No pending suggestion"):
+            svc.reject(_TAG, sess.session_id)
+
+
+# ---------------------------------------------------------------------------
+# Suggestion HTTP route integration tests
+# ---------------------------------------------------------------------------
+
+
+class TestSuggestionRoutes:
+    """HTTP integration tests for suggestion endpoints."""
+
+    def test_next_suggestion_returns_bundle(self, client: TestClient) -> None:
+        """POST next_suggestion returns a SuggestionBundle."""
+        create_resp = client.post(
+            "/api/v1/interactive/sessions",
+            json={"dataset_tag": _TAG, "grid_rows": 2, "grid_cols": 2},
+        )
+        sid = create_resp.json()["session_id"]
+        # Place a seed piece first
+        client.post(
+            f"/api/v1/interactive/sessions/{sid}/place",
+            json={"piece_id": "s.jpg:0", "position": "0,0", "orientation": 0},
+            params={"dataset_tag": _TAG},
+        )
+        resp = client.post(
+            f"/api/v1/interactive/sessions/{sid}/next_suggestion",
+            json={},
+            params={"dataset_tag": _TAG},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "slot" in data
+        assert "candidates" in data
+        assert "current_index" in data
+
+    def test_accept_without_pending_returns_400(self, client: TestClient) -> None:
+        """POST accept without pending suggestion returns 400."""
+        create_resp = client.post(
+            "/api/v1/interactive/sessions",
+            json={"dataset_tag": _TAG, "grid_rows": 2, "grid_cols": 2},
+        )
+        sid = create_resp.json()["session_id"]
+        resp = client.post(
+            f"/api/v1/interactive/sessions/{sid}/accept",
+            params={"dataset_tag": _TAG},
+        )
+        assert resp.status_code == 400
+
+    def test_reject_without_pending_returns_400(self, client: TestClient) -> None:
+        """POST reject without pending suggestion returns 400."""
+        create_resp = client.post(
+            "/api/v1/interactive/sessions",
+            json={"dataset_tag": _TAG, "grid_rows": 2, "grid_cols": 2},
+        )
+        sid = create_resp.json()["session_id"]
+        resp = client.post(
+            f"/api/v1/interactive/sessions/{sid}/reject",
+            params={"dataset_tag": _TAG},
+        )
+        assert resp.status_code == 400

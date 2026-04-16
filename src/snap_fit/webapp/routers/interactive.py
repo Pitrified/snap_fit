@@ -11,6 +11,8 @@ from snap_fit.webapp.core.settings import get_settings
 from snap_fit.webapp.schemas.interactive import CreateSessionRequest
 from snap_fit.webapp.schemas.interactive import PlaceRequest
 from snap_fit.webapp.schemas.interactive import SolveSessionResponse
+from snap_fit.webapp.schemas.interactive import SuggestionBundle
+from snap_fit.webapp.schemas.interactive import SuggestionRequest
 from snap_fit.webapp.services.interactive_service import InteractiveService
 
 router = APIRouter()
@@ -121,3 +123,53 @@ async def delete_session(
     if not deleted:
         raise HTTPException(status_code=404, detail="Session not found")
     return {"deleted": True}
+
+
+# ------------------------------------------------------------------
+# Suggestion engine
+# ------------------------------------------------------------------
+
+
+@router.post("/sessions/{session_id}/next_suggestion", summary="Get next suggestion")
+async def next_suggestion(
+    session_id: str,
+    req: SuggestionRequest,
+    service: Annotated[InteractiveService, Depends(_get_service)],
+    tag: Annotated[str, Depends(_require_tag)],
+) -> SuggestionBundle:
+    """Generate ranked candidates for the next open slot."""
+    try:
+        return service.suggest_next(
+            tag,
+            session_id,
+            override_pos=req.override_pos,
+            top_k=req.top_k,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/sessions/{session_id}/accept", summary="Accept suggestion")
+async def accept_suggestion(
+    session_id: str,
+    service: Annotated[InteractiveService, Depends(_get_service)],
+    tag: Annotated[str, Depends(_require_tag)],
+) -> SolveSessionResponse:
+    """Accept the current pending suggestion candidate and place the piece."""
+    try:
+        return service.accept(tag, session_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/sessions/{session_id}/reject", summary="Reject suggestion")
+async def reject_suggestion(
+    session_id: str,
+    service: Annotated[InteractiveService, Depends(_get_service)],
+    tag: Annotated[str, Depends(_require_tag)],
+) -> SuggestionBundle:
+    """Reject the current pending candidate and advance to the next."""
+    try:
+        return service.reject(tag, session_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
