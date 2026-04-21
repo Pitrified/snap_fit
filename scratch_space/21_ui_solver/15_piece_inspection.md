@@ -1,6 +1,6 @@
 # 15 - Piece Inspection Overlay
 
-**Status:** not started
+**Status:** done
 **Parent:** [10_ui_notes.md](10_ui_notes.md)
 
 ## Goal

@@ -99,6 +99,19 @@ async def get_piece_img(
     return Response(content=img_bytes, media_type="image/png")
 
 
+@router.get("/{piece_id}/img/inspect", summary="Get piece image with contour overlay")
+async def get_piece_inspection_img(
+    piece_id: str,
+    service: Annotated[PieceService, Depends(get_piece_service)],
+    size: int | None = None,
+) -> Response:
+    """Return a PNG of the piece with coloured contour segment and corner overlays."""
+    img_bytes = service.get_piece_inspection_img(piece_id, size=size)
+    if img_bytes is None:
+        raise HTTPException(status_code=404, detail=f"Piece {piece_id} not found")
+    return Response(content=img_bytes, media_type="image/png")
+
+
 @router.get("/{piece_id}", summary="Get piece by ID")
 async def get_piece(
     piece_id: str,

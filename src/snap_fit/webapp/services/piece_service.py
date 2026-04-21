@@ -11,6 +11,9 @@ from loguru import logger as lg
 import numpy as np
 
 from snap_fit.config.aruco.sheet_aruco_config import SheetArucoConfig
+from snap_fit.config.types import EDGE_ENDS_TO_CORNER
+from snap_fit.config.types import CornerPos
+from snap_fit.config.types import EdgePos
 from snap_fit.data_models.piece_record import PieceRecord
 from snap_fit.data_models.sheet_record import SheetRecord
 from snap_fit.persistence.sqlite_store import DatasetStore
@@ -272,6 +275,119 @@ class PieceService:
             return None
         return buf.tobytes()
 
+    def get_piece_inspection_img(
+        self,
+        piece_id: str,
+        size: int | None = None,
+    ) -> bytes | None:
+        """Return a PNG of the piece crop with contour segment and corner overlays.
+
+        Loads the contour from the binary cache and draws each segment in a
+        distinct colour, then marks the four corner points with labelled circles
+        and prints the shape label (IN/OUT/EDGE/WEIRD) at the midpoint of each
+        segment.
+
+        Args:
+            piece_id: Piece identifier string (``sheet_id:piece_idx``).
+            size: Optional max dimension for resizing (preserves aspect ratio).
+
+        Returns:
+            PNG bytes, or None if the piece or its contour cache is not found.
+        """
+        crop, piece, contour_pts, corner_indices = self._load_inspection_data(piece_id)
+        if (
+            crop is None
+            or piece is None
+            or contour_pts is None
+            or (corner_indices is None)
+        ):
+            return None
+
+        crop = _draw_inspection_overlay(crop, contour_pts, corner_indices, piece)
+
+        if size is not None and size > 0:
+            h_crop, w_crop = crop.shape[:2]
+            scale = size / max(h_crop, w_crop)
+            new_w = max(1, int(w_crop * scale))
+            new_h = max(1, int(h_crop * scale))
+            crop = cv2.resize(crop, (new_w, new_h), interpolation=cv2.INTER_AREA)
+
+        ok, buf = cv2.imencode(".png", crop)
+        if not ok:
+            return None
+        return buf.tobytes()
+
+    def _load_inspection_data(
+        self,
+        piece_id: str,
+    ) -> tuple[
+        np.ndarray | None,
+        PieceRecord | None,
+        np.ndarray | None,
+        dict[str, int] | None,
+    ]:
+        """Load and validate all data needed for the inspection overlay.
+
+        Returns a 4-tuple of (crop, piece, contour_pts, corner_indices).
+        Any element is None if the data could not be loaded.
+        """
+        piece = self.get_piece(piece_id)
+        if piece is None:
+            return None, None, None, None
+
+        sheet_img = self._load_processed_sheet(piece.piece_id.sheet_id)
+        if sheet_img is None:
+            lg.warning(f"Processed sheet image not found for {piece.piece_id.sheet_id}")
+            return None, None, None, None
+
+        x0, y0 = piece.sheet_origin
+        pw, ph = piece.padded_size
+        if pw > 0 and ph > 0:
+            crop = sheet_img[y0 : y0 + ph, x0 : x0 + pw].copy()
+        else:
+            cx, cy, cw, ch = piece.contour_region
+            est_w = 2 * cx + cw
+            est_h = 2 * cy + ch
+            crop = sheet_img[y0 : y0 + est_h, x0 : x0 + est_w].copy()
+
+        if crop.size == 0:
+            lg.warning(f"Empty crop for piece {piece_id}")
+            return None, None, None, None
+
+        tag_dir = self._find_tag_dir_for_piece(piece_id)
+        if tag_dir is None:
+            lg.warning(f"Cannot locate tag dir for piece {piece_id}")
+            return None, None, None, None
+
+        contour_dir = tag_dir / "contours"
+        try:
+            contour_pts, corner_indices = SheetManager.load_contour_for_piece(
+                piece.piece_id, contour_dir
+            )
+        except (FileNotFoundError, KeyError) as exc:
+            lg.warning(f"Contour cache not found for {piece_id}: {exc}")
+            return None, None, None, None
+
+        return crop, piece, contour_pts, corner_indices
+
+    def _find_tag_dir_for_piece(self, piece_id: str) -> Path | None:
+        """Return the tag directory that contains the given piece.
+
+        Args:
+            piece_id: Piece identifier string.
+
+        Returns:
+            Path to the tag directory, or None if not found.
+        """
+        for tag_dir in self._all_tag_dirs():
+            db_path = self._db_path(tag_dir)
+            if not db_path.exists():
+                continue
+            with DatasetStore(db_path) as store:
+                if store.load_piece(piece_id) is not None:
+                    return tag_dir
+        return None
+
     def _load_processed_sheet(self, sheet_id: str) -> np.ndarray | None:
         """Load a processed sheet image from the cache.
 
@@ -307,6 +423,104 @@ class PieceService:
             if candidate.exists():
                 return candidate
         return img_path
+
+
+# Segment colours in BGR: TOP, RIGHT, BOTTOM, LEFT
+_SEGMENT_COLORS: dict[str, tuple[int, int, int]] = {
+    EdgePos.TOP.value: (0, 0, 255),  # red
+    EdgePos.RIGHT.value: (0, 255, 0),  # green
+    EdgePos.BOTTOM.value: (255, 0, 0),  # blue
+    EdgePos.LEFT.value: (255, 255, 0),  # cyan
+}
+_CORNER_COLOR: tuple[int, int, int] = (255, 255, 255)
+_CORNER_RADIUS = 6
+_CORNER_LABEL_ABBREV: dict[str, str] = {
+    CornerPos.TOP_LEFT.value: "TL",
+    CornerPos.TOP_RIGHT.value: "TR",
+    CornerPos.BOTTOM_LEFT.value: "BL",
+    CornerPos.BOTTOM_RIGHT.value: "BR",
+}
+
+
+def _draw_inspection_overlay(
+    img: np.ndarray,
+    contour_pts: np.ndarray,
+    corner_indices: dict[str, int],
+    piece: PieceRecord,
+) -> np.ndarray:
+    """Draw coloured segment overlays and labelled corner circles on a piece crop.
+
+    Each segment (TOP/RIGHT/BOTTOM/LEFT) is drawn in its own colour.  Corner
+    points are drawn as filled circles with TL/TR/BL/BR labels.  The shape
+    label (IN/OUT/EDGE/WEIRD) is printed at the midpoint of each segment.
+
+    The contour points loaded from the .npz cache are in the same piece-local
+    coordinate space as the crop image - no translation is needed.
+
+    Args:
+        img: Piece crop image (BGR). Modified in place via cv2 calls on a copy.
+        contour_pts: Contour array of shape (N, 1, 2) in piece-local coordinates.
+        corner_indices: Mapping from CornerPos.value to contour index.
+        piece: PieceRecord supplying segment_shapes.
+
+    Returns:
+        A new image with the overlay drawn.
+    """
+    out = img.copy()
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    n = len(contour_pts)
+
+    # Draw each segment
+    for edge_pos, (start_corner, end_corner) in EDGE_ENDS_TO_CORNER.items():
+        edge_key = edge_pos.value
+        color = _SEGMENT_COLORS[edge_key]
+        start_idx = corner_indices.get(start_corner.value, 0)
+        end_idx = corner_indices.get(end_corner.value, 0)
+
+        # Extract segment points (handle wrap-around)
+        if start_idx <= end_idx:
+            seg_pts = contour_pts[start_idx : end_idx + 1]
+        else:
+            seg_pts = np.vstack((contour_pts[start_idx:], contour_pts[: end_idx + 1]))
+
+        if len(seg_pts) > 0:
+            cv2.polylines(out, [seg_pts], isClosed=False, color=color, thickness=2)
+
+            # Shape label at segment midpoint
+            mid = seg_pts[len(seg_pts) // 2][0]
+            shape_label = piece.segment_shapes.get(edge_key, "?").upper()
+            cv2.putText(
+                out,
+                shape_label,
+                (int(mid[0]) + 4, int(mid[1]) - 4),
+                font,
+                0.4,
+                color,
+                1,
+                cv2.LINE_AA,
+            )
+
+    # Draw corner circles and labels
+    for corner_pos in CornerPos:
+        idx = corner_indices.get(corner_pos.value)
+        if idx is None or idx >= n:
+            continue
+        pt = tuple(int(v) for v in contour_pts[idx][0])
+        cv2.circle(out, pt, _CORNER_RADIUS, _CORNER_COLOR, -1)
+        cv2.circle(out, pt, _CORNER_RADIUS, (0, 0, 0), 1)
+        abbrev = _CORNER_LABEL_ABBREV.get(corner_pos.value, "?")
+        cv2.putText(
+            out,
+            abbrev,
+            (pt[0] + _CORNER_RADIUS + 2, pt[1] - 2),
+            font,
+            0.35,
+            _CORNER_COLOR,
+            1,
+            cv2.LINE_AA,
+        )
+
+    return out
 
 
 def _burn_label(img: np.ndarray, label: str) -> np.ndarray:

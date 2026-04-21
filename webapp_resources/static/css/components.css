@@ -2,6 +2,27 @@
    Visualization component styles for snap_fit
    ========================================================= */
 
+/* ----- Piece inspection overlay ----- */
+.piece-image-container {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.segment-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  font-size: 0.8rem;
+  align-items: center;
+}
+.segment-legend__item { display: inline-flex; align-items: center; gap: 4px; }
+.segment-legend__item--top    { color: #ef4444; }
+.segment-legend__item--right  { color: #22c55e; }
+.segment-legend__item--bottom { color: #3b82f6; }
+.segment-legend__item--left   { color: #06b6d4; }
+
 /* ----- Piece card ----- */
 .piece-card {
   display: inline-block;

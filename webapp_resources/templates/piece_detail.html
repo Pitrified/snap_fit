@@ -8,10 +8,23 @@
 {% if piece %}
 <div class="card">
     <h2>Piece: {{ piece.piece_id }}</h2>
-    <img src="/api/v1/pieces/{{ piece.piece_id }}/img?size=250"
-         alt="Piece {{ piece.piece_id }}"
-         loading="lazy"
-         style="display:block; max-height:250px; object-fit:contain; background:#f1f5f9; border-radius:4px; margin-bottom:1rem;">
+    <div class="piece-image-container">
+      <img id="piece-detail-img"
+           src="/api/v1/pieces/{{ piece.piece_id }}/img?size=400"
+           alt="Piece {{ piece.piece_id }}"
+           loading="lazy"
+           style="display:block; max-height:400px; object-fit:contain; background:#f1f5f9; border-radius:4px; margin-bottom:0.5rem;">
+      <button id="toggle-overlay" class="btn btn--outline" onclick="togglePieceOverlay('{{ piece.piece_id }}')">
+        Show Contour Overlay
+      </button>
+      <div id="segment-legend" class="segment-legend" style="display:none;">
+        <span class="segment-legend__item segment-legend__item--top">&#9472; TOP</span>
+        <span class="segment-legend__item segment-legend__item--right">&#9472; RIGHT</span>
+        <span class="segment-legend__item segment-legend__item--bottom">&#9472; BOTTOM</span>
+        <span class="segment-legend__item segment-legend__item--left">&#9472; LEFT</span>
+        <span class="segment-legend__item">&#9679; Corners</span>
+      </div>
+    </div>
     <div class="detail-grid">
         <div class="detail-item">
             <div class="label">Sheet</div>
@@ -144,4 +157,23 @@
     </div>
 </div>
 {% endif %}
+
+<script>
+function togglePieceOverlay(pieceId) {
+  const img = document.getElementById('piece-detail-img');
+  const btn = document.getElementById('toggle-overlay');
+  const legend = document.getElementById('segment-legend');
+  const baseUrl = '/api/v1/pieces/' + pieceId + '/img?size=400';
+  const inspectUrl = '/api/v1/pieces/' + pieceId + '/img/inspect?size=400';
+  if (img.src.includes('/inspect')) {
+    img.src = baseUrl;
+    btn.textContent = 'Show Contour Overlay';
+    legend.style.display = 'none';
+  } else {
+    img.src = inspectUrl;
+    btn.textContent = 'Hide Contour Overlay';
+    legend.style.display = 'flex';
+  }
+}
+</script>
 {% endblock %}
