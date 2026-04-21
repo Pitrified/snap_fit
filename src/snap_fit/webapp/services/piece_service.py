@@ -208,6 +208,7 @@ class PieceService:
         piece_id: str,
         size: int | None = None,
         orientation: int = 0,
+        label: str | None = None,
     ) -> bytes | None:
         """Load processed sheet image, crop piece region, encode as PNG.
 
@@ -219,6 +220,7 @@ class PieceService:
             piece_id: Piece identifier.
             size: Optional max dimension for resizing (preserves aspect ratio).
             orientation: Rotation in degrees (0, 90, 180, 270).
+            label: Optional text label to burn onto the image before rotation.
 
         Returns:
             PNG bytes, or None if piece or sheet image not found.
@@ -251,6 +253,9 @@ class PieceService:
         if crop.size == 0:
             lg.warning(f"Empty crop for piece {piece_id}")
             return None
+
+        if label is not None:
+            crop = _burn_label(crop, label)
 
         if orientation != 0:
             crop = cv2.rotate(crop, _ROTATE_MAP[orientation])
@@ -302,6 +307,44 @@ class PieceService:
             if candidate.exists():
                 return candidate
         return img_path
+
+
+def _burn_label(img: np.ndarray, label: str) -> np.ndarray:
+    """Burn a text label onto the top-left corner of an image.
+
+    Draws a semi-transparent dark rectangle behind the text for readability.
+    The label is drawn before any rotation so it rotates with the piece.
+
+    Args:
+        img: Source image (BGR, uint8). Not modified in place.
+        label: Text to draw.
+
+    Returns:
+        A copy of the image with the label burned in.
+    """
+    out = img.copy()
+    h, w = out.shape[:2]
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    font_scale = max(0.3, min(w, h) / 200.0)
+    thickness = max(1, int(font_scale * 1.5))
+    margin = max(4, int(min(w, h) * 0.04))
+    (text_w, text_h), baseline = cv2.getTextSize(label, font, font_scale, thickness)
+    rect_x2 = margin + text_w + margin
+    rect_y2 = margin + text_h + baseline + margin
+    overlay = out.copy()
+    cv2.rectangle(overlay, (0, 0), (rect_x2, rect_y2), (0, 0, 0), -1)
+    cv2.addWeighted(overlay, 0.55, out, 0.45, 0, out)
+    cv2.putText(
+        out,
+        label,
+        (margin, margin + text_h),
+        font,
+        font_scale,
+        (255, 255, 255),
+        thickness,
+        cv2.LINE_AA,
+    )
+    return out
 
 
 @lru_cache(maxsize=8)

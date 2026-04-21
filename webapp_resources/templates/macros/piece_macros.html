@@ -68,14 +68,13 @@
   {% if placement %}
     {% set piece_id = placement[0] %}
     {% set orientation = placement[1] %}
-    <img src="/api/v1/pieces/{{ piece_id }}/img?size=80"
-         style="transform: rotate({{ orientation }}deg)"
-         loading="lazy">
     {% if labels and piece_id in labels %}
-      <span class="grid-cell__label">{{ labels[piece_id] }}</span>
+      {% set piece_label = labels[piece_id] %}
     {% else %}
-      <span class="grid-cell__label">#{{ piece_id.split(":")[-1] }}</span>
+      {% set piece_label = "#" ~ piece_id.split(":")[-1] %}
     {% endif %}
+    <img src="/api/v1/pieces/{{ piece_id }}/img?size=80&orientation={{ orientation }}&label={{ piece_label | urlencode }}"
+         loading="lazy">
   {% else %}
     {% if slot_type %}
       <span class="grid-cell__type">{{ slot_type }}</span>

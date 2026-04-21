@@ -81,6 +81,7 @@ async def get_piece_img(
     service: Annotated[PieceService, Depends(get_piece_service)],
     size: int | None = None,
     orientation: int = 0,
+    label: str | None = None,
 ) -> Response:
     """Return a PNG image of the piece cropped from its sheet photo."""
     if orientation not in (0, 90, 180, 270):
@@ -88,7 +89,9 @@ async def get_piece_img(
             status_code=400, detail="orientation must be 0, 90, 180, or 270"
         )
     try:
-        img_bytes = service.get_piece_img(piece_id, size=size, orientation=orientation)
+        img_bytes = service.get_piece_img(
+            piece_id, size=size, orientation=orientation, label=label
+        )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     if img_bytes is None:
