@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from dataclasses import field
 from typing import TYPE_CHECKING
 
 from snap_fit.data_models.segment_id import SegmentId
@@ -10,6 +11,7 @@ from snap_fit.grid.orientation_utils import get_original_edge_pos
 from snap_fit.grid.scoring import get_facing_edges
 
 if TYPE_CHECKING:
+    from snap_fit.config.types import EdgePos
     from snap_fit.data_models.piece_id import PieceId
     from snap_fit.grid.orientation import Orientation
     from snap_fit.grid.placement_state import PlacementState
@@ -21,6 +23,17 @@ _NO_SCORE: float = 1e6
 
 
 @dataclass
+class NeighborDetail:
+    """Edge pair info for one placed neighbor captured during scoring."""
+
+    score: float
+    my_edge: EdgePos
+    their_edge: EdgePos
+    their_piece_id: PieceId
+    their_orientation: int
+
+
+@dataclass
 class RawCandidate:
     """Scored result for a single candidate piece at a grid slot."""
 
@@ -28,6 +41,7 @@ class RawCandidate:
     orientation: Orientation
     score: float
     neighbor_scores: dict[str, float]
+    neighbor_details: dict[str, NeighborDetail] = field(default_factory=dict)
 
 
 def pick_next_slot(
@@ -106,6 +120,7 @@ def score_candidates(
             continue
 
         neighbor_scores: dict[str, float] = {}
+        neighbor_details: dict[str, NeighborDetail] = {}
         total_score = 0.0
         scored_count = 0
 
@@ -129,6 +144,13 @@ def score_candidates(
             edge_score = cached if cached is not None else _NO_SCORE
             pos_key = f"{neighbor_pos.ro},{neighbor_pos.co}"
             neighbor_scores[pos_key] = edge_score
+            neighbor_details[pos_key] = NeighborDetail(
+                score=edge_score,
+                my_edge=original_new,
+                their_edge=original_nbr,
+                their_piece_id=neighbor_pid,
+                their_orientation=neighbor_orient.value,
+            )
             total_score += edge_score
             scored_count += 1
 
@@ -141,6 +163,7 @@ def score_candidates(
                 orientation=orientation,
                 score=total_score,
                 neighbor_scores=neighbor_scores,
+                neighbor_details=neighbor_details,
             )
         )
 

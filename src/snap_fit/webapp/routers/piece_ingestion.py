@@ -75,6 +75,41 @@ async def list_pieces_for_sheet(
     return service.get_pieces_for_sheet(sheet_id)
 
 
+@router.get("/match-preview", summary="Get match preview image")
+async def get_match_preview_img(
+    piece1: str,
+    edge1: str,
+    piece2: str,
+    edge2: str,
+    service: Annotated[PieceService, Depends(get_piece_service)],
+    orient1: int = 0,
+    orient2: int = 0,
+    size: int | None = None,
+) -> Response:
+    """Return a side-by-side PNG preview of two matching piece edges.
+
+    Args:
+        piece1: Placed piece identifier.
+        edge1: ``EdgePos`` value of piece1's edge facing piece2
+            (``top``/``right``/``bottom``/``left``).
+        piece2: Candidate piece identifier.
+        edge2: ``EdgePos`` value of piece2's edge facing piece1.
+        orient1: Placement orientation of piece1 (0/90/180/270).
+        orient2: Placement orientation of piece2 (0/90/180/270).
+        size: Optional max dimension for the result image.
+        service: ``PieceService`` instance (injected).
+    """
+    img_bytes = service.get_match_preview_img(
+        piece1, edge1, orient1, piece2, edge2, orient2, size=size
+    )
+    if img_bytes is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Preview not available for {piece1} vs {piece2}",
+        )
+    return Response(content=img_bytes, media_type="image/png")
+
+
 @router.get("/{piece_id}/img", summary="Get piece image")
 async def get_piece_img(
     piece_id: str,

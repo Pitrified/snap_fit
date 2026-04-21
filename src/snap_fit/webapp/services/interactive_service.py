@@ -20,6 +20,7 @@ from snap_fit.grid.types import GridPos
 from snap_fit.persistence.sqlite_store import DatasetStore
 from snap_fit.puzzle.piece_matcher import PieceMatcher
 from snap_fit.solver.utils import get_factor_pairs
+from snap_fit.webapp.schemas.interactive import NeighborScoreDetail
 from snap_fit.webapp.schemas.interactive import SolveSessionResponse
 from snap_fit.webapp.schemas.interactive import SuggestionBundle
 from snap_fit.webapp.schemas.interactive import SuggestionCandidate
@@ -372,6 +373,16 @@ class InteractiveService:
                 orientation=c.orientation.value,
                 score=c.score,
                 neighbor_scores=c.neighbor_scores,
+                neighbor_details={
+                    pos_key: NeighborScoreDetail(
+                        score=d.score,
+                        my_edge=d.my_edge.value,
+                        their_edge=d.their_edge.value,
+                        their_piece_id=str(d.their_piece_id),
+                        their_orientation=d.their_orientation,
+                    )
+                    for pos_key, d in c.neighbor_details.items()
+                },
             )
             for c in raw_candidates
         ]

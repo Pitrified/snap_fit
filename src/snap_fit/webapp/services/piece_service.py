@@ -406,6 +406,73 @@ class PieceService:
                 return _load_sheet_image(str(img_path))
         return None
 
+    def get_match_preview_img(
+        self,
+        piece_id_a: str,
+        edge_a: str,
+        orientation_a: int,
+        piece_id_b: str,
+        edge_b: str,
+        orientation_b: int,
+        size: int | None = None,
+    ) -> bytes | None:
+        """Generate a side-by-side match preview image for two piece edges.
+
+        Draws the facing segment on each piece crop (in its placement
+        orientation) and composes them side by side on a dark canvas.
+
+        Args:
+            piece_id_a: Placed piece identifier.
+            edge_a: ``EdgePos.value`` of piece A's edge that faces piece B.
+            orientation_a: Placement orientation of piece A (0/90/180/270).
+            piece_id_b: Candidate piece identifier.
+            edge_b: ``EdgePos.value`` of piece B's edge that faces piece A.
+            orientation_b: Placement orientation of piece B (0/90/180/270).
+            size: Optional max dimension for the composite image.
+
+        Returns:
+            PNG bytes, or None if data could not be loaded.
+        """
+        crop_a, _, contour_a, corner_a = self._load_inspection_data(piece_id_a)
+        crop_b, _, contour_b, corner_b = self._load_inspection_data(piece_id_b)
+
+        if (
+            crop_a is None
+            or contour_a is None
+            or corner_a is None
+            or crop_b is None
+            or contour_b is None
+            or corner_b is None
+        ):
+            return None
+
+        img_a = _draw_segment_highlight(crop_a, contour_a, corner_a, edge_a)
+        img_b = _draw_segment_highlight(crop_b, contour_b, corner_b, edge_b)
+
+        if orientation_a in _ROTATE_MAP:
+            img_a = cv2.rotate(img_a, _ROTATE_MAP[orientation_a])
+        if orientation_b in _ROTATE_MAP:
+            img_b = cv2.rotate(img_b, _ROTATE_MAP[orientation_b])
+
+        canvas = _compose_preview(
+            img_a,
+            img_b,
+            label_a=f"{piece_id_a} ({edge_a})",
+            label_b=f"{piece_id_b} ({edge_b})",
+        )
+
+        if size is not None and size > 0:
+            h, w = canvas.shape[:2]
+            scale = size / max(h, w)
+            new_w = max(1, int(w * scale))
+            new_h = max(1, int(h * scale))
+            canvas = cv2.resize(canvas, (new_w, new_h), interpolation=cv2.INTER_AREA)
+
+        ok, buf = cv2.imencode(".png", canvas)
+        if not ok:
+            return None
+        return buf.tobytes()
+
     def _resolve_img_path(self, img_path: Path) -> Path | None:
         """Resolve an image path to an existing file.
 
@@ -568,3 +635,99 @@ def _load_sheet_image(img_path: str) -> np.ndarray | None:
     if img is None:
         lg.warning(f"Could not read image: {img_path}")
     return img
+
+
+def _draw_segment_highlight(
+    img: np.ndarray,
+    contour_pts: np.ndarray,
+    corner_indices: dict[str, int],
+    edge_pos_val: str,
+) -> np.ndarray:
+    """Draw a single segment on the crop image with its canonical colour.
+
+    All other contour points are also drawn in a dim grey so the piece
+    silhouette is visible.  The highlighted segment is drawn on top in
+    its full colour at thickness 3.
+
+    Args:
+        img: Piece crop image (BGR). Not modified in place.
+        contour_pts: Contour array of shape (N, 1, 2) in piece-local coords.
+        corner_indices: Mapping from ``CornerPos.value`` to contour index.
+        edge_pos_val: ``EdgePos.value`` string selecting the segment to highlight.
+
+    Returns:
+        A new image with the segment overlay drawn.
+    """
+    edge_pos = EdgePos(edge_pos_val)
+    start_corner, end_corner = EDGE_ENDS_TO_CORNER[edge_pos]
+    color = _SEGMENT_COLORS.get(edge_pos_val, (255, 255, 255))
+
+    start_idx = corner_indices.get(start_corner.value, 0)
+    end_idx = corner_indices.get(end_corner.value, 0)
+
+    out = img.copy()
+
+    # Dim full contour for context
+    cv2.polylines(out, [contour_pts], isClosed=True, color=(80, 80, 80), thickness=1)
+
+    # Highlighted segment
+    if start_idx <= end_idx:
+        seg_pts = contour_pts[start_idx : end_idx + 1]
+    else:
+        seg_pts = np.vstack((contour_pts[start_idx:], contour_pts[: end_idx + 1]))
+
+    if len(seg_pts) > 0:
+        cv2.polylines(out, [seg_pts], isClosed=False, color=color, thickness=3)
+
+    return out
+
+
+def _compose_preview(
+    img_a: np.ndarray,
+    img_b: np.ndarray,
+    label_a: str = "",
+    label_b: str = "",
+    gap: int = 8,
+) -> np.ndarray:
+    """Place two images side-by-side on a dark canvas with text labels.
+
+    Args:
+        img_a: Left image (BGR).
+        img_b: Right image (BGR).
+        label_a: Label drawn along the bottom of the left image.
+        label_b: Label drawn along the bottom of the right image.
+        gap: Pixel gap between the two images.
+
+    Returns:
+        Composite image array (BGR).
+    """
+    ha, wa = img_a.shape[:2]
+    hb, wb = img_b.shape[:2]
+    h = max(ha, hb)
+    w = wa + gap + wb
+    canvas = np.full((h, w, 3), 40, dtype=np.uint8)
+
+    y_a = (h - ha) // 2
+    canvas[y_a : y_a + ha, :wa] = img_a
+
+    y_b = (h - hb) // 2
+    canvas[y_b : y_b + hb, wa + gap :] = img_b
+
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    label_color = (200, 200, 200)
+    if label_a:
+        cv2.putText(
+            canvas, label_a, (4, h - 4), font, 0.35, label_color, 1, cv2.LINE_AA
+        )
+    if label_b:
+        cv2.putText(
+            canvas,
+            label_b,
+            (wa + gap + 2, h - 4),
+            font,
+            0.35,
+            label_color,
+            1,
+            cv2.LINE_AA,
+        )
+    return canvas

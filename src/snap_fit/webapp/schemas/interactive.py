@@ -28,6 +28,16 @@ class SuggestionRequest(BaseModel):
     top_k: int = 5
 
 
+class NeighborScoreDetail(BaseModel):
+    """Score and edge info for one placed neighbor of a suggestion candidate."""
+
+    score: float
+    my_edge: str
+    their_edge: str
+    their_piece_id: str
+    their_orientation: int
+
+
 class SuggestionCandidate(BaseModel):
     """A single candidate for a grid slot."""
 
@@ -36,6 +46,7 @@ class SuggestionCandidate(BaseModel):
     orientation: int
     score: float
     neighbor_scores: dict[str, float]
+    neighbor_details: dict[str, NeighborScoreDetail] = {}
 
 
 class SuggestionBundle(BaseModel):

@@ -67,7 +67,16 @@
           <div class="suggestion-scores">
             <p><strong>Total:</strong> {{ score_badge(candidate.score) }}</p>
             {% for pos, score in candidate.neighbor_scores.items() %}
-              <p>vs {{ pos }}: {{ score_badge(score) }}</p>
+              {% set detail = candidate.neighbor_details.get(pos) %}
+              <div class="match-preview-row">
+                <p>vs {{ pos }}: {{ score_badge(score) }}</p>
+                {% if detail %}
+                  <img class="match-preview-img"
+                       src="/api/v1/pieces/match-preview?piece1={{ detail.their_piece_id }}&amp;edge1={{ detail.their_edge }}&amp;orient1={{ detail.their_orientation }}&amp;piece2={{ candidate.piece_id }}&amp;edge2={{ detail.my_edge }}&amp;orient2={{ candidate.orientation }}&amp;size=180"
+                       loading="lazy" alt="Match preview {{ pos }}"
+                       width="180">
+                {% endif %}
+              </div>
             {% endfor %}
           </div>
           <div style="color:var(--text-muted); font-size:0.85rem; margin-top:0.5rem;">

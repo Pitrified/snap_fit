@@ -1,6 +1,6 @@
 # 13 - Side-by-Side Matching Preview
 
-**Status:** not started
+**Status:** done
 **Parent:** [10_ui_notes.md](10_ui_notes.md)
 
 ## Goal

@@ -212,6 +212,15 @@
 .suggestion-scores p {
   margin: 0.25rem 0;
 }
+.match-preview-row {
+  margin: 0.4rem 0 0.6rem;
+}
+.match-preview-img {
+  display: block;
+  border-radius: 4px;
+  margin-top: 0.25rem;
+  max-width: 100%;
+}
 .suggestion-orientation {
   font-size: 0.85rem;
   color: var(--text-muted);
