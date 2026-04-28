@@ -44,3 +44,14 @@ class IngestResponse(BaseModel):
     sheets_ingested: int
     pieces_detected: int
     cache_path: str
+
+
+class SegmentShapesUpdate(BaseModel):
+    """Request body for updating a piece's segment shapes.
+
+    ``shapes`` is a partial mapping of EdgePos value (``top``/``right``/
+    ``bottom``/``left``) to SegmentShape value (``in``/``out``/``edge``/
+    ``weird``).  Only the provided keys are changed.
+    """
+
+    shapes: dict[str, str]

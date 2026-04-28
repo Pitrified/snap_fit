@@ -16,6 +16,7 @@ from snap_fit.webapp.core.settings import Settings
 from snap_fit.webapp.core.settings import get_settings
 from snap_fit.webapp.schemas.piece import IngestRequest
 from snap_fit.webapp.schemas.piece import IngestResponse
+from snap_fit.webapp.schemas.piece import SegmentShapesUpdate
 from snap_fit.webapp.services.piece_service import PieceService
 
 router = APIRouter()
@@ -157,6 +158,33 @@ async def get_piece(
     if record is None:
         raise HTTPException(status_code=404, detail=f"Piece {piece_id} not found")
     return record
+
+
+@router.patch("/{piece_id}/segments", summary="Update piece segment shapes")
+async def update_segment_shapes(
+    piece_id: str,
+    body: SegmentShapesUpdate,
+    service: Annotated[PieceService, Depends(get_piece_service)],
+) -> PieceRecord:
+    """Update segment shape labels for a piece.
+
+    Only the edges provided in ``shapes`` are changed.  The piece type and
+    flat-edge list are recomputed automatically.
+
+    Args:
+        piece_id: Piece identifier (``sheet_id:piece_idx``).
+        body: Mapping of edge position to shape value.
+        service: PieceService instance (injected).
+
+    Returns:
+        The updated PieceRecord.
+    """
+    try:
+        return service.update_segment_shapes(piece_id, body.shapes)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @router.post("/ingest", summary="Ingest sheets")

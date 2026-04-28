@@ -11,7 +11,7 @@ This document tracks six UI improvement features for the snap_fit solver and pie
 | 13 | Side-by-side matching preview | [13_matching_preview.md](13_matching_preview.md) | done | high |
 | 14 | Rotated label on piece image | [14_rotated_piece_label.md](14_rotated_piece_label.md) | done | medium |
 | 15 | Piece inspection overlay | [15_piece_inspection.md](15_piece_inspection.md) | done | medium |
-| 16 | Piece segment edit | [16_piece_edit.md](16_piece_edit.md) | not started | medium |
+| 16 | Piece segment edit | [16_piece_edit.md](16_piece_edit.md) | done | medium |
 | 17 | Overlay discoveries (prep for 13) | [17_overlay_discoveries.md](17_overlay_discoveries.md) | done | - |
 
 ## Recommended order

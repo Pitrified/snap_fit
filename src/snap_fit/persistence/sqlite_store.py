@@ -12,6 +12,7 @@ from snap_fit.aruco.sheet_metadata import SheetMetadata
 from snap_fit.data_models.match_result import MatchResult
 from snap_fit.data_models.piece_record import PieceRecord
 from snap_fit.data_models.sheet_record import SheetRecord
+from snap_fit.grid.orientation import OrientedPieceType
 
 # ---------------------------------------------------------------------------
 # DDL
@@ -135,6 +136,11 @@ INSERT INTO matches
   VALUES (?, ?, ?, ?, ?, ?, ?, ?)"""
 
 _DEL_MATCHES = "DELETE FROM matches"
+
+_UPD_PIECE_SEGMENTS = """\
+UPDATE pieces
+SET segment_shapes = ?, flat_edges = ?, oriented_piece_type = ?
+WHERE piece_id = ?"""
 
 _UPD_MATCH_MANUAL = """\
 UPDATE matches
@@ -447,6 +453,39 @@ class DatasetStore:
         """
         cursor = self._conn.execute(_SEL_PIECES_FOR_SHEET, (sheet_id,))
         return [self._row_to_piece(row) for row in cursor.fetchall()]
+
+    def update_piece_segments(
+        self,
+        piece_id: str,
+        segment_shapes: dict[str, str],
+        flat_edges: list[str],
+        oriented_piece_type: OrientedPieceType | None,
+    ) -> bool:
+        """Update a piece's segment shapes, flat edges, and piece type.
+
+        Args:
+            piece_id: The piece identifier string (``sheet_id:piece_idx``).
+            segment_shapes: Updated segment shapes dict.
+            flat_edges: Updated flat edges list.
+            oriented_piece_type: Recomputed oriented piece type (may be None).
+
+        Returns:
+            True if a row was updated, False if the piece was not found.
+        """
+        opt_json: str | None = None
+        if oriented_piece_type is not None:
+            opt_json = json.dumps(oriented_piece_type.model_dump(mode="json"))
+        with self._conn:
+            cursor = self._conn.execute(
+                _UPD_PIECE_SEGMENTS,
+                (
+                    json.dumps(segment_shapes),
+                    json.dumps(flat_edges),
+                    opt_json,
+                    piece_id,
+                ),
+            )
+        return cursor.rowcount > 0
 
     # -------------------------------------------------------------------------
     # Matches

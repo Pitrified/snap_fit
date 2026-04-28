@@ -14,8 +14,12 @@ from snap_fit.config.aruco.sheet_aruco_config import SheetArucoConfig
 from snap_fit.config.types import EDGE_ENDS_TO_CORNER
 from snap_fit.config.types import CornerPos
 from snap_fit.config.types import EdgePos
+from snap_fit.config.types import SegmentShape
 from snap_fit.data_models.piece_record import PieceRecord
 from snap_fit.data_models.sheet_record import SheetRecord
+from snap_fit.grid.orientation import OrientedPieceType
+from snap_fit.grid.orientation_utils import detect_base_orientation
+from snap_fit.grid.orientation_utils import get_piece_type
 from snap_fit.persistence.sqlite_store import DatasetStore
 from snap_fit.puzzle.sheet_aruco import SheetAruco
 from snap_fit.puzzle.sheet_manager import SheetManager
@@ -205,6 +209,81 @@ class PieceService:
                 if records:
                     return records
         return []
+
+    def update_segment_shapes(
+        self,
+        piece_id: str,
+        updates: dict[str, str],
+    ) -> PieceRecord:
+        """Update segment shapes for a piece and recompute derived fields.
+
+        Validates the incoming keys and values, merges them into the existing
+        segment_shapes, recomputes flat_edges and oriented_piece_type, then
+        persists the change.
+
+        Args:
+            piece_id: The piece identifier (``sheet_id:piece_idx``).
+            updates: Mapping of EdgePos value to SegmentShape value. Only the
+                provided keys are updated; all other edges are unchanged.
+
+        Returns:
+            The updated PieceRecord.
+
+        Raises:
+            KeyError: If the piece is not found.
+            ValueError: If any key is not a valid EdgePos or any value is not
+                a valid SegmentShape.
+        """
+        valid_edges = {e.value for e in EdgePos}
+        valid_shapes = {s.value for s in SegmentShape}
+
+        for k, v in updates.items():
+            if k not in valid_edges:
+                msg = f"Invalid edge '{k}'. Valid values: {sorted(valid_edges)}"
+                raise ValueError(msg)
+            if v not in valid_shapes:
+                msg = f"Invalid shape '{v}'. Valid values: {sorted(valid_shapes)}"
+                raise ValueError(msg)
+
+        piece = self.get_piece(piece_id)
+        if piece is None:
+            msg = f"Piece '{piece_id}' not found"
+            raise KeyError(msg)
+
+        new_shapes = {**piece.segment_shapes, **updates}
+
+        new_flat_edges = [
+            edge for edge, shape in new_shapes.items() if shape == SegmentShape.EDGE
+        ]
+
+        flat_edge_positions = [EdgePos(e) for e in new_flat_edges]
+        piece_type = get_piece_type(len(flat_edge_positions))
+        orientation = detect_base_orientation(flat_edge_positions)
+        new_opt = OrientedPieceType(piece_type=piece_type, orientation=orientation)
+
+        tag_dir = self._find_tag_dir_for_piece(piece_id)
+        if tag_dir is None:
+            msg = f"Cannot locate dataset for piece '{piece_id}'"
+            raise KeyError(msg)
+
+        db_path = self._db_path(tag_dir)
+        with DatasetStore(db_path) as store:
+            updated = store.update_piece_segments(
+                piece_id,
+                new_shapes,
+                new_flat_edges,
+                new_opt,
+            )
+            if not updated:
+                msg = f"Piece '{piece_id}' not found in database"
+                raise KeyError(msg)
+            refreshed = store.load_piece(piece_id)
+
+        if refreshed is None:
+            msg = f"Piece '{piece_id}' could not be reloaded after update"
+            raise KeyError(msg)
+
+        return refreshed
 
     def get_piece_img(
         self,

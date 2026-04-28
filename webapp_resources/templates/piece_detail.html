@@ -86,7 +86,7 @@
 
 <div class="card">
     <h2>Segments</h2>
-    <table>
+    <table id="segment-edit-table">
         <thead>
             <tr>
                 <th>Edge</th>
@@ -98,14 +98,23 @@
             <tr>
                 <td>{{ edge }}</td>
                 <td>
-                    <span class="badge {% if shape == 'IN' %}badge-success{% elif shape == 'OUT' %}badge-info{% elif shape == 'EDGE' %}badge-warning{% else %}badge{% endif %}">
-                        {{ shape }}
-                    </span>
+                    <select id="seg-{{ edge }}" class="seg-select">
+                        {% for s in ["in", "out", "edge", "weird"] %}
+                        <option value="{{ s }}" {% if s == shape %}selected{% endif %}>{{ s | upper }}</option>
+                        {% endfor %}
+                    </select>
                 </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
+    <div style="margin-top:0.75rem; display:flex; align-items:center; gap:0.75rem;">
+        <button class="btn btn--accept" onclick="saveSegments('{{ piece.piece_id }}')">Save Changes</button>
+        <span id="save-status" style="font-size:0.875rem;"></span>
+    </div>
+    <div id="segments-stale-warning" style="display:none; margin-top:0.5rem;">
+        <span class="badge badge-warning">Segment shapes changed - consider re-running matching for this dataset.</span>
+    </div>
 </div>
 
 <div class="card">
@@ -173,6 +182,35 @@ function togglePieceOverlay(pieceId) {
     img.src = inspectUrl;
     btn.textContent = 'Hide Contour Overlay';
     legend.style.display = 'flex';
+  }
+}
+
+async function saveSegments(pieceId) {
+  const status = document.getElementById('save-status');
+  const warning = document.getElementById('segments-stale-warning');
+  const shapes = {};
+  document.querySelectorAll('.seg-select').forEach(function(sel) {
+    shapes[sel.id.replace('seg-', '')] = sel.value;
+  });
+  status.textContent = 'Saving\u2026';
+  try {
+    const resp = await fetch('/api/v1/pieces/' + encodeURIComponent(pieceId) + '/segments', {
+      method: 'PATCH',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({shapes: shapes}),
+    });
+    if (resp.ok) {
+      status.textContent = 'Saved.';
+      status.style.color = 'green';
+      warning.style.display = 'block';
+    } else {
+      const data = await resp.json().catch(function() { return {}; });
+      status.textContent = 'Error: ' + (data.detail || resp.status);
+      status.style.color = 'red';
+    }
+  } catch (err) {
+    status.textContent = 'Network error.';
+    status.style.color = 'red';
   }
 }
 </script>

@@ -1,6 +1,6 @@
 # 16 - Piece Segment Edit
 
-**Status:** not started
+**Status:** done
 **Parent:** [10_ui_notes.md](10_ui_notes.md)
 
 ## Goal
