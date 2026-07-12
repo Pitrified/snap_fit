@@ -22,7 +22,7 @@ Analysis, rationale, and open questions are in
 | #  | Phase                                  | Plan                                        | Status  |
 | -- | -------------------------------------- | ------------------------------------------- | ------- |
 | 1  | Minimal config contract                | [01_minimal_config_contract.md](01_minimal_config_contract.md) | done |
-| 2  | Background preset composition path     | [02_background_preset_composition_path.md](02_background_preset_composition_path.md) | draft |
+| 2  | Background preset composition path     | [02_background_preset_composition_path.md](02_background_preset_composition_path.md) | done |
 | 3  | HSV green-mask preprocess option       | [03_hsv_green_mask_preprocess_option.md](03_hsv_green_mask_preprocess_option.md) | draft |
 | 4  | Tests and compatibility decision gate  | [04_tests_and_compatibility_decision_gate.md](04_tests_and_compatibility_decision_gate.md) | draft |
 | 5  | Docs and dataset warnings (if needed)  | [05_docs_and_dataset_warnings_if_needed.md](05_docs_and_dataset_warnings_if_needed.md) | draft |
@@ -42,3 +42,5 @@ Append-only. Newest at the bottom.
 - 2026-07-12 : completed draft-to-plan pass for phase 1; locked additive config contract with explicit defaults and compatibility decision gate.
 - 2026-07-12 : renamed the mask contract to background_mask and explicitly kept the QR payload stable for phase 1.
 - 2026-07-12 : implemented phase 1 additive config contract in code, added contract regression tests, and marked phase 1 done.
+- 2026-07-12 : completed draft-to-plan pass for phase 2; locked colorization approach (luminance-scaled preset BGR) in BoardImageComposer.compose(), confirmed single call site, and documented the green-preset / warp-border-artifact interaction as non-blocking.
+- 2026-07-12 : implemented phase 2; added _colorize_background() to BoardImageComposer with the preset BGR table, added regression tests (white byte-identical, markers black, background exact preset color), verified lint/type-check clean, and marked phase 2 done.

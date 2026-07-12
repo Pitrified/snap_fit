@@ -10,6 +10,14 @@ from snap_fit.aruco.slot_grid import SlotGrid
 from snap_fit.config.aruco.aruco_board_config import ArucoBoardConfig
 from snap_fit.config.aruco.metadata_zone_config import MetadataZoneConfig
 
+# BGR color for each named background preset. "white" is handled as an
+# identity conversion (see _colorize_background) rather than looked up here.
+_PRESET_BGR: dict[str, tuple[int, int, int]] = {
+    "white": (255, 255, 255),
+    "green": (0, 255, 0),
+    "blue": (255, 0, 0),
+}
+
 
 class BoardImageComposer:
     """Assembles a complete board image from its components.
@@ -51,8 +59,9 @@ class BoardImageComposer:
             BGR uint8 numpy array with all requested elements composited.
         """
         gray = ArucoBoardGenerator(self.board_config).generate_image()
-        # Convert to BGR so all subsequent rendering uses a consistent format.
-        img: np.ndarray = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
+        # Colorize to BGR using the configured background preset. All
+        # subsequent rendering uses this consistent BGR format.
+        img = self._colorize_background(gray)
 
         if self.metadata_zone is None or not self.metadata_zone.enabled:
             return img
@@ -65,3 +74,28 @@ class BoardImageComposer:
             img = encoder.render(img, metadata, self.metadata_zone)
 
         return img
+
+    def _colorize_background(self, gray: np.ndarray) -> np.ndarray:
+        """Convert the grayscale board render to BGR using the background preset.
+
+        "white" is an identity conversion, reproducing the previous unconditional
+        cv2.cvtColor behavior exactly. Other presets scale each BGR channel by
+        the grayscale value, so marker ink (0) stays black and background
+        pixels (255) reach the exact preset color.
+
+        Args:
+            gray: Grayscale board image from ArucoBoardGenerator.
+
+        Returns:
+            BGR uint8 numpy array.
+        """
+        preset = self.board_config.background_preset
+        if preset == "white":
+            return cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
+
+        color = _PRESET_BGR[preset]
+        gray_f = gray.astype(np.float32) / 255.0
+        colored = np.empty((*gray.shape, 3), dtype=np.float32)
+        for channel, value in enumerate(color):
+            colored[..., channel] = gray_f * value
+        return np.round(colored).astype(np.uint8)
