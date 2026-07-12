@@ -118,6 +118,89 @@ Compatibility policy folded from notes:
   compatibility decision because it affects printed artifacts and decode
   assumptions.
 
+### Ingest driver usage pattern (2026-07-12)
+
+Surveyed how configs actually reach SheetAruco today, to shape phase 4.
+The rule already in place: drivers own config loading, the library never
+touches JSON on disk.
+
+- Webapp: `puzzle_service.py` (and `piece_service.py`) load
+  `data/{dataset_tag}/{dataset_tag}_SheetArucoConfig.json` via
+  `SheetArucoConfig.model_validate_json`, then `SheetAruco(config)` and
+  `load_sheet` per image. The dataset folder carries its own full config.
+- Notebook `scratch_space/20_piece_markers/01_print_read_board.ipynb` is the
+  existing end-to-end pattern and already uses `BoardImageComposer`:
+  - Print time: builds the configs in code, composes and saves the board PNGs
+    to `data/aruco_boards/{board_config_id}/`, and saves BOTH
+    `{id}_ArucoBoardConfig.json` and the full `{id}_SheetArucoConfig.json`
+    next to them.
+  - Ingest time: reloads the saved `SheetArucoConfig` JSON from the board
+    folder ("this is what an ingest script would do") and runs
+    `SheetAruco.load_sheet()` on photos.
+- `SheetMetadataDecoder` is usable standalone on a raw photo, before any
+  SheetAruco setup, so a driver can decode the QR first and use
+  `board_config_id` to pick the folder to load from.
+
+Consequence for phase 4: since the saved `SheetArucoConfig` embeds the board
+config (with its preset, post phase 1) and, after Q11, the preprocess config
+with the nested mask, the green setting travels inside the saved JSON on its
+own. The Q12 auto-enable rule belongs at config-build time (a helper the
+notebook calls before saving), not inside `SheetAruco.load_sheet()`.
+Phase 4 becomes: a loader helper keyed by board_config_id, a derivation
+helper applying the Q12 precedence, and making the notebook ingest part
+actually driven by the decoded id.
+
+### Gap assessment (2026-07-12, after phases 1-2)
+
+Reviewed the p1/p2 commits (790c57e, a7ffa8a) against the plan and the code.
+Phase 1 and 2 implementations match their sub-plans:
+additive `background_preset` on ArucoBoardConfig, additive `background_mask` on SheetArucoConfig,
+`_colorize_background()` in BoardImageComposer, and 9 regression tests that pass.
+The gaps below are in the plan for the remaining phases, not in the delivered work.
+
+- G1: no production entry point exercises the preset.
+  `BoardImageComposer` has zero call sites outside tests;
+  board PNGs in `data/aruco_boards/` come from notebooks
+  (`scratch_space/aruco_setup/03_generate_aruco_board.ipynb`, `scratch_space/20_piece_markers/01_print_read_board.ipynb`).
+  No phase says how an operator actually produces a green board end to end.
+  ANS: from the existing notebook, one of the config will be the background mode.
+- G2: `background_mask` has no plumbing path to where preprocessing runs.
+  `Sheet.preprocess()` hardcodes its parameters (threshold 130, kernel sizes)
+  and `Sheet.__init__` accepts no preprocess config;
+  `SheetAruco.load_sheet()` constructs `Sheet` without passing `background_mask`.
+  Phase 3's plan says "add preprocess options per the phase 1 contract" but does not design the config threading,
+  and it will collide with the existing REFA comment in `sheet.py` (preprocess params should be a config object).
+  ANS: we can think about a broader preprocess config object
+- G3: the HSV mask output semantics are unspecified.
+  The current pipeline is blur, grayscale, threshold, erode, dilate, `flip_colors_bw`, producing `img_bw`
+  with a specific polarity that contour finding depends on.
+  Phase 3 does not state whether the mask replaces the whole binary path or only the threshold step,
+  nor how erosion/dilation apply to the mask output, nor the required output polarity.
+  It also does not document that the HSV bounds use the OpenCV hue scale (0-179),
+  and `BackgroundMaskConfig` does not validate ranges.
+  ANS: then we need to think about this
+- G4: board_config_id resolution is not implemented anywhere.
+  D10 names it the source of truth for preset resolution at ingest,
+  but no code loads a board config from `data/aruco_boards/{id}/`;
+  only the `SheetMetadata` string carries the id.
+  As planned, the mask is enabled manually in SheetArucoConfig, so a green board with a sheet config
+  that forgot `background_mask.enabled` fails silently.
+  Either a phase implements the resolution, or D10 should be downgraded to a naming convention.
+  ANS: then we analyze. the idea is that in the qrcode there is a name, the matching json is found on disk, we load that json, in the json we discover that green was set. you should not build the config by hand when reloading the image from a physical picture.
+- G5: no plan step produces the green validation data phases 3-4 rely on.
+  Phase 3 says "at least one green-background sample set" but nothing creates it
+  (print and photograph, or synthesize by compositing piece images onto a green board render).
+  ANS: plan it
+- G6: detection on green backgrounds is asserted, not tested.
+  Phase 2 correctly notes the detector only uses board geometry at setup,
+  but real detection runs on photos where the green background has grayscale luminance around 150 versus 255 for white,
+  reducing marker contrast.
+  Phase 4 should include an explicit cheap test: render a green-preset board, run `ArucoDetector.rectify()`, expect success.
+  ANS: do it
+- G7 (minor): the "proposed phase sequence" section below lists 6 items while the plan has 5 phases
+  (items 1-2 were merged into phase 1); harmless but worth knowing when cross-reading.
+  ANS: lol fix it
+
 ## decisions
 
 - D1: Take the simplest implementation path first.
@@ -146,6 +229,37 @@ Compatibility policy folded from notes:
   source of truth for board preset resolution.
   Why: avoids expanding printed metadata unless the feature demonstrably needs
   it.
+- D11: The board generation notebook stays the operator entry point;
+  background preset becomes one of its configs.
+  Why: Q7 and G1 ANS; no script or webapp wiring needed for this feature.
+- D12: Introduce a preprocess config object (SheetPreprocessConfig) that owns
+  the currently hardcoded Sheet.preprocess parameters, threaded
+  SheetArucoConfig -> SheetAruco -> Sheet.
+  Why: Q8 chose the refactor; resolves the REFA comment in sheet.py while
+  building the plumbing the mask needs anyway.
+  Refined per Q11: background_mask nests inside SheetPreprocessConfig,
+  amending the phase 1 placement (code-only change, no dataset JSON uses it).
+- D13: The HSV mask, when enabled, replaces only the threshold step;
+  blur stays before it, erode/dilate/flip stay after it unchanged.
+  Why: Q9; cv2.inRange output has the same polarity as apply_threshold
+  (background white, pieces black), so the rest of the pipeline is untouched.
+- D14: Implement board config resolution at ingest as its own phase:
+  QR board_config_id -> load the matching JSON from data/aruco_boards/{id}/ ->
+  the discovered preset drives the mask automatically.
+  Why: G4 ANS - configs must not be rebuilt by hand when ingesting a physical
+  photo; this upgrades D10 from naming convention to working code.
+  Refined per the driver-level note: the resolution flow lives in the driver
+  (notebook or service), not in SheetAruco/Sheet - the preprocessor knows
+  nothing about JSON on disk. Phase 4 ships loader and derivation helpers plus
+  the notebook wiring; the Q12 precedence (resolved green/blue preset
+  auto-enables the mask with default bounds, explicit background_mask always
+  wins, no-QR photos fall back to the sheet config alone) is applied when the
+  config is built, before SheetAruco ever sees it.
+- D15: Validate with both a synthetic set (piece crops composited onto a green
+  board render) and real printed-and-photographed captures, and include an
+  explicit detector-rectifies-green-board test.
+  Why: Q10 and G6 ANS - synth proves the pipeline exists, real images show
+  what happens in the real world.
 
 Rejected alternatives:
 
@@ -187,15 +301,53 @@ Question batch status:
 
 - No additional questions were raised while expanding the work into phase
   sub-plans on 2026-07-12.
+- Batch Q7-Q10 added 2026-07-12 from the post-phase-2 gap assessment (G1-G7).
+
+- Q7: Where should the operator-facing entry point for generating a green board live:
+  update the existing notebooks, a small script, or wiring BoardImageComposer into the webapp?
+  This decides which phase owns G1.
+  ANS: notebook.
+- Q8: For G2, how should `background_mask` reach `Sheet.preprocess()`:
+  minimal (pass just the BackgroundMaskConfig through SheetAruco into Sheet),
+  or take the opportunity to introduce the small preprocess config object the REFA comment in sheet.py asks for?
+  ANS: refactor.
+- Q9: When the mask is enabled, should it replace the whole binary path
+  (blur/threshold/erode/dilate applied to the mask instead), or only replace the threshold step
+  with the rest of the pipeline unchanged around it?
+  ANS: replace only the threshold step.
+- Q10: For G5, do we validate with real printed-and-photographed green boards,
+  or is a synthetic set (piece crops composited onto a green board render) acceptable for phases 3-4?
+  ANS: both. synth to check that the pipeline exist, real images to check what happens in the real world.
+
+- Batch Q11-Q12 added 2026-07-12 while folding in the G1-G7 and Q7-Q10 answers.
+
+- Q11: After the D12 refactor, where does `background_mask` live:
+  nested inside the new SheetPreprocessConfig (recommended - it is a preprocess concern,
+  and no dataset JSON uses the field yet so moving it costs nothing),
+  or staying as a top-level SheetArucoConfig sibling as phase 1 shipped it?
+  Nesting slightly amends the phase 1 JSON shape; the change is code-only.
+  ANS: ok move it nested.
+- Q12: For phase 4 auto-enable, is this precedence correct:
+  a resolved board preset of green or blue auto-enables the mask with default HSV bounds,
+  and an explicit `background_mask` in the sheet config always wins over the auto rule
+  (including an explicit enabled=false to force it off)?
+  Photos without decodable QR metadata fall back to the sheet config alone.
+  ANS: ok
 
 ## proposed phase sequence
 
-1. Lock the minimal contract: named background presets and HSV mask toggles.
-2. Confirm the QR payload stays stable and board_config_id is the only lookup
-  key needed for preset resolution.
-3. Implement the simplest background path in board composition.
-4. Implement optional HSV background-mask override in sheet preprocessing.
-5. Validate on tests plus real datasets and decide keep-compat versus
-  controlled break.
+Rewritten 2026-07-12 to match the actual phase files (per G7 ANS);
+the original list had 6 items for 5 phases because the QR payload decision
+was merged into phase 1, and phase 4 (resolution) was added later from G4.
+
+1. Lock the minimal contract: presets, mask toggles, and the QR payload
+  decision (board_config_id stays the only lookup key).
+2. Implement the background preset path in board composition.
+3. Implement the optional HSV mask override in sheet preprocessing, with the
+  preprocess config refactor.
+4. Resolve the board config from disk at ingest via the QR board_config_id so
+  the preset drives the mask automatically.
+5. Validate on synthetic and real green captures plus existing datasets and
+  decide keep-compat versus controlled break.
 6. Document outcomes and drop WARNING.md in impacted dataset folders only if
   we choose a breaking path.

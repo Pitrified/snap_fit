@@ -2,14 +2,16 @@
 status: draft
 ---
 
-# Phase 5 - Docs and dataset warnings if needed
+# Phase 6 - Docs and dataset warnings if needed
 
 ## Overview
 
 Publish the final operational guidance after compatibility decisions are made,
 including dataset warnings only when the breaking path is selected.
+Renumbered from phase 5 on 2026-07-12 when board config resolution was
+inserted as phase 4.
 Context: [00_start.md](00_start.md), depends on
-[04_tests_and_compatibility_decision_gate.md](04_tests_and_compatibility_decision_gate.md).
+[05_tests_and_compatibility_decision_gate.md](05_tests_and_compatibility_decision_gate.md).
 
 ## Goals
 
