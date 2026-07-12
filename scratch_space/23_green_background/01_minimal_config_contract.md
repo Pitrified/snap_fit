@@ -1,5 +1,5 @@
 ---
-status: planned
+status: done
 ---
 
 # Phase 1 - Minimal config contract
@@ -13,7 +13,7 @@ Context: [00_start.md](00_start.md).
 ## Goals
 
 1. Specify named background presets for board rendering.
-2. Specify optional HSV background-mask preprocess toggles and parameters.
+2. Specify optional background-mask preprocess toggles and parameters.
 3. Preserve existing field names and defaults unless an explicit break is
    chosen later.
 
@@ -21,7 +21,7 @@ Context: [00_start.md](00_start.md).
 
 1. Lock board background preset config as a small additive field on
    ArucoBoardConfig.
-2. Lock optional HSV background-mask config as a small additive nested field on
+2. Lock optional background-mask config as a small additive nested field on
    SheetArucoConfig.
 3. Validate additive compatibility against current sample configs.
 4. Define explicit keep-compat versus break decision criteria.
@@ -59,11 +59,11 @@ Proposed JSON shape (additive):
 }
 ```
 
-### B. Optional HSV background-mask preprocess
+### B. Optional background-mask preprocess
 
 Target model: SheetArucoConfig
 
-- New field: hsv_background_mask
+- New field: background_mask
 - Type: optional nested object
 - Default: null
 - Semantics:
@@ -99,7 +99,7 @@ Proposed JSON shape (additive):
       "background_preset": "green"
     }
   },
-  "hsv_background_mask": {
+  "background_mask": {
     "enabled": true,
     "lower_hsv": [35, 40, 40],
     "upper_hsv": [95, 255, 255]
@@ -111,7 +111,7 @@ Proposed JSON shape (additive):
 
 - Existing ArucoBoardConfig JSON files do not include background_preset.
   Default white keeps behavior unchanged.
-- Existing SheetArucoConfig JSON files do not include hsv_background_mask.
+- Existing SheetArucoConfig JSON files do not include background_mask.
   Default null keeps preprocess unchanged.
 - metadata_zone optionality differences across datasets remain unaffected.
 

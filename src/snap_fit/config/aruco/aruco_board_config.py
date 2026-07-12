@@ -1,5 +1,7 @@
 """Configuration for Aruco board generation."""
 
+from typing import Literal
+
 import cv2
 from pydantic import Field
 
@@ -23,6 +25,10 @@ class ArucoBoardConfig(BaseModelKwargs):
     margin: int = Field(default=20, description="Margin around the board in pixels")
     border_bits: int = Field(
         default=1, description="Number of bits for the marker border"
+    )
+    background_preset: Literal["white", "green", "blue"] = Field(
+        default="white",
+        description="Named background preset for the generated board",
     )
 
     def board_dimensions(self) -> tuple[int, int]:

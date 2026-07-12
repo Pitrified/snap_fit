@@ -21,7 +21,7 @@ Analysis, rationale, and open questions are in
 
 | #  | Phase                                  | Plan                                        | Status  |
 | -- | -------------------------------------- | ------------------------------------------- | ------- |
-| 1  | Minimal config contract                | [01_minimal_config_contract.md](01_minimal_config_contract.md) | planned |
+| 1  | Minimal config contract                | [01_minimal_config_contract.md](01_minimal_config_contract.md) | done |
 | 2  | Background preset composition path     | [02_background_preset_composition_path.md](02_background_preset_composition_path.md) | draft |
 | 3  | HSV green-mask preprocess option       | [03_hsv_green_mask_preprocess_option.md](03_hsv_green_mask_preprocess_option.md) | draft |
 | 4  | Tests and compatibility decision gate  | [04_tests_and_compatibility_decision_gate.md](04_tests_and_compatibility_decision_gate.md) | draft |
@@ -40,4 +40,5 @@ Append-only. Newest at the bottom.
 - 2026-07-12 : no new questions emerged from the audit; expanded the tracked plan into five phase sub-plan files.
 - 2026-07-12 : reclassified phases 1-5 from planned to draft; each phase now requires an explicit draft-to-plan pass before execution begins.
 - 2026-07-12 : completed draft-to-plan pass for phase 1; locked additive config contract with explicit defaults and compatibility decision gate.
-- 2026-07-12 : renamed the mask contract to hsv_background_mask and explicitly kept the QR payload stable for phase 1.
+- 2026-07-12 : renamed the mask contract to background_mask and explicitly kept the QR payload stable for phase 1.
+- 2026-07-12 : implemented phase 1 additive config contract in code, added contract regression tests, and marked phase 1 done.

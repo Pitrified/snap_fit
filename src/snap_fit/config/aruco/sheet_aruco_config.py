@@ -7,6 +7,20 @@ from snap_fit.config.aruco.metadata_zone_config import MetadataZoneConfig
 from snap_fit.utils.basemodel_kwargs import BaseModelKwargs
 
 
+class BackgroundMaskConfig(BaseModelKwargs):
+    """Optional background-removal mask settings for sheet preprocessing."""
+
+    enabled: bool = Field(default=False, description="Enable the mask override")
+    lower_hsv: tuple[int, int, int] = Field(
+        default=(35, 40, 40),
+        description="Lower HSV bound for the background mask",
+    )
+    upper_hsv: tuple[int, int, int] = Field(
+        default=(95, 255, 255),
+        description="Upper HSV bound for the background mask",
+    )
+
+
 class SheetArucoConfig(BaseModelKwargs):
     """Configuration for sheet processing using ArUco markers.
 
@@ -15,6 +29,7 @@ class SheetArucoConfig(BaseModelKwargs):
         crop_margin: Pixels to crop after rectification. If None, computed from
             the detector/board settings.
         detector: `ArucoDetectorConfig` used to construct the detector.
+        background_mask: Optional mask config for background-colored boards.
         metadata_zone: Optional config for QR strip and slot grid. When None,
             existing behaviour is unchanged.
     """
@@ -25,6 +40,9 @@ class SheetArucoConfig(BaseModelKwargs):
     )
     detector: ArucoDetectorConfig = Field(
         default_factory=ArucoDetectorConfig, description="Aruco detector config"
+    )
+    background_mask: BackgroundMaskConfig | None = Field(
+        default=None, description="Optional background-mask preprocess config"
     )
     metadata_zone: MetadataZoneConfig | None = Field(
         default=None, description="QR strip and slot grid config"
