@@ -107,6 +107,17 @@ Compatibility policy folded from notes:
 - If a breaking change is selected, create WARNING.md in impacted dataset
   folders documenting required re-ingest or config updates.
 
+### QR payload scope
+
+- Keep the QR payload stable for Phase 1.
+- Do not add background preset to the QR payload unless a later phase proves
+  that board_config_id is insufficient to resolve the rendered board config.
+- Treat board_config_id as the source of truth for the background preset at
+  ingest time.
+- If a future phase decides the payload must change, record that as a separate
+  compatibility decision because it affects printed artifacts and decode
+  assumptions.
+
 ## decisions
 
 - D1: Take the simplest implementation path first.
@@ -131,6 +142,10 @@ Compatibility policy folded from notes:
 - D9: Keep ArucoDetector warp border color independent from board background
   semantics.
   Why: current green borderValue is a rectification artifact, not board color.
+- D10: Keep the QR payload stable in Phase 1 and treat board_config_id as the
+  source of truth for board preset resolution.
+  Why: avoids expanding printed metadata unless the feature demonstrably needs
+  it.
 
 Rejected alternatives:
 
@@ -164,6 +179,10 @@ Rejected alternatives:
   drop a WARNING.md file in impacted dataset folders. There should not be
   many. Some available datasets are already not compatible.
 
+- Q6: Should the QR payload include background preset information?
+  ANS: no for Phase 1. Keep payload stable and resolve background preset from
+  board_config_id unless a later phase shows that is insufficient.
+
 Question batch status:
 
 - No additional questions were raised while expanding the work into phase
@@ -172,9 +191,11 @@ Question batch status:
 ## proposed phase sequence
 
 1. Lock the minimal contract: named background presets and HSV mask toggles.
-2. Implement the simplest background path in board composition.
-3. Implement optional HSV green-mask override in sheet preprocessing.
-4. Validate on tests plus real datasets and decide keep-compat versus
+2. Confirm the QR payload stays stable and board_config_id is the only lookup
+  key needed for preset resolution.
+3. Implement the simplest background path in board composition.
+4. Implement optional HSV background-mask override in sheet preprocessing.
+5. Validate on tests plus real datasets and decide keep-compat versus
   controlled break.
-5. Document outcomes and drop WARNING.md in impacted dataset folders only if
+6. Document outcomes and drop WARNING.md in impacted dataset folders only if
   we choose a breaking path.
