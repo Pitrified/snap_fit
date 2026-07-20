@@ -98,6 +98,7 @@ class SheetAruco:
             image=img_final,
             slot_grid=slot_grid,
             crop_offset=crop_offset,
+            preprocess=self.config.preprocess,
         )
         sheet.metadata = metadata
 

@@ -17,13 +17,17 @@ if TYPE_CHECKING:
     from snap_fit.aruco.sheet_metadata import SheetMetadata
     from snap_fit.aruco.slot_grid import SlotGrid
 
+from snap_fit.config.aruco.sheet_aruco_config import BackgroundMaskConfig
+from snap_fit.config.aruco.sheet_aruco_config import SheetPreprocessConfig
 from snap_fit.image.contour import Contour
 from snap_fit.image.process import apply_dilation
 from snap_fit.image.process import apply_erosion
 from snap_fit.image.process import apply_gaussian_blur
 from snap_fit.image.process import apply_threshold
+from snap_fit.image.process import compute_hsv_mask
 from snap_fit.image.process import convert_to_grayscale
 from snap_fit.image.process import find_contours
+from snap_fit.image.process import paint_masked_white
 from snap_fit.image.utils import flip_colors_bw
 from snap_fit.image.utils import load_image
 from snap_fit.puzzle.piece import Piece
@@ -40,12 +44,14 @@ class Sheet:
         sheet_id: str | None = None,
         slot_grid: SlotGrid | None = None,
         crop_offset: int = 0,
+        preprocess: SheetPreprocessConfig | None = None,
     ) -> None:
         """Initialize the sheet with the image file path."""
         self.img_fp = img_fp
         self.min_area = min_area
         self.sheet_id = sheet_id or img_fp.stem
         self.crop_offset = crop_offset
+        self.preprocess_config = preprocess or SheetPreprocessConfig()
 
         self.metadata: SheetMetadata | None = None
         self.slot_grid: SlotGrid | None = slot_grid
@@ -55,9 +61,6 @@ class Sheet:
         else:
             self.load_image()
 
-        # REFA should be a config object
-        #      together with the preprocess params
-        self.threshold = 130
         self.preprocess()
 
         self.find_pieces()
@@ -67,15 +70,49 @@ class Sheet:
         self.img_orig = load_image(self.img_fp)
 
     def preprocess(self) -> None:
-        """Preprocess the image."""
-        image = self.img_orig
-        image = apply_gaussian_blur(image, kernel_size=(21, 21))
-        image = convert_to_grayscale(image)
-        image = apply_threshold(image, threshold=self.threshold)
-        image = apply_erosion(image, kernel_size=3, iterations=2)
-        image = apply_dilation(image, kernel_size=3, iterations=1)
-        image = flip_colors_bw(image)
-        self.img_bw = image
+        """Preprocess the image into the binary `img_bw` used for contours."""
+        cfg = self.preprocess_config
+        blurred = apply_gaussian_blur(
+            self.img_orig, kernel_size=(cfg.blur_kernel_size, cfg.blur_kernel_size)
+        )
+
+        mask_cfg = cfg.background_mask
+        if mask_cfg is not None and mask_cfg.enabled:
+            binary = self._binary_from_mask(blurred, mask_cfg, cfg.threshold)
+        else:
+            gray = convert_to_grayscale(blurred)
+            binary = apply_threshold(gray, threshold=cfg.threshold)
+
+        binary = apply_erosion(
+            binary,
+            kernel_size=cfg.erosion_kernel_size,
+            iterations=cfg.erosion_iterations,
+        )
+        binary = apply_dilation(
+            binary,
+            kernel_size=cfg.dilation_kernel_size,
+            iterations=cfg.dilation_iterations,
+        )
+        self.img_bw = flip_colors_bw(binary)
+
+    def _binary_from_mask(
+        self,
+        blurred: np.ndarray,
+        mask_cfg: BackgroundMaskConfig,
+        threshold: int,
+    ) -> np.ndarray:
+        """Build the binary image from the HSV background mask.
+
+        Runs between blur and erosion, in place of the grayscale + threshold
+        step. Output keeps the standard polarity (background 255, pieces 0).
+        """
+        mask = compute_hsv_mask(blurred, mask_cfg.lower_hsv, mask_cfg.upper_hsv)
+        if mask_cfg.mode == "as_threshold":
+            return mask
+        # flatten_to_white: repaint the masked background, then threshold as usual.
+        flattened = paint_masked_white(blurred, mask)
+        gray = convert_to_grayscale(flattened)
+        return apply_threshold(gray, threshold=threshold)
 
     def find_pieces(self) -> None:
         """Find the pieces in the image."""

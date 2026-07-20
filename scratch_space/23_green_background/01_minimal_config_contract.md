@@ -61,6 +61,12 @@ Proposed JSON shape (additive):
 
 ### B. Optional background-mask preprocess
 
+Note (phase 3, Q11/D12): this field shipped top-level on SheetArucoConfig in
+phase 1, then moved nested under `SheetArucoConfig.preprocess.background_mask`
+when phase 3 introduced `SheetPreprocessConfig`. The JSON below shows the
+original phase-1 shape; the current shape nests it. Code-only change, no
+dataset JSON used the field.
+
 Target model: SheetArucoConfig
 
 - New field: background_mask

@@ -20,6 +20,48 @@ def convert_to_grayscale(image: np.ndarray) -> np.ndarray:
     return cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
 
+def compute_hsv_mask(
+    image: np.ndarray,
+    lower_hsv: tuple[int, int, int],
+    upper_hsv: tuple[int, int, int],
+) -> np.ndarray:
+    """Compute an in-range HSV mask from a BGR image.
+
+    Bounds use the OpenCV HSV scale (H 0-179, S/V 0-255). The output has the
+    same polarity as `apply_threshold`: 255 where the pixel HSV is within
+    `[lower_hsv, upper_hsv]` (the masked background), 0 elsewhere.
+
+    Args:
+        image (np.ndarray): The input BGR image.
+        lower_hsv (tuple[int, int, int]): Lower HSV bound.
+        upper_hsv (tuple[int, int, int]): Upper HSV bound.
+
+    Returns:
+        np.ndarray: A single-channel uint8 mask with values 0 or 255.
+    """
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    return cv2.inRange(
+        hsv,
+        np.array(lower_hsv, dtype=np.uint8),
+        np.array(upper_hsv, dtype=np.uint8),
+    )
+
+
+def paint_masked_white(image: np.ndarray, mask: np.ndarray) -> np.ndarray:
+    """Return a copy of a BGR image with masked pixels set to white.
+
+    Args:
+        image (np.ndarray): The input BGR image.
+        mask (np.ndarray): Single-channel mask; pixels equal to 255 are painted.
+
+    Returns:
+        np.ndarray: A copy with the masked pixels set to (255, 255, 255).
+    """
+    painted = image.copy()
+    painted[mask == 255] = (255, 255, 255)  # noqa: PLR2004
+    return painted
+
+
 def apply_threshold(image: np.ndarray, threshold: int = 127) -> np.ndarray:
     """Apply a binary threshold to the image, converting it to black and white.
 

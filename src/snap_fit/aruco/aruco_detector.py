@@ -111,7 +111,10 @@ class ArucoDetector:
             image,
             h,
             (out_width, out_height),
-            borderValue=(0, 255, 0),
+            # Magenta out-of-warp fill: a green board background plus the HSV
+            # green mask would otherwise swallow a green border as real
+            # background (see D16). Magenta stays outside the green mask range.
+            borderValue=(255, 0, 255),
         )
 
         lg.info(f"Image rectified to size {out_width}x{out_height}")

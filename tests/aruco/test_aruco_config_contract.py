@@ -2,8 +2,12 @@
 
 from pathlib import Path
 
+from pydantic import ValidationError
+import pytest
+
 from snap_fit.config.aruco.aruco_board_config import ArucoBoardConfig
 from snap_fit.config.aruco.sheet_aruco_config import BackgroundMaskConfig
+from snap_fit.config.aruco.sheet_aruco_config import InvalidHsvBoundsError
 from snap_fit.config.aruco.sheet_aruco_config import SheetArucoConfig
 
 
@@ -26,7 +30,7 @@ def test_aruco_board_config_accepts_named_preset() -> None:
 
 
 def test_sheet_aruco_config_defaults_without_background_mask() -> None:
-    """Existing sheet configs remain valid with the new field omitted."""
+    """Existing sheet configs remain valid with the new fields omitted."""
     config = SheetArucoConfig.model_validate_json(
         """
         {
@@ -50,11 +54,14 @@ def test_sheet_aruco_config_defaults_without_background_mask() -> None:
         }
         """
     )
-    assert config.background_mask is None
+    assert config.preprocess.background_mask is None
+    # Preprocess defaults reproduce the historical hardcoded values.
+    assert config.preprocess.threshold == 130
+    assert config.preprocess.blur_kernel_size == 21
 
 
-def test_sheet_aruco_config_accepts_background_mask() -> None:
-    """The background mask parses as an additive nested config."""
+def test_sheet_aruco_config_accepts_nested_background_mask() -> None:
+    """The background mask parses nested inside preprocess (Q11)."""
     config = SheetArucoConfig.model_validate_json(
         """
         {
@@ -76,19 +83,48 @@ def test_sheet_aruco_config_accepts_background_mask() -> None:
               "background_preset": "green"
             }
           },
-          "background_mask": {
-            "enabled": true,
-            "lower_hsv": [35, 40, 40],
-            "upper_hsv": [95, 255, 255]
+          "preprocess": {
+            "background_mask": {
+              "enabled": true,
+              "mode": "flatten_to_white",
+              "lower_hsv": [35, 40, 40],
+              "upper_hsv": [95, 255, 255]
+            }
           }
         }
         """
     )
-    assert isinstance(config.background_mask, BackgroundMaskConfig)
-    assert config.background_mask.enabled is True
-    assert config.background_mask.lower_hsv == (35, 40, 40)
-    assert config.background_mask.upper_hsv == (95, 255, 255)
+    mask = config.preprocess.background_mask
+    assert isinstance(mask, BackgroundMaskConfig)
+    assert mask.enabled is True
+    assert mask.mode == "flatten_to_white"
+    assert mask.lower_hsv == (35, 40, 40)
+    assert mask.upper_hsv == (95, 255, 255)
     assert config.detector.board.background_preset == "green"
+
+
+def test_background_mask_defaults_mode_as_threshold() -> None:
+    """Mode defaults to the threshold-replacement strategy (D13)."""
+    mask = BackgroundMaskConfig(enabled=True)
+    assert mask.mode == "as_threshold"
+
+
+def test_background_mask_rejects_out_of_range_hue() -> None:
+    """Hue above the OpenCV max (179) is rejected."""
+    with pytest.raises(ValidationError) as excinfo:
+        BackgroundMaskConfig(upper_hsv=(200, 255, 255))
+    assert excinfo.value.errors()[0]["type"] == "value_error"
+
+
+def test_background_mask_rejects_inverted_bounds() -> None:
+    """A lower bound above its matching upper bound is rejected."""
+    with pytest.raises(ValidationError):
+        BackgroundMaskConfig(lower_hsv=(95, 40, 40), upper_hsv=(35, 255, 255))
+
+
+def test_invalid_hsv_bounds_is_value_error() -> None:
+    """The named exception is a ValueError so pydantic wraps it cleanly."""
+    assert issubclass(InvalidHsvBoundsError, ValueError)
 
 
 def test_existing_sample_sheet_configs_still_validate() -> None:
@@ -100,4 +136,4 @@ def test_existing_sample_sheet_configs_still_validate() -> None:
     ]
     for config_path in sample_paths:
         config = SheetArucoConfig.model_validate_json(config_path.read_text())
-        assert config.background_mask is None
+        assert config.preprocess.background_mask is None
