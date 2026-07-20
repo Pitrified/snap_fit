@@ -1,8 +1,23 @@
 ---
-status: draft
+status: in progress
 ---
 
 # Phase 5 - Tests and compatibility decision gate
+
+> Progress (2026-07-20): the code-only half is done and verified.
+> - Green board generator: `generate_green_board.py` produces a printable
+>   `greendemo` board set under `data/aruco_boards/greendemo/` (2 PNGs + both
+>   config JSONs; the saved `SheetArucoConfig` has the mask enabled via the
+>   phase-4 derivation). QR round-trip and mask-enabled checks pass.
+> - Ingest round-trip: `ingest_green_sheet.py` decodes the QR, resolves the
+>   stored config by id (`load_sheet_config_by_id`), and runs `load_sheet`;
+>   verified on a stand-in board PNG (metadata decoded, config resolved).
+> - Tests `tests/aruco/test_green_board_pipeline.py`: the detector rectifies a
+>   green board (G6), and a green board with composited pieces extracts them
+>   under both mask modes plus the derived mask (synthetic set, D15/D17).
+> Blocked on the user: print `greendemo`, place pieces, photograph, and run
+> `ingest_green_sheet.py <photo>`. Remaining below: real-photo validation, the
+> mask-mode experiment on real data, and the compatibility decision.
 
 ## Overview
 
