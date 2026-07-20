@@ -1,8 +1,14 @@
 ---
-status: draft
+status: done
 ---
 
 # Phase 4 - Board config resolution at ingest
+
+> Status note: the library helpers (`load_sheet_config_by_id`,
+> `derive_background_mask`, `BoardConfigNotFoundError` in
+> `src/snap_fit/aruco/board_config_resolver.py`) and their unit tests are done.
+> The notebook cell edits that call these helpers are applied and verified in
+> phase 5, where the notebooks run against real green data.
 
 ## Overview
 
@@ -57,15 +63,23 @@ Context: [00_start.md](00_start.md), depends on
    `background_mask` (including enabled=false) always wins.
    This runs at config-build/save time in the print step and again as a
    safety net when a driver loads a config whose preset and mask disagree.
-3. Notebook wiring, per the note 1 inventory:
-   - `01_print_read_board.ipynb` (print time): pass `background_preset` through
-     to the composer and run the derivation helper before saving the config
-     JSONs, so the saved `SheetArucoConfig` already contains the enabled mask.
+3. Notebook wiring, per the note 1 inventory. The helpers below are the
+   phase 4 deliverable; the actual `.ipynb` cell edits are applied and verified
+   during phase 5, because they are only meaningfully testable when the
+   notebooks run against a real green board (which phase 5 generates). Editing
+   notebook cells blind - with no green data to run them - would be an
+   unverifiable change, so phase 4 specifies the wiring and phase 5 executes it.
+   The exact edits:
+   - `01_print_read_board.ipynb` (print time): before saving the config JSONs,
+     call `derive_background_mask(sheet_aruco_config)` so the saved
+     `SheetArucoConfig` already contains the enabled mask for a green preset.
+     No-op for the current white boards.
    - `20_piece_markers/00_sample.ipynb` and `01_print_read_board.ipynb`
-     (ingest time): decode the QR with `SheetMetadataDecoder` first, then use
-     the decoded `board_config_id` with the loader helper to pick the config
-     (today the notebook reuses the in-memory variable; make the flow
-     actually driven by the decoded id).
+     (ingest time): decode the QR with `SheetMetadataDecoder` first, then
+     `load_sheet_config_by_id(metadata.board_config_id)` to pick the config
+     (today the notebook reuses the in-memory variable; make the flow actually
+     driven by the decoded id, falling back to the local config on
+     `BoardConfigNotFoundError` or a `None` decode).
    - reload-by-tag notebooks (`aruco_setup/04_load_sheets.ipynb`,
      `fastapi_scaffold/01_db_ingestion.ipynb`,
      `sheet_manager/02_usage.ipynb`): no green-specific code. Confirm they pick
@@ -88,13 +102,22 @@ Context: [00_start.md](00_start.md), depends on
 
 ## Done when
 
+Library deliverable (phase 4):
+
 - A driver can go from a raw photo to a resolved SheetArucoConfig with two
-  helper calls (decode QR, load by id) and no hand-built config.
+  helper calls (decode QR, load by id) and no hand-built config. (done:
+  `SheetMetadataDecoder.decode` + `load_sheet_config_by_id`.)
 - A config saved for a green board contains the enabled mask
-  (test enforced via the derivation helper).
+  (test enforced via the derivation helper). (done)
+- The loader raises `BoardConfigNotFoundError` for an unknown id or an old
+  folder that holds only an `_ArucoBoardConfig.json`, so a driver can fall
+  back. (done)
+- SheetAruco and Sheet contain no new disk-config code. (done)
+
+Notebook execution (carried into phase 5):
+
 - Photos without decodable metadata behave exactly as before: the driver
   falls back to its existing config path.
 - Every photo-ingest notebook from the note 1 inventory is accounted for:
   the metadata-aware ones decode-then-load by id, the reload-by-tag ones
   inherit the mask through their saved config with no green-specific code.
-- SheetAruco and Sheet contain no new disk-config code.

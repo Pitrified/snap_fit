@@ -46,11 +46,14 @@ and
    background speckle. The `flatten_to_white` idea is the one to beat: paint the
    green-adjacent pixels white so the untouched existing pipeline sees a clean
    sheet. Record which mode to recommend as the default.
-6. Exercise the note 1 ingest notebooks end to end on a green sample:
-   the decode-by-id path (`20_piece_markers/00_sample.ipynb`,
-   `01_print_read_board.ipynb`) and at least one reload-by-tag path
-   (`aruco_setup/04_load_sheets.ipynb` or `fastapi_scaffold/01_db_ingestion.ipynb`),
-   confirming the reload-by-tag path needs no green-specific edits.
+6. Apply and verify the phase 4 notebook wiring (deferred there because it is
+   only testable with real green data). Exercise the note 1 ingest notebooks
+   end to end on a green sample: the decode-by-id path
+   (`20_piece_markers/00_sample.ipynb`, `01_print_read_board.ipynb`) calling
+   `load_sheet_config_by_id`, the print-time `derive_background_mask` call, and
+   at least one reload-by-tag path (`aruco_setup/04_load_sheets.ipynb` or
+   `fastapi_scaffold/01_db_ingestion.ipynb`), confirming the reload-by-tag path
+   needs no green-specific edits.
 7. Run the repository verification suite and focused dataset checks against
    existing white-background datasets.
 8. Record a compatibility decision with rationale and affected folders.
