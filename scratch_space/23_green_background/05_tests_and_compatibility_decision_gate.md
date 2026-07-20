@@ -20,7 +20,9 @@ and
 1. Produce the green validation data (G5, Q10: both synthetic and real).
 2. Add targeted tests for board presets, HSV preprocessing, and detection on
    green boards.
-3. Decide whether compatibility preservation is worth the complexity.
+3. Run the mask-mode experiments (D17) and recommend `as_threshold` versus
+   `flatten_to_white` from measured extraction quality.
+4. Decide whether compatibility preservation is worth the complexity.
 
 ## Plan
 
@@ -35,18 +37,37 @@ and
 3. Print the green board, photograph real pieces on it, and run ingest
    (Q10: real images show what happens in the real world).
 4. Add the detector-on-green test from G6: render a green-preset board, run
-   `ArucoDetector.rectify()`, expect successful rectification.
-5. Run the repository verification suite and focused dataset checks against
+   `ArucoDetector.rectify()`, expect successful rectification. Confirm the D16
+   magenta border does not reintroduce a false foreground in the mask.
+5. Mask-mode experiments (D17, note 3): on the synthetic and real green sets,
+   run ingest with the mask disabled (baseline), `as_threshold`, and
+   `flatten_to_white`, in the same notebook. Compare extracted piece count,
+   contour cleanliness at the green-to-piece boundary, and false pieces from
+   background speckle. The `flatten_to_white` idea is the one to beat: paint the
+   green-adjacent pixels white so the untouched existing pipeline sees a clean
+   sheet. Record which mode to recommend as the default.
+6. Exercise the note 1 ingest notebooks end to end on a green sample:
+   the decode-by-id path (`20_piece_markers/00_sample.ipynb`,
+   `01_print_read_board.ipynb`) and at least one reload-by-tag path
+   (`aruco_setup/04_load_sheets.ipynb` or `fastapi_scaffold/01_db_ingestion.ipynb`),
+   confirming the reload-by-tag path needs no green-specific edits.
+7. Run the repository verification suite and focused dataset checks against
    existing white-background datasets.
-6. Record a compatibility decision with rationale and affected folders.
+8. Record a compatibility decision with rationale and affected folders.
 
 ## Out of scope
 
 - Final docs and operator-facing migration notes.
+- Building a generic composable preprocess-step framework; the experiments use
+  the D17 mode switch only.
 
 ## Done when
 
 - Synthetic and real green captures both pass ingest with pieces extracted.
 - The detector rectifies a rendered green board (test enforced).
+- The mask-mode experiments are run and a recommended default mode is recorded
+  with the measurements behind it.
+- At least one reload-by-tag ingest notebook is shown to handle a green board
+  with no green-specific code.
 - Existing white-background tests and datasets still pass.
 - A clear compatibility decision is written with actionable follow-up.

@@ -20,6 +20,10 @@ Context: [00_start.md](00_start.md), depends on
 2. Introduce a preprocess config object that owns the currently hardcoded
    parameters (D12), resolving the REFA comment in `sheet.py`.
 3. Ensure piece extraction remains stable on non-green captures when disabled.
+4. Express the mask as a mode switch (D17) so phase 5 can experiment with the
+   `as_threshold` and `flatten_to_white` strategies without another rewrite.
+5. Recolor the detector out-of-warp border fill to magenta (D16) so the green
+   mask cannot swallow it.
 
 ## Plan
 
@@ -34,17 +38,33 @@ Context: [00_start.md](00_start.md), depends on
    -> `SheetAruco.load_sheet()` -> `Sheet.__init__` -> `Sheet.preprocess()`.
    `Sheet(` has a single production call site (`sheet_aruco.py:95`) and no
    direct test constructions, so the signature change is low-risk.
-3. Implement the mask step per D13: when enabled, it replaces only the
-   threshold step (Q9). Pipeline becomes:
-   blur -> [inRange(HSV) on the blurred BGR image] -> erode -> dilate -> flip.
-   The `cv2.inRange` output already has the same polarity as
-   `apply_threshold` (background white 255, pieces black 0), so the
-   surrounding steps and `flip_colors_bw` stay untouched.
-4. Add range validation and documentation to `BackgroundMaskConfig`:
+3. Implement the mask as a mode switch (D17). Add a `mode` field to
+   `BackgroundMaskConfig` with two values:
+   - `as_threshold` (D13, default): when enabled, it replaces only the
+     threshold step (Q9). Pipeline becomes:
+     blur -> [inRange(HSV) on the blurred BGR image] -> erode -> dilate -> flip.
+     The `cv2.inRange` output already has the same polarity as
+     `apply_threshold` (background white 255, pieces black 0), so the
+     surrounding steps and `flip_colors_bw` stay untouched.
+   - `flatten_to_white`: inRange selects the green pixels, those pixels are
+     painted 255,255,255 in the blurred BGR image, and the existing
+     grayscale -> threshold -> erode -> dilate -> flip runs unchanged on the
+     flattened image. The downstream pipeline sees a clean white background and
+     nothing else about it changes.
+   Keep the machinery minimal: one mode field, a shared `inRange` call, and a
+   branch, not a generic composable-step framework.
+4. Recolor the detector border fill (D16): change `borderValue=(0, 255, 0)` to
+   magenta in `ArucoDetector.correct_perspective()` (aruco_detector.py:114) so
+   the green mask does not treat out-of-warp pixels as background. This is a
+   self-contained detector change; no other detector behavior moves.
+5. Add range validation and documentation to `BackgroundMaskConfig`:
    OpenCV hue scale is 0-179, saturation/value 0-255 (closes the G3 remainder).
-5. Unit tests: disabled path byte-identical to current preprocess on a sample
-   image; enabled path turns a synthetic green background into background
-   (white pre-flip) and keeps a non-green piece region as foreground.
+6. Unit tests: disabled path byte-identical to current preprocess on a sample
+   image; `as_threshold` turns a synthetic green background into background
+   (white pre-flip) and keeps a non-green piece region as foreground;
+   `flatten_to_white` yields the same extraction on a synthetic green frame and
+   is byte-identical to the baseline on a white frame (green pixels absent, so
+   nothing is repainted).
 
 ## Out of scope
 
@@ -60,3 +80,6 @@ Context: [00_start.md](00_start.md), depends on
 - `Sheet.preprocess()` no longer hardcodes its parameters; defaults come from
   `SheetPreprocessConfig` and reproduce current output exactly.
 - `BackgroundMaskConfig` validates HSV bounds and documents the OpenCV scale.
+- The mask `mode` switch supports both `as_threshold` and `flatten_to_white`,
+  each with a passing test; phase 5 chooses which to recommend.
+- The detector out-of-warp border fill is magenta, not green (D16).

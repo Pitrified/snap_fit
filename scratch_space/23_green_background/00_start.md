@@ -49,8 +49,12 @@ Checked tests:
 - BoardImageComposer.compose() converts grayscale board output to BGR before
   overlays (slot labels and QR metadata).
 - ArucoDetector.correct_perspective() already uses a green border fill
-  borderValue=(0, 255, 0) for out-of-warp pixels.
-  NOTE: this is an artifact with different meaning, we can change it to another bright color like magenta
+  borderValue=(0, 255, 0) for out-of-warp pixels (aruco_detector.py:114).
+  NOTE: this is an artifact with different meaning, we can change it to another bright color like magenta.
+  With a green board background plus an HSV green mask this fill collides with
+  real background: the mask would also swallow the out-of-warp border.
+  Recoloring the border to magenta is now scheduled in phase 3 (D16) so D9's
+  independence is real in pixels, not just in intent.
 - Sheet preprocessing is currently fixed in Sheet.preprocess(): blur,
   grayscale, binary threshold (130), erosion, dilation, color flip.
 - There is no current config field to control board background color.
@@ -141,14 +145,44 @@ touches JSON on disk.
   SheetAruco setup, so a driver can decode the QR first and use
   `board_config_id` to pick the folder to load from.
 
+### Photo-ingest notebook inventory (note 1, expanding the phase 4 scope)
+
+`01_print_read_board.ipynb` is not the only driver that loads real photos.
+Surveyed every notebook that calls `load_sheet`/constructs `Sheet` on real
+images so phase 4 and phase 5 cover all of them, not just the print notebook.
+
+- `scratch_space/aruco_setup/04_load_sheets.ipynb`: the canonical
+  reload-and-ingest pattern. Saves `{tag}_SheetArucoConfig.json` once, then
+  ("then in other notebooks reload it like this") reloads it by hardcoded
+  `sheets_tag`, builds `SheetAruco`, and runs `load_sheet(img_fp)` on real
+  photos. It does NOT decode the QR to pick the config.
+- `scratch_space/fastapi_scaffold/01_db_ingestion.ipynb`: bulk DB ingestion.
+  Loads `SheetArucoConfig` from disk, runs `SheetAruco.load_sheet` over a
+  folder into a `SheetManager`, and persists to SQLite. Also reload-by-tag.
+- `scratch_space/sheet_manager/02_usage.ipynb`: `SheetManager` + `load_sheet`
+  usage sample, reload-by-tag.
+- `scratch_space/20_piece_markers/00_sample.ipynb`: the QR/metadata sample.
+  This one already exercises `SheetMetadataDecoder`, `board_config_id`, and
+  loading `{id}_SheetArucoConfig.json` from disk - the closest thing to the
+  decode-then-resolve flow phase 4 formalizes.
+
+The split that matters for phase 4: the reload-by-tag notebooks (04_load_sheets,
+db_ingestion, sheet_manager/02_usage) never touch the QR id; they trust the
+saved config. So the derivation helper (Q12 auto-enable at save time) is what
+makes green work for them for free - the mask is already inside the JSON they
+reload. The decode-by-id loader helper is the upgrade for the metadata-aware
+notebooks (00_sample style) and any future ingest driver that starts from a
+raw photo without knowing which config to load.
+
 Consequence for phase 4: since the saved `SheetArucoConfig` embeds the board
 config (with its preset, post phase 1) and, after Q11, the preprocess config
 with the nested mask, the green setting travels inside the saved JSON on its
 own. The Q12 auto-enable rule belongs at config-build time (a helper the
 notebook calls before saving), not inside `SheetAruco.load_sheet()`.
 Phase 4 becomes: a loader helper keyed by board_config_id, a derivation
-helper applying the Q12 precedence, and making the notebook ingest part
-actually driven by the decoded id.
+helper applying the Q12 precedence, making the metadata-aware notebook ingest
+actually driven by the decoded id, and confirming the reload-by-tag notebooks
+inherit the mask through their saved config with no per-notebook green code.
 
 ### Gap assessment (2026-07-12, after phases 1-2)
 
@@ -243,6 +277,10 @@ The gaps below are in the plan for the remaining phases, not in the delivered wo
   blur stays before it, erode/dilate/flip stay after it unchanged.
   Why: Q9; cv2.inRange output has the same polarity as apply_threshold
   (background white, pieces black), so the rest of the pipeline is untouched.
+  Refined per note 3: this is the "mask-as-threshold" strategy, now one of
+  two the preprocess machinery must express. The alternative (D17) repaints
+  the masked green pixels to white before grayscale and leaves the existing
+  threshold in place. Phase 5 experiments pick the winner per D17.
 - D14: Implement board config resolution at ingest as its own phase:
   QR board_config_id -> load the matching JSON from data/aruco_boards/{id}/ ->
   the discovered preset drives the mask automatically.
@@ -260,6 +298,27 @@ The gaps below are in the plan for the remaining phases, not in the delivered wo
   explicit detector-rectifies-green-board test.
   Why: Q10 and G6 ANS - synth proves the pipeline exists, real images show
   what happens in the real world.
+- D16: Recolor the ArucoDetector out-of-warp border fill from green
+  (0, 255, 0) to magenta, scheduled inside phase 3.
+  Why: note 2. Once the board background is green and an HSV green mask runs on
+  the rectified image, the current green border fill (aruco_detector.py:114)
+  is indistinguishable from real background and the mask swallows it. Magenta
+  keeps D9's border-vs-background independence true at the pixel level. Placed
+  in phase 3 because that is where the green mask first makes the collision
+  real; it is a small, self-contained detector change.
+- D17: The preprocess refactor (D12) introduces a small mask-mode switch so
+  the green mask can run as either strategy, and phase 5 experiments choose:
+  - "as_threshold" (D13): inRange output is used directly as the binary,
+    replacing the threshold step.
+  - "flatten_to_white": inRange selects the green pixels, those pixels are
+    painted white in the color image, and the existing
+    grayscale -> threshold -> erode -> dilate -> flip pipeline runs unchanged
+    on the flattened image. This gives the downstream pipeline a clean white
+    background instead of rewiring its polarity.
+  Why: note 3. The refactor is happening anyway, so expressing the step as a
+  mode (not a hardcoded threshold swap) is the neat seam for experimenting
+  with added pipeline steps without another rewrite. Machinery stays minimal:
+  one enum-like mode field on the mask config, not a generic step framework.
 
 Rejected alternatives:
 
@@ -344,10 +403,13 @@ was merged into phase 1, and phase 4 (resolution) was added later from G4.
   decision (board_config_id stays the only lookup key).
 2. Implement the background preset path in board composition.
 3. Implement the optional HSV mask override in sheet preprocessing, with the
-  preprocess config refactor.
+  preprocess config refactor, the D17 mask-mode switch, and the D16 detector
+  border recolor to magenta.
 4. Resolve the board config from disk at ingest via the QR board_config_id so
-  the preset drives the mask automatically.
-5. Validate on synthetic and real green captures plus existing datasets and
-  decide keep-compat versus controlled break.
+  the preset drives the mask automatically, covering every photo-ingest
+  notebook (reload-by-tag and decode-by-id) per the note 1 inventory.
+5. Validate on synthetic and real green captures plus existing datasets,
+  run the D17 mask-mode experiments to pick a strategy, and decide keep-compat
+  versus controlled break.
 6. Document outcomes and drop WARNING.md in impacted dataset folders only if
   we choose a breaking path.

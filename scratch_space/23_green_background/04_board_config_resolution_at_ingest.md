@@ -17,6 +17,20 @@ they receive a fully resolved config, exactly as the webapp services and
 `01_print_read_board.ipynb` already do (see the ingest driver usage pattern
 in [00_start.md](00_start.md)).
 Inserted 2026-07-12 from gap G4; former phases 4 and 5 became 5 and 6.
+
+Scope correction (note 1): `01_print_read_board.ipynb` is not the only
+photo-ingest driver. The full inventory (see the photo-ingest notebook
+inventory in [00_start.md](00_start.md)) is:
+- reload-by-tag notebooks that never touch the QR id and trust the saved
+  config: `aruco_setup/04_load_sheets.ipynb`,
+  `fastapi_scaffold/01_db_ingestion.ipynb`, `sheet_manager/02_usage.ipynb`;
+- the metadata-aware `20_piece_markers/00_sample.ipynb`, which already decodes
+  the QR and loads `{id}_SheetArucoConfig.json` from disk.
+The derivation helper (goal 2) is what makes green work for the reload-by-tag
+notebooks for free: the mask is already inside the JSON they reload, so they
+need no green-specific code. The loader helper (goal 1) serves the
+metadata-aware notebooks and any future raw-photo ingest driver.
+
 Context: [00_start.md](00_start.md), depends on
 [03_hsv_green_mask_preprocess_option.md](03_hsv_green_mask_preprocess_option.md).
 
@@ -43,14 +57,21 @@ Context: [00_start.md](00_start.md), depends on
    `background_mask` (including enabled=false) always wins.
    This runs at config-build/save time in the print step and again as a
    safety net when a driver loads a config whose preset and mask disagree.
-3. Notebook wiring in `01_print_read_board.ipynb`:
-   - Print time: pass `background_preset` through to the composer and run
-     the derivation helper before saving the config JSONs, so the saved
-     `SheetArucoConfig` already contains the enabled mask.
-   - Ingest time: decode the QR with `SheetMetadataDecoder` first, then use
+3. Notebook wiring, per the note 1 inventory:
+   - `01_print_read_board.ipynb` (print time): pass `background_preset` through
+     to the composer and run the derivation helper before saving the config
+     JSONs, so the saved `SheetArucoConfig` already contains the enabled mask.
+   - `20_piece_markers/00_sample.ipynb` and `01_print_read_board.ipynb`
+     (ingest time): decode the QR with `SheetMetadataDecoder` first, then use
      the decoded `board_config_id` with the loader helper to pick the config
      (today the notebook reuses the in-memory variable; make the flow
      actually driven by the decoded id).
+   - reload-by-tag notebooks (`aruco_setup/04_load_sheets.ipynb`,
+     `fastapi_scaffold/01_db_ingestion.ipynb`,
+     `sheet_manager/02_usage.ipynb`): no green-specific code. Confirm they pick
+     up the mask purely by reloading a saved config that the derivation helper
+     already populated. If they load a green board's config that predates the
+     helper, running the derivation helper once at load time is the safety net.
 4. No QR payload change (D10 holds; Q6 stays answered "no").
 5. Unit tests for the helpers: loader hit, missing-id exception, Q12
    auto-enable rule, and explicit-config-wins precedence (both directions).
@@ -73,4 +94,7 @@ Context: [00_start.md](00_start.md), depends on
   (test enforced via the derivation helper).
 - Photos without decodable metadata behave exactly as before: the driver
   falls back to its existing config path.
+- Every photo-ingest notebook from the note 1 inventory is accounted for:
+  the metadata-aware ones decode-then-load by id, the reload-by-tag ones
+  inherit the mask through their saved config with no green-specific code.
 - SheetAruco and Sheet contain no new disk-config code.

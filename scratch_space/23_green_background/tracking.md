@@ -27,6 +27,15 @@ Analysis, rationale, and open questions are in
   its phase 1 top-level placement; code-only, no dataset JSON uses it yet.
 - The board generation notebook is the operator entry point for green boards
   (D11); validation uses synthetic plus real captures (D15).
+- Phase 4 covers every photo-ingest notebook, not just the print notebook:
+  reload-by-tag drivers (04_load_sheets, fastapi db_ingestion,
+  sheet_manager/02_usage) inherit the mask through their saved config; the
+  metadata-aware 20_piece_markers/00_sample uses the decode-by-id loader.
+- The mask is a mode switch (D17): `as_threshold` (D13) or `flatten_to_white`
+  (paint green pixels white, run the existing pipeline); phase 5 picks the
+  default from measured extraction quality.
+- The detector out-of-warp border fill moves from green to magenta (D16),
+  scheduled in phase 3, so the green mask cannot swallow it.
 
 ## Phases
 
@@ -59,3 +68,4 @@ Append-only. Newest at the bottom.
 - 2026-07-12 : gap assessment after phases 1-2; verified p1/p2 commits match their sub-plans and the 9 regression tests pass; recorded gaps G1-G7 and questions Q7-Q10 in 00_start.md (no production caller for the preset, background_mask plumbing to Sheet.preprocess undesigned, mask semantics unspecified, board_config_id resolution unimplemented, no green validation data plan, no detector-on-green test).
 - 2026-07-12 : folded in the G1-G7 and Q7-Q10 answers as D11-D15; inserted new phase 4 (board config resolution at ingest, from G4) and renumbered tests to phase 5 and docs to phase 6; expanded the phase 3 draft with the preprocess config refactor (Q8) and threshold-step-only mask semantics (Q9); rewrote the proposed phase sequence in 00_start.md (G7); opened Q11 (background_mask placement after refactor) and Q12 (auto-enable precedence rule).
 - 2026-07-12 : folded in Q11 (mask nests in SheetPreprocessConfig) and Q12 (auto-enable precedence confirmed); surveyed the actual driver usage pattern (webapp services and 01_print_read_board.ipynb load full SheetArucoConfig JSON from disk and hand it to SheetAruco; the notebook already saves both config JSONs next to the board PNGs at print time) and recorded it in 00_start.md; rewrote phase 4 as driver-level loader + derivation helpers plus notebook wiring - SheetAruco/Sheet get no disk-config code; corrected the phase 5 entry-point notebook to 01_print_read_board.ipynb.
+- 2026-07-20 : folded in three review notes. Note 1: surveyed all photo-ingest notebooks (04_load_sheets, fastapi db_ingestion, sheet_manager/02_usage reload by tag; 20_piece_markers/00_sample decodes by id) and widened phase 4 and phase 5 to cover them, not just 01_print_read_board. Note 2: scheduled the detector border recolor green->magenta as D16 inside phase 3. Note 3: turned the mask into a mode switch (D17) with as_threshold and a new flatten_to_white strategy (paint green pixels white, run the existing pipeline unchanged), added the mask-mode experiments to phase 5.
