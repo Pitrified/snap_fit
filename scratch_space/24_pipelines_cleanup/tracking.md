@@ -63,21 +63,21 @@ open questions in `00_start.md`.
 
 | #  | Phase                                    | Plan | Status |
 | -- | ---------------------------------------- | ---- | ------ |
-| 0  | Prerequisite: repo-root `CLAUDE.md` shim (own commit, D21) | tbd | draft |
-| 1  | Conventions: README, repo agent-notes, backlog, nbstrip, import check | tbd | draft |
-| 2  | `generate_board` notebook (preset-parameterized) | tbd | draft |
-| 3  | `ingest_sheet` notebook                  | tbd  | draft  |
-| 4  | Retire green scratch scripts, repoint guide (D18) | tbd | draft |
-| 5  | Promote `src` gaps found in 2 and 3      | tbd  | draft  |
-| 6  | Work the backlog, one item at a time     | tbd  | draft  |
-| 7  | Keep README current; per-entry docs if needed | tbd | draft |
+| 0  | Prerequisite: repo-root `CLAUDE.md` shim (own commit, D21) | [00.2_claude_shim.md](00.2_claude_shim.md) | draft |
+| 1  | Conventions: README, repo agent-notes, backlog, nbstrip, import check | [01_conventions.md](01_conventions.md) | draft |
+| 2  | `generate_board` notebook (preset-parameterized) | [02_generate_board.md](02_generate_board.md) | draft |
+| 3  | `ingest_sheet` notebook                  | [03_ingest_sheet.md](03_ingest_sheet.md)  | draft  |
+| 4  | Retire green scratch scripts, repoint guide (D18) | [04_retire_green_scratch.md](04_retire_green_scratch.md) | draft |
+| 5  | Promote `src` gaps found in 2 and 3      | [05_promote_src_gaps.md](05_promote_src_gaps.md)  | draft  |
+| 6  | Work the backlog, one item at a time     | [06_work_the_backlog.md](06_work_the_backlog.md)  | draft  |
+| 7  | Keep README current; per-entry docs if needed | [07_readme_upkeep.md](07_readme_upkeep.md) | draft |
 
 Status values: draft / planned / in progress / done / superseded / discarded.
 
-Sub-plan files are intentionally not created yet (user hold). All open questions
-Q1-Q14 are answered and folded in; the plan is decision-complete for a draft.
-What remains are execution-time details owned by the sub-plans (see the final
-review note in the Log), not user decisions.
+All eight sub-plan files exist (status draft). Phase 0 is `00.2_claude_shim.md`
+because `00_start.md` and `00.1_audit_notebooks.md` already hold the `00` slot;
+phases 1-7 are files `01`-`07`, so file numbers match phase numbers. All open
+questions Q1-Q14 are answered; the plan is decision-complete for a draft.
 
 ## Log
 
@@ -89,6 +89,7 @@ Append-only. Newest at the bottom.
 - 2026-07-21 : recorded D1-D5 and R1-R3, opened Q1-Q8 (first pipeline, notebook-vs-script, structure, freshness mechanism, docs tie-in, which capabilities qualify, what to do with 16_support.py, and whether pipelines can run without the gitignored `data/`). Phases sketched in this file only, no sub-plan files yet.
 - 2026-07-21 : folded in the Q1-Q8 answers as D6-D13. Outcomes: seed = green-background pair as notebooks (D6); mixed flat non-numbered folder with README-driven order (D7, D8); freshness = manual pass + import drift check, no CI run (D9); docs = file header + README, link to guides (D10); audit becomes `pipelines/backlog.md` worked one item at a time (D11); 16_support.py is its own backlog item to dissect before promoting (D12); no committed data, headers document recreation (D13). Refined the phase sketch and phases table accordingly. Surfaced Q9-Q11 (notebook import-check mechanism; backlog file location/shape; whether the green scratch scripts stay after the notebooks exist). Sub-plans still not written, per user hold.
 - 2026-07-22 : folded in two user notes plus the now-answered Q9-Q11. New decisions: seed pair is preset-parameterized (white still valid and default), named generate_board / ingest_sheet not "green" (D14); agent-notebook interaction is an explicit convention using the vscode-notebook MCP server, NotebookEdit fallback, never raw JSON or nbconvert (D15); import-freshness is one committed report command (D16, Q9); backlog is pipelines/backlog.md with a durable reject list (D17, Q10); the green scratch scripts are the one D4 exception and get removed + guide repointed once the pipelines land (D18, Q11). Checked the vscode-notebook MCP server live (responds; ~16 cell-level tools, runs the open notebook's kernel, reads outputs/images) and recorded the capability comparison in 00_start analysis. Added a retire-scratch phase (now phase 4). Surfaced Q12-Q13 (preset default; where the agent-notes live). Added nbconvert/nbstripout to cSpell. Sub-plans still not written, per user hold.
+- 2026-07-22 : wrote all eight sub-plan files (00.2_claude_shim, 01_conventions, 02_generate_board, 03_ingest_sheet, 04_retire_green_scratch, 05_promote_src_gaps, 06_work_the_backlog, 07_readme_upkeep), all status draft, and linked them from the phases table. Phase 0 named 00.2 to avoid colliding with 00_start/00.1_audit; phases 1-7 are files 01-07 so file number == phase number. Phases 0-3 detailed fully; 4-7 lighter but with goals and done-when. No code written, no commit.
 - 2026-07-22 : resolved the two final-pass items. Branch: the CLAUDE.md shim (phase 0) commits on this short-lived feat/pipeline-sketch branch, which merges to main soon, so the repo-wide shim reaches main quickly (D21 updated). Added a "superseded in part by D14" note on D6 (the pair is generate_board / ingest_sheet, preset-parameterized, not green-only; the notebook/interactive reasoning still holds). No commit made, no sub-plans, per user hold.
 - 2026-07-22 : final review pass. Folded the answered Q14 as D21: add a repo-root CLAUDE.md importing @.github/copilot-instructions.md, as a prerequisite (phase 0), own commit, no branch. Firmed D16: the import check is a `make pipelines-check` target and the notebook case is feasible (audit already ran it, 26/28), with two conventions locked in phase 1 (script pipelines guard main(); the check imports, never executes bodies). Reviewed 00_start and tracking for remaining open questions: none block. Residual items are execution-time details owned by the sub-plans, not user decisions: where exactly the import-check/nbstrip targets live (both make targets), the per-item promote-vs-reject bar for the backlog (principle is D1, applied per item), and whether the green guide's inline code examples are trimmed or kept when repointed in phase 4. Recorded these as notes, not new questions.
 - 2026-07-22 : folded in the nbstripout-cleanup note and the answered Q12-Q13. Confirmed the hook is `nbstripout --verify` (blocks a dirty commit, does not strip) and the repo already has a Makefile plus AGENTS.md and .github/copilot-instructions.md but no CLAUDE.md. Decided output cleanup is a `make nbstrip` target over `git ls-files '*.ipynb'`, keeping the verify gate, with the MCP `notebook_clear_all_outputs` as the in-editor equivalent (D19; rejected flipping the hook to auto-strip, R4). Q12: generate_board defaults to green with white/ring-size/grid-count commented for quick swap (folded into D14). Q13 -> D20: the agent-notebook convention lives repo-level (AGENTS.md + copilot-instructions.md) so it covers future scratch experiments too, pipelines links to it. Surfaced Q14: no CLAUDE.md exists, so repo instructions do not reach Claude Code; adding a CLAUDE.md import shim may be a spin-off. Added nbstrip to cSpell. Sub-plans still not written, per user hold.
