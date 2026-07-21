@@ -14,6 +14,7 @@
 | FastAPI webapp | guides/fastapi.md | complete | 2026-04-07 | |
 | Updating docs | guides/update_docs.md | complete | 2026-04-07 | Meta guide for this workflow |
 | Coordinate spaces | guides/coordinate_spaces.md | complete | 2026-04-16 | Image cropping, slot assignment, 4 coordinate spaces |
+| Green background boards | guides/green_background.md | complete | 2026-07-21 | Screen-displayed green boards, HSV mask, QR + slot tracking |
 
 ---
 
@@ -26,11 +27,11 @@ Status values: `missing` · `stub` · `draft` · `complete`
 | Module | Path | Status | Last updated | Notes |
 |--------|------|--------|--------------|-------|
 | puzzle (overview) | library/puzzle/index.md | complete | 2026-04-07 | SheetManager, Piece, Sheet relationships |
-| puzzle/sheet | library/puzzle/sheet.md | complete | 2026-04-07 | |
+| puzzle/sheet | library/puzzle/sheet.md | complete | 2026-07-21 | SheetPreprocessConfig, HSV background mask |
 | puzzle/sheet_manager | library/puzzle/sheet_manager.md | complete | 2026-04-07 | Central registry |
 | puzzle/piece | library/puzzle/piece.md | complete | 2026-04-07 | |
 | puzzle/piece_matcher | library/puzzle/piece_matcher.md | complete | 2026-04-07 | Matching pipeline |
-| puzzle/sheet_aruco | library/puzzle/sheet_aruco.md | complete | 2026-04-07 | |
+| puzzle/sheet_aruco | library/puzzle/sheet_aruco.md | complete | 2026-07-21 | Preprocess threading, config resolution by QR id |
 | puzzle/puzzle_generator | library/puzzle/puzzle_generator.md | complete | 2026-04-07 | |
 | puzzle/puzzle_rasterizer | library/puzzle/puzzle_rasterizer.md | complete | 2026-04-07 | |
 | puzzle/puzzle_config | library/puzzle/puzzle_config.md | complete | 2026-04-07 | |
@@ -68,15 +69,15 @@ Status values: `missing` · `stub` · `draft` · `complete`
 
 | Module | Path | Status | Last updated | Notes |
 |--------|------|--------|--------------|-------|
-| aruco (overview) | library/aruco/index.md | complete | 2026-04-07 | |
+| aruco (overview) | library/aruco/index.md | complete | 2026-07-21 | Adds composer, sheet_metadata, slot_grid, board_config_resolver |
 | aruco/detector | library/aruco/detector.md | complete | 2026-04-07 | |
-| aruco/board | library/aruco/board.md | complete | 2026-04-07 | |
+| aruco/board | library/aruco/board.md | complete | 2026-07-21 | Background presets (white/green/blue) |
 
 ### config/
 
 | Module | Path | Status | Last updated | Notes |
 |--------|------|--------|--------------|-------|
-| config (overview) | library/config/index.md | complete | 2026-04-07 | EdgePos, CornerPos, SegmentShape, ArUco configs |
+| config (overview) | library/config/index.md | complete | 2026-07-21 | EdgePos, CornerPos, SegmentShape, ArUco + preprocess/mask configs |
 
 ### data_models/
 

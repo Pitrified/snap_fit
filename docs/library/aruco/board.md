@@ -44,7 +44,27 @@ Method: `generate_image() -> np.ndarray` - renders the board as a numpy image.
 
 Instead of filling the entire grid with markers, only the border markers are kept. For a 5x7 grid, this produces 20 markers (perimeter) instead of 35 (full grid).
 
+### Background preset
+
+`generate_image()` always renders grayscale. Color is applied one layer up, by
+`BoardImageComposer`, from `ArucoBoardConfig.background_preset`:
+
+| Preset | Background | Notes |
+|--------|-----------|-------|
+| `white` (default) | white | Identity conversion; byte-identical to the previous behavior |
+| `green` | green | Pairs with the sheet background mask so pieces separate by color, not brightness |
+| `blue` | blue | Same mechanism as green |
+
+Marker ink stays black under every preset, so detection is unaffected. A green board has been
+verified to detect all 20 markers and rectify on real photographs.
+
+## Common Pitfalls
+
+- **The preset only takes effect through the composer**: calling `ArucoBoardGenerator.generate_image()` directly returns a grayscale board regardless of `background_preset`. Use `BoardImageComposer.compose()` to get the colored, QR-annotated board.
+- **A colored board needs the matching mask at ingest**: rendering green without enabling `background_mask` produces sheets that preprocess into a single merged contour. `derive_background_mask()` wires this automatically.
+
 ## Related Modules
 
 - [`aruco/detector`](detector.md) - uses the board for marker matching during detection
 - [`config`](../config/index.md) - `ArucoBoardConfig` defines marker count, size, and spacing
+- [Green background boards](../../guides/green_background.md) - end-to-end workflow for colored boards

@@ -1,8 +1,42 @@
 ---
-status: draft
+status: done
 ---
 
 # Phase 6 - Docs and dataset warnings if needed
+
+## Outcome (2026-07-21)
+
+No dataset warnings were needed: phase 5 closed the gate as keep-compatibility
+(D19), so no WARNING.md files were written and no re-ingest is required.
+The phase reduced to a docs pass, done with the repo's `docs-write` procedure
+(`.github/skills/docs-write/SKILL.md`): write pages, then update
+`docs/index.md` and `docs/log.md`.
+
+Written:
+
+- `docs/guides/green_background.md` (new guide): the screen-displayed board
+  workflow end to end - generate a board set with the green preset, photograph
+  it, ingest by decoding the QR and resolving the stored config by
+  `board_config_id`, and use the QR `sheet_index` plus the slot label as the
+  manual tracking key (D20/D21). Carries the hard-won pitfalls: `min_area`,
+  the mask value floor, and why a green board is unusable with the mask off.
+
+Updated:
+
+- `docs/library/puzzle/sheet.md` - was stale: it documented the `threshold`
+  attribute and a "threshold is hard-coded" pitfall that D12 removed. Now
+  documents `SheetPreprocessConfig`, the mask, and both modes.
+- `docs/library/puzzle/sheet_aruco.md` - preprocess threading, resolver-based
+  ingest, `min_area` guidance.
+- `docs/library/aruco/board.md` - background presets and the composer split.
+- `docs/library/aruco/index.md` - the untracked modules (composer,
+  sheet_metadata, slot_grid, board_config_resolver) and the resolution flow.
+- `docs/library/config/index.md` - `SheetPreprocessConfig`,
+  `BackgroundMaskConfig`, OpenCV HSV scale pitfall.
+- `docs/index.md` catalog rows and a `docs/log.md` ingest entry.
+
+Verified: 0 broken relative links across the touched pages. No mkdocs config
+exists in the repo, so no nav registration was required.
 
 ## Overview
 

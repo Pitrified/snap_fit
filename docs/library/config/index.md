@@ -55,11 +55,13 @@ Dict mapping each `EdgePos` to the tuple of `(start_corner, end_corner)` that bo
 
 The `config/aruco/` sub-package contains Pydantic configuration models for ArUco marker detection:
 
-- `ArucoBoardConfig` - board layout (marker count, size, spacing, dictionary)
+- `ArucoBoardConfig` - board layout (marker count, size, spacing, dictionary) and `background_preset` (`white` | `green` | `blue`)
 - `ArucoDetectorConfig` - detector parameters (adaptive threshold settings, rect margin), embeds an `ArucoBoardConfig`
-- `SheetArucoConfig` - top-level config for sheet processing (min_area, crop_margin), embeds an `ArucoDetectorConfig`
+- `SheetArucoConfig` - top-level config for sheet processing (min_area, crop_margin), embeds an `ArucoDetectorConfig`, a `SheetPreprocessConfig`, and an optional `MetadataZoneConfig`
+- `SheetPreprocessConfig` - `Sheet.preprocess()` parameters (blur kernel, threshold, erosion/dilation), plus the optional nested `background_mask`. Defaults reproduce the historical pipeline exactly
+- `BackgroundMaskConfig` - optional HSV background mask: `enabled`, `mode` (`as_threshold` | `flatten_to_white`), and `lower_hsv` / `upper_hsv` bounds
 
-All three extend `BaseModelKwargs` and can be loaded from JSON files:
+All extend `BaseModelKwargs` and can be loaded from JSON files:
 
 ```python
 from snap_fit.config.aruco.sheet_aruco_config import SheetArucoConfig
@@ -69,6 +71,7 @@ config = SheetArucoConfig.model_validate_json(config_path.read_text())
 
 ## Common Pitfalls
 
+- **HSV bounds use the OpenCV scale**: hue is `0-179` (not 0-359), saturation and value are `0-255`. `BackgroundMaskConfig` validates both bounds and rejects a lower bound above its upper.
 - **SegmentShape is a StrEnum**: Values are lowercase strings (`"in"`, `"out"`, `"edge"`, `"weird"`), not the uppercase member names. Use `.value` when serializing.
 - **EDGE_ENDS_TO_CORNER traversal order**: The corners are listed in the order the contour is traversed (clockwise), not in any spatial sorting order.
 

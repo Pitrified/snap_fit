@@ -334,6 +334,26 @@ The gaps below are in the plan for the remaining phases, not in the delivered wo
   its area and dropped one piece entirely on the worst capture. Measured safe
   band 60-120; above ~140 dim background regions stop being masked and merge
   into the pieces. 100 sits centered in the verified band.
+- D20: Boards are displayed on a screen and photographed. They are never
+  printed on paper, so paper stock, ink color, and print gamut are out of
+  scope permanently.
+  Why: stated by the user on 2026-07-21. This retroactively settles the phase 5
+  caveat: the greendemo captures are of a laptop screen, which is not an
+  approximation of the real setup, it *is* the real setup. The D18 value floor
+  of 100 is therefore tuned on representative data, not provisional.
+  Consequences: "print time" in the plan and notebooks means "render and
+  display"; a screen background is bright and saturated (V 186-212), which is
+  why brightness separates pieces so cleanly; and pieces resting on a lit
+  screen will always pick up reflected board light, so D18 is a permanent
+  requirement rather than a one-off fix.
+- D21: The workflow is scale-first: roughly 100+ boards for a 1500-piece
+  puzzle, with the QR and the slot grid used as the manual tracking key.
+  Why: stated by the user on 2026-07-21. The operator photographs a board,
+  reads the QR for sheet identity, and writes down the slot coordinate (B3)
+  plus the photo id when annotating a physical piece. This makes
+  `sheet_index` uniqueness across the print run and stable slot labels the
+  load-bearing parts of the feature, and it means board generation must be
+  run for N sheets, not the demo's 2.
 - D19: Keep backward compatibility; no controlled break, so no WARNING.md.
   Why: the phase 5 gate. Every change landed additive - `background_preset`
   defaults to white, `SheetPreprocessConfig` defaults reproduce the previous
