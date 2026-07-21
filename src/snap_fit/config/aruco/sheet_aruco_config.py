@@ -21,6 +21,14 @@ class BackgroundMaskConfig(BaseModelKwargs):
     """Optional background-removal mask settings for sheet preprocessing.
 
     HSV bounds use the OpenCV scale: hue is 0-179, saturation and value 0-255.
+
+    The default value floor of 100 is set from real captures, not from theory:
+    a board background reads V 186-212, while pieces lit by reflected board
+    light reach V 42-61 and share the background hue (70-81). A lower floor
+    (the original 40) classifies those glare-lit piece pixels as background,
+    which silently erodes every piece and can drop one entirely. Measured safe
+    band on the greendemo captures: 60-120; above ~140 dim background regions
+    stop being masked and merge into the pieces.
     """
 
     enabled: bool = Field(default=False, description="Enable the mask override")
@@ -34,7 +42,7 @@ class BackgroundMaskConfig(BaseModelKwargs):
         ),
     )
     lower_hsv: tuple[int, int, int] = Field(
-        default=(35, 40, 40),
+        default=(35, 40, 100),
         description="Lower HSV bound (OpenCV scale: H 0-179, S/V 0-255)",
     )
     upper_hsv: tuple[int, int, int] = Field(

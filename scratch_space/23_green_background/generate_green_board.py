@@ -52,7 +52,10 @@ def main() -> None:
         slot_grid=SlotGridConfig(cols=4, rows=3),
     )
     # Full ingest config; derive the mask so the saved JSON carries it (D14).
+    # min_area is set for this board's scale: pieces measure 10k-16k px^2 in the
+    # rectified sheet on the greendemo captures, far below the 80k global default.
     sheet_aruco_config = SheetArucoConfig(
+        min_area=5_000,
         detector=ArucoDetectorConfig(board=board_config),
         metadata_zone=metadata_zone,
     )

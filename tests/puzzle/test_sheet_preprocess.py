@@ -90,6 +90,35 @@ def test_flatten_to_white_is_baseline_on_white_frame() -> None:
     assert np.array_equal(sheet.img_bw, _baseline_img_bw(image))
 
 
+def _hsv_to_bgr(h: int, s: int, v: int) -> tuple[int, int, int]:
+    """Convert a single OpenCV-scale HSV triple to a BGR tuple."""
+    px = np.array([[[h, s, v]]], dtype=np.uint8)
+    b, g, r = cv2.cvtColor(px, cv2.COLOR_HSV2BGR)[0, 0]
+    return (int(b), int(g), int(r))
+
+
+def test_glare_lit_piece_survives_default_bounds() -> None:
+    """A piece sharing the background hue but darker stays foreground.
+
+    Regression for the greendemo captures: pieces lit by reflected board light
+    read H~75 S~100 V~60, the same hue as the V~200 background. The default
+    value floor must exclude them, or the mask erodes the pieces away.
+    """
+    background = _hsv_to_bgr(80, 245, 200)
+    glare_lit_piece = _hsv_to_bgr(75, 100, 60)
+
+    canvas = np.full((200, 200, 3), background, dtype=np.uint8)
+    cv2.circle(canvas, (100, 100), 40, glare_lit_piece, thickness=-1)
+
+    cfg = SheetPreprocessConfig(
+        background_mask=BackgroundMaskConfig(enabled=True, mode="as_threshold")
+    )
+    sheet = Sheet(img_fp=_DUMMY_FP, min_area=0, image=canvas, preprocess=cfg)
+
+    assert sheet.img_bw[100, 100] == 255  # piece center stays foreground
+    assert sheet.img_bw[10, 10] == 0  # bright background stays background
+
+
 def test_disabled_flag_ignores_mask_config() -> None:
     """A present-but-disabled mask leaves the default pipeline untouched."""
     image = _white_bg_with_dark_blob()

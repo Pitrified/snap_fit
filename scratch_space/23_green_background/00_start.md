@@ -319,6 +319,29 @@ The gaps below are in the plan for the remaining phases, not in the delivered wo
   mode (not a hardcoded threshold swap) is the neat seam for experimenting
   with added pipeline steps without another rewrite. Machinery stays minimal:
   one enum-like mode field on the mask config, not a generic step framework.
+  Experiment outcome (phase 5, greendemo captures): the two modes produce
+  byte-identical binaries on all six real photos. The pieces are dark, so
+  repainting the background white and thresholding lands on exactly the same
+  segmentation as using the mask directly. `as_threshold` stays the default;
+  `flatten_to_white` is kept because its advantage is light-colored pieces,
+  which this capture set does not contain.
+- D18: The default `background_mask.lower_hsv` value floor is 100, not 40.
+  Why: measured on the greendemo captures. The board background reads V
+  186-212, but pieces lit by reflected board light reach V 42-61 while sharing
+  the background hue (70-81), so hue alone cannot separate them - brightness
+  is the discriminator. With the original floor of 40 those glare-lit pixels
+  were classified as background, which eroded every piece by roughly 60% of
+  its area and dropped one piece entirely on the worst capture. Measured safe
+  band 60-120; above ~140 dim background regions stop being masked and merge
+  into the pieces. 100 sits centered in the verified band.
+- D19: Keep backward compatibility; no controlled break, so no WARNING.md.
+  Why: the phase 5 gate. Every change landed additive - `background_preset`
+  defaults to white, `SheetPreprocessConfig` defaults reproduce the previous
+  pipeline byte-identically, and the mask only engages when explicitly enabled
+  or derived from a green/blue preset. No existing dataset JSON used
+  `background_mask`, so nesting it under `preprocess` broke no stored config.
+  The D18 bounds change only affects an enabled mask, which no white dataset
+  has. Existing sample configs still validate and the full suite passes.
 
 Rejected alternatives:
 

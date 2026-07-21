@@ -66,7 +66,9 @@ def test_derive_auto_enables_mask_for_green() -> None:
     mask = config.preprocess.background_mask
     assert mask is not None
     assert mask.enabled is True
-    assert mask.lower_hsv == (35, 40, 40)
+    # Bounds come from the model defaults, which are tuned against real captures.
+    assert mask.lower_hsv == BackgroundMaskConfig().lower_hsv
+    assert mask.upper_hsv == BackgroundMaskConfig().upper_hsv
 
 
 def test_derive_auto_enables_mask_for_blue() -> None:

@@ -1,8 +1,44 @@
 ---
-status: in progress
+status: done
 ---
 
 # Phase 5 - Tests and compatibility decision gate
+
+## Results on real captures (2026-07-21)
+
+Six photos of the printed greendemo board displayed on a laptop screen,
+`data/greendemo_v1/sheets/`, across two piece layouts, 1x/2x/5x zoom, and
+straight/side angles. Ingested with the plain
+`ingest_green_sheet.py` (decode QR -> resolve config by id -> load_sheet).
+
+- Detection on green is fine (G6 answered on real data): all 6 photos decode
+  the QR and detect 20/20 ArUco markers, rectifying at every angle and zoom.
+  The reduced marker contrast on green never caused a detection failure.
+- Piece extraction: 12/12 pieces on all 6 photos, each with a unique slot
+  label A1-D3, with no overrides.
+- The mask is what makes this work. Without it the straight captures collapse
+  into a single contour of ~618k px (the whole sheet merges) because the
+  board green's luminance sits right at the 130 grayscale threshold. The
+  green background feature is unusable without the mask, exactly as designed.
+- D18 (the real finding): the default value floor of 40 was wrong. Pieces lit
+  by reflected board light reach V 42-61 and share the background hue, so they
+  were partly masked as background - eroding every piece by ~60% of its area
+  (areas 4k-6.2k instead of 10.2k-15.7k) and dropping one piece on
+  `p1_1x_side`. Raising the floor to 100 fixed all six and stabilised areas.
+- D17 mask-mode experiment: `as_threshold` and `flatten_to_white` produce
+  byte-identical binaries on all six photos, because the pieces are dark.
+  `as_threshold` stays the default; `flatten_to_white` is retained for the
+  light-piece case this capture set does not exercise.
+- `min_area`: the 80k global default is wrong for this board scale and was the
+  reason the first run reported zero pieces. Pieces measure 10k-16k px^2 in
+  the rectified sheet; the generator now saves `min_area=5000`.
+- Compatibility (D19): keep, no break, no WARNING.md needed. All changes are
+  additive with behavior-preserving defaults, no stored dataset config used
+  `background_mask`, and the full suite passes (405).
+
+Still not covered: a genuinely printed-on-paper board (these captures are of a
+screen) and light-colored pieces, which is the case where `flatten_to_white`
+would diverge from `as_threshold`.
 
 > Progress (2026-07-20): the code-only half is done and verified.
 > - Green board generator: `generate_green_board.py` produces a printable
