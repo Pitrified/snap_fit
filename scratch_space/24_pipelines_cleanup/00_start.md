@@ -124,6 +124,9 @@ written up as a convention rather than left implicit (D15).
   though the underlying scripts already exist. The existing
   `23_green_background/` scripts are the reference the notebooks are written
   from, which is not a D2 violation since they are current, not stale.
+  Superseded in part by D14: the pair is named `generate_board` / `ingest_sheet`
+  and parameterized by background preset, not green-only. The "notebook, not
+  script" and "interactive value" reasoning here still holds.
 - D7: Format is a per-entry choice. `pipelines/` is a mixed folder of notebooks
   and scripts; each new entry picks whichever fits its use.
   Why: Q2. Interactive/validation entries want a notebook; a pure batch step
@@ -181,11 +184,15 @@ written up as a convention rather than left implicit (D15).
   and shell `nbconvert`/`nbstripout` runs are the avoided anti-patterns.
   Why: user note. It prevents the "mesh of nb runs and badly formatted" notebook JSON.
   Capability check is in the analysis section above. Placement is D20 (Q13).
-- D16: The notebook import-freshness check (Q9) is a single committed command
-  that emits a report, run in the periodic manual pass - not logic re-derived
-  each time. It mechanizes the notebook case if feasible (extract and execute
-  each notebook's import cells, as the audit prototyped), otherwise it checks
-  scripts only and notebooks fall to the manual reading pass.
+- D16: The import-freshness check (Q9) is a single committed command that emits
+  a report, run in the periodic manual pass - not logic re-derived each time.
+  For consistency with D19 it is a `make` target (e.g. `make pipelines-check`).
+  The notebook case is feasible - the audit already extracted and executed each
+  notebook's import cells (26/28 resolved) - so the check covers both scripts
+  and notebooks, not scripts only. Two conventions fall out and are locked in
+  phase 1: script-type pipelines guard their work under
+  `if __name__ == "__main__"` so the check can import them without running them;
+  and the check only imports (it does not execute pipeline bodies).
   Why: Q9. "Execute one command and get a report back", so the check is itself
   a small owned tool, consistent with D3 (logic is owned, not scattered).
 - D17: The backlog is `pipelines/backlog.md`: a candidate list with a
@@ -228,8 +235,20 @@ written up as a convention rather than left implicit (D15).
   `.github/copilot-instructions.md`); `pipelines/` links to it rather than
   duplicating.
   Why: Q13. The user's point is that clean tooling should apply to every
-  notebook, not just pipelines. See Q14 for how this reaches Claude Code, which
+  notebook, not just pipelines. See D21 for how this reaches Claude Code, which
   has no `CLAUDE.md` in this repo today.
+- D21: Add a `CLAUDE.md` at repo root that imports
+  `@.github/copilot-instructions.md`, as a prerequisite done before any pipeline
+  work, in its own commit (no separate branch). It is what makes D20's
+  repo-level convention actually reach Claude Code, and it surfaces every
+  existing repo instruction, not just the notebook one.
+  Why: Q14. Small, matches the user's global convention, and independent of the
+  rest of the effort, so it is sequenced first and committed on its own for a
+  clean history. Not spun off into its own feature folder because it is a
+  one-file shim, not a multi-phase effort.
+  Branch: its own commit on this `feat/pipeline-sketch` branch, which is meant
+  to be short-lived and merge to main soon, so the repo-wide shim reaches main
+  quickly rather than waiting on a separate branch.
 
 Rejected alternatives:
 
@@ -338,16 +357,17 @@ repo-level placement of D20.
 
 ## proposed phase sequence
 
-Refined 2026-07-22 after folding Q1-Q13 and the two user notes. Still a sketch;
-sub-plan files are not written yet.
+Refined 2026-07-22 after folding Q1-Q14 and the two user notes. Decision-complete
+for a draft; sub-plan files are not written yet.
 
+0. Prerequisite (D21): add the repo-root `CLAUDE.md` importing
+   `@.github/copilot-instructions.md`. Its own commit, no branch, before phase 1.
 1. Conventions and scaffolding. Write `pipelines/README.md` (index plus the
    header/format conventions from D7-D10); put the D15 agent-interaction
-   convention at repo level (D20, `AGENTS.md` + `.github/copilot-instructions.md`,
-   pending Q14 for the Claude Code shim); seed `pipelines/backlog.md` from the
-   audit capability list with promote/reject status (D11, D17); add the
-   `make nbstrip` output cleaner (D19); and add the import-freshness check as a
-   single committed command (D9, D16, mechanism per Q9).
+   convention at repo level (D20, `AGENTS.md` + `.github/copilot-instructions.md`);
+   seed `pipelines/backlog.md` from the audit capability list with promote/reject
+   status (D11, D17); add the `make nbstrip` output cleaner (D19); and add the
+   `make pipelines-check` import-freshness command (D9, D16).
 2. First pipeline: `generate_board` as a notebook (D6). A parameter cell defaults
    to the green preset with white and other knobs (ring size, grid count)
    commented out for a quick swap (Q12, D14); thin cells call
