@@ -57,5 +57,4 @@ notebook = [
 [tool.pyright]
 venvPath = "."
 venv = ".venv"
-# remember to adjust include paths as needed (eg scripts folder)
-include = ["src", "tests"]
+include = ["src", "tests", "scripts"]

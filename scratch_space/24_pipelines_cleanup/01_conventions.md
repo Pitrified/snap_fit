@@ -1,5 +1,5 @@
 ---
-status: draft
+status: done
 ---
 
 # Phase 1 - Conventions and scaffolding

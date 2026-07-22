@@ -3,6 +3,14 @@
 
 target-version = "py313"
 
+# Scratch notebooks are R&D and deliberately not maintained (they are exploratory
+# and expected to drift). Exclude them from ruff everywhere, so make lint, the
+# editor, and pre-commit agree. Scratch .py files stay linted (leniently, see the
+# scratch_space/** per-file-ignores); pipeline notebooks stay fully linted.
+# force-exclude makes the exclude apply even when pre-commit passes explicit paths.
+extend-exclude = ["scratch_space/**/*.ipynb"]
+force-exclude = true
+
 [lint]
 select = ["ALL"]
 ignore = [
@@ -43,6 +51,12 @@ ignore = [
 "meta/*" = [
     "INP001", # Implicit namespace package
     "T20",    # print found
+]
+"scripts/**" = [
+    "INP001", # Implicit namespace package - scripts are standalone CLI tools
+    "T20",    # print found - CLI tools report to stdout
+    "S102",   # Use of exec - the import checker execs notebook import cells by design
+    "BLE001", # Blind except - the checker reports any import failure, so it catches broadly
 ]
 "scratch_space/**" = [
     "A004",    # Argument is shadowing a Python builtin

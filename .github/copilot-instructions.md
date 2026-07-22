@@ -10,7 +10,8 @@ snap_fit is a computer vision project that digitizes and solves physical jigsaw 
 uv run uvicorn snap_fit.webapp.main:app --reload   # run the FastAPI dev server
 uv run pytest                                       # run tests
 uv run ruff check .                                 # lint (ruff, ALL rules enabled - see ruff.toml)
-uv run pyright                                      # type-check (src/ and tests/ only)
+uv run pyright                                      # type-check (src/, tests/, scripts/)
+make lint                                           # ruff check + ruff format --check + pyright (mirrors pre-commit)
 uv run pre-commit run --all-files                # run pre-commit hooks (ruff, black, isort, nbstripout, etc)
 ```
 
@@ -67,13 +68,25 @@ When working on piece image cropping, slot assignment, or overlay visualization,
 
 - Tests live in `tests/` (mirrors `src/snap_fit/` structure).
 - `scratch_space/` holds numbered exploratory notebooks and scripts (e.g., `aruco_setup/`, `contour_/`, `grid_model/`). These are not part of the package; ruff ignores `ERA001`/`F401`/`T20` there.
+- `pipelines/` holds current, trusted, one-job workflows (the maintained counterpart to `scratch_space/`). See `pipelines/README.md`.
+
+## Notebooks (any `.ipynb`, in pipelines or scratch)
+
+Applies to every agent working with notebooks in this repo, so notebook edits stay clean instead of becoming malformed JSON or a pile of `nbconvert` runs.
+
+- Live work goes through the VS Code notebook MCP server (`notebook_list_cells`, `notebook_insert_cell`, `notebook_edit_cell`, `notebook_run_cell`, `notebook_get_cell_output`, ...): structured cell operations against the running kernel, with the notebook open in VS Code.
+- When no notebook/kernel is open, use the native `NotebookEdit` tool for structural cell edits.
+- Never hand-edit `.ipynb` JSON with a text editor, and do not shell out to `nbconvert` to author or run notebooks unless necessary.
+- Clean outputs before committing with `make nbstrip` (the `nbstripout` pre-commit hook only verifies and blocks a dirty commit, it does not strip). In-editor, the MCP `notebook_clear_all_outputs` is the equivalent.
 
 ## Linting notes
 
 - `ruff.toml` targets Python 3.13 with `select = ["ALL"]`. Key ignores: `COM812`, `D104`, `D203`, `D213`, `D413` (docstring style), `FIX002`/`TD002`/`TD003` (TODO formatting), `RET504`.
-- Notebooks (`.ipynb`) additionally ignore `ERA001`, `F401`, `T20`.
+- Notebooks (`.ipynb`) additionally ignore `ERA001`, `F401`, `T20`. Scratch notebooks (`scratch_space/**/*.ipynb`) are excluded from ruff entirely; pipeline notebooks are linted.
 - Tests additionally allow `ARG001`, `INP001`, `S101` (assert), `SLF001` (private access), `PLR2004` (magic values).
+- `scripts/` allows `INP001`, `T20`, `S102`, `BLE001` (CLI utilities); it is in the pyright include.
 - `max-args = 10` (pylint); imports use `force-single-line = true`.
+- The scope is shared: `make lint`, the pre-commit ruff/ruff-format/pyright hooks, and the editor all read `ruff.toml` and `[tool.pyright]`, so they report the same thing. The pre-commit ruff hooks use `types_or: [python, pyi, jupyter]`.
 
 ## End-of-task verification
 
@@ -81,5 +94,5 @@ After every code change, run the full verification suite before considering the 
 
 ```bash
 uv run pytest && uv run ruff check . && uv run pyright && uv run pre-commit run --all-files
-# uv run nbstripout path/to/notebook.ipynb  # strip outputs before committing
+# make nbstrip  # strip outputs from tracked notebooks before committing (see Notebooks section)
 ```
