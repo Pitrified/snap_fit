@@ -8,6 +8,7 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 
+from snap_fit.config.aruco.sheet_aruco_config import SheetPreprocessConfig
 from snap_fit.config.types import CornerPos
 from snap_fit.config.types import EdgePos
 from snap_fit.config.types import SegmentShape
@@ -337,7 +338,7 @@ def create_mock_sheet_for_persistence(sheet_id: str) -> MagicMock:
     sheet = MagicMock(spec=Sheet)
     sheet.sheet_id = sheet_id
     sheet.img_fp = Path(f"/data/images/{sheet_id}.jpg")
-    sheet.threshold = 130
+    sheet.preprocess_config = SheetPreprocessConfig(threshold=130)
     sheet.min_area = 80_000
 
     # Create mock pieces with all required attributes

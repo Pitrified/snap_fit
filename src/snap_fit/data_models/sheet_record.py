@@ -57,7 +57,7 @@ class SheetRecord(BaseModel):
             sheet_id=sheet.sheet_id,
             img_path=img_path,
             piece_count=len(sheet.pieces),
-            threshold=sheet.threshold,
+            threshold=sheet.preprocess_config.threshold,
             min_area=sheet.min_area,
             metadata=sheet.metadata,
         )

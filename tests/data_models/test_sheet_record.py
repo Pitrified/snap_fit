@@ -82,7 +82,7 @@ class TestSheetRecordFromSheet:
         mock_sheet.sheet_id = "test_sheet"
         mock_sheet.img_fp = Path("/data/root/images/test.jpg")
         mock_sheet.pieces = [MagicMock(), MagicMock(), MagicMock()]
-        mock_sheet.threshold = 125
+        mock_sheet.preprocess_config.threshold = 125
         mock_sheet.min_area = 90_000
         mock_sheet.metadata = None
 
@@ -100,7 +100,7 @@ class TestSheetRecordFromSheet:
         mock_sheet.sheet_id = "sheet_a"
         mock_sheet.img_fp = Path("/data/root/images/sheet_a.jpg")
         mock_sheet.pieces = [MagicMock()]
-        mock_sheet.threshold = 130
+        mock_sheet.preprocess_config.threshold = 130
         mock_sheet.min_area = 80_000
         mock_sheet.metadata = None
 
@@ -115,7 +115,7 @@ class TestSheetRecordFromSheet:
         mock_sheet.sheet_id = "external"
         mock_sheet.img_fp = Path("/other/path/image.jpg")
         mock_sheet.pieces = []
-        mock_sheet.threshold = 130
+        mock_sheet.preprocess_config.threshold = 130
         mock_sheet.min_area = 80_000
         mock_sheet.metadata = None
 
