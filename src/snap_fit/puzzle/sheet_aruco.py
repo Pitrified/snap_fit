@@ -25,13 +25,31 @@ class SheetAruco:
 
         if config.crop_margin is None:
             board_config = config.detector.board
-            self.crop_margin = (
-                board_config.marker_length
-                + board_config.margin
-                + config.detector.rect_margin
-            )
+            # The rectified image is in object coordinates (origin at the outer
+            # corner of the first marker) shifted by rect_margin, and object
+            # coordinates do NOT include the board margin. So the ring's inner
+            # edge sits at rect_margin + marker_length, and that is exactly
+            # where the crop belongs. Adding board.margin here used to overshoot
+            # the ring interior by margin px on every side, clipping any piece
+            # placed near the edge of the slot grid.
+            self.crop_margin = board_config.marker_length + config.detector.rect_margin
         else:
             self.crop_margin = config.crop_margin
+
+    @property
+    def crop_offset(self) -> int:
+        """Shift from cropped-sheet to board-image coordinates.
+
+        ``board_pixel = cropped_pixel + crop_offset``. Holds for any
+        `crop_margin`; with the computed default it reduces to
+        ``marker_length + margin``, which is `SlotGrid`'s ring_start, so cropped
+        ``(0, 0)`` is the top-left corner of the ring interior.
+        """
+        return int(
+            self.crop_margin
+            - self.config.detector.rect_margin
+            + self.config.detector.board.margin
+        )
 
     def load_sheet(self, img_fp: Path) -> Sheet:
         """Load and rectify the image, then return a Sheet instance.
@@ -67,11 +85,7 @@ class SheetAruco:
                     self.crop_margin : w - self.crop_margin,
                 ]
                 lg.info(f"Cropped margin of {self.crop_margin} pixels.")
-                crop_offset = int(
-                    self.crop_margin
-                    - self.config.detector.rect_margin
-                    + self.config.detector.board.margin
-                )
+                crop_offset = self.crop_offset
 
             if self.config.metadata_zone is not None:
                 board_config = self.config.detector.board

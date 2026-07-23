@@ -24,7 +24,7 @@ off-by-one slot errors.
 | **Board image** | Top-left of the printed board PNG | 940 x 1340 | `SlotGrid` boundaries, `BoardImageComposer`, ring-start coords |
 | **Object coord** | Outer corner of first ArUco marker | 900 x 1300 | OpenCV board, used inside `correct_perspective` |
 | **Rectified** | Top-left of perspective-corrected image | 1000 x 1400 | Output of `aruco_detector.rectify()` |
-| **Cropped sheet** | Top-left after symmetric crop + QR strip crop | 660 x 940 | `sheet.img_orig`, piece centroids, contour detection |
+| **Cropped sheet** | Top-left after symmetric crop + QR strip crop | 700 x 980 | `sheet.img_orig`, piece centroids, contour detection |
 
 ### Default Configuration Values
 
@@ -34,8 +34,15 @@ margin = 20
 rect_margin = 50
 board_w = 940, board_h = 1340
 ring_start = margin + marker_length = 120
-crop_margin = marker_length + margin + rect_margin = 170
+crop_margin = marker_length + rect_margin = 150
 ```
+
+Note that `crop_margin` does **not** include the board `margin`. The rectified
+image is in object coordinates (offset by `rect_margin`), and object coordinates
+start at the first marker's outer corner, so they already exclude the margin.
+The ring's inner edge therefore sits at `rect_margin + marker_length`, which is
+exactly where the crop belongs. Adding `margin` on top overshoots the ring
+interior by 20 px on every side and eats into the piece area.
 
 ## Transformation Chain
 
@@ -43,14 +50,15 @@ crop_margin = marker_length + margin + rect_margin = 170
 Original Photo (arbitrary resolution, perspective-distorted)
     |
     v  [aruco_detector.rectify() - perspective correction]
-Rectified Image (board_w + 2*rect_margin  x  board_h + 2*rect_margin)
-    |          e.g. 1040 x 1440 with rect_margin=50
+Rectified Image (object_w + 2*rect_margin  x  object_h + 2*rect_margin)
+    |          object_w = board_w - 2*margin, object_h = board_h - 2*margin
+    |          e.g. 1000 x 1400 with rect_margin=50
     |
     v  [symmetric crop: remove crop_margin from all 4 sides]
-Cropped Sheet Image (660 x 1060)
+Cropped Sheet Image (700 x 1100)   = the ring interior
     |
     v  [QR strip crop: remove ring_start from bottom, if metadata_zone set]
-Final Cropped Sheet (660 x 940)
+Final Cropped Sheet (700 x 980)    = the piece area
     |
     v  [Contour detection operates in this space]
     |
@@ -64,15 +72,21 @@ The `crop_offset` bridges **board-image** and **cropped-sheet** pixel coordinate
 
 ```
 crop_offset = crop_margin - rect_margin + margin
-            = marker_length + 2 * margin
-            = 140 px  (with defaults)
+            = marker_length + margin
+            = ring_start
+            = 120 px  (with defaults)
 
 board_pixel   = cropped_pixel + crop_offset
 cropped_pixel = board_pixel - crop_offset
 ```
 
-`crop_offset` is stored on `Sheet.crop_offset` and is computed in
-`SheetAruco.load_sheet()`. It is used in `Sheet.build_pieces()` to convert
+The formula is general and holds for any `crop_margin`, including one set
+explicitly in the config. With the computed default it collapses to
+`ring_start`, so cropped `(0, 0)` is the top-left corner of the ring interior,
+the same origin `SlotGrid` uses.
+
+`crop_offset` is exposed as `SheetAruco.crop_offset` and stored on
+`Sheet.crop_offset`. It is used in `Sheet.build_pieces()` to convert
 contour centroids from cropped-sheet space to board-image space before passing
 them to `SlotGrid.slot_for_centroid()`.
 

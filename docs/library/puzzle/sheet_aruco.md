@@ -48,7 +48,9 @@ Constructor: `SheetAruco(config: SheetArucoConfig)` - the config embeds detector
 
 Key method: `load_sheet(img_fp: Path) -> Sheet` - loads, rectifies, crops, and returns a `Sheet` with the corrected image.
 
-The `crop_margin` is automatically computed from board parameters (marker_length + margin + rect_margin) unless explicitly set in the config.
+The `crop_margin` is automatically computed from board parameters (marker_length + rect_margin) unless explicitly set in the config. It deliberately excludes the board `margin`: the rectified image is in object coordinates, which already start at the first marker's outer corner, so the ring's inner edge is at `rect_margin + marker_length`. See [coordinate_spaces](../../guides/coordinate_spaces.md).
+
+`SheetAruco.crop_offset` exposes the shift from cropped-sheet to board-image coordinates; with the computed `crop_margin` it equals `SlotGrid`'s ring_start.
 
 `load_sheet()` passes `config.preprocess` through to the `Sheet` it builds, so preprocessing
 parameters and the optional background mask travel inside the same config object. `SheetAruco`

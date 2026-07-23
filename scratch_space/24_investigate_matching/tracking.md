@@ -34,7 +34,7 @@ The ones that shape more than one phase:
 
 | #   | Phase                          | Plan                                                             | Status  |
 | --- | ------------------------------ | ---------------------------------------------------------------- | ------- |
-| 1   | Fix the interior over-crop     | [`01_fix_interior_overcrop.md`](01_fix_interior_overcrop.md)      | planned |
+| 1   | Fix the interior over-crop     | [`01_fix_interior_overcrop.md`](01_fix_interior_overcrop.md)      | done    |
 | 2   | Corpus and annotation hand-off | [`02_capture_corpus.md`](02_capture_corpus.md)                    | planned |
 | 3   | Segment shape stability        | [`03_shape_stability.md`](03_shape_stability.md)                  | planned |
 | 4   | Ground-truth edge pairs        | [`04_match_ground_truth.md`](04_match_ground_truth.md)            | planned |
@@ -84,3 +84,20 @@ Append-only. Newest at the bottom.
   so the pieces are interior fragments and the grouping must be hand-authored.
 - 2026-07-24 : all of Q1-Q19 answered and folded in. Derived `tracking.md` and
   the seven sub-plans from the phase list.
+- 2026-07-24 : phase 1 done. Changed one line: the computed `crop_margin`
+  default drops `board.margin`. Learned that `crop_offset` was **not** wrong and
+  the phase plan was wrong to say so, its formula is the correct general
+  relation for any `crop_margin` and hardcoding it to `ring_start` would have
+  broken explicit-`crop_margin` configs; it corrected itself to 120 once the
+  margin was fixed. Extracted it to a `SheetAruco.crop_offset` property because
+  it was inline in `load_sheet` and untestable. Added
+  `tests/puzzle/test_sheet_aruco.py` (6 tests, 5 fail on revert). Sliver check
+  clean, so no ring buffer knob was added and D5 is settled in favour of the
+  direct fix. Clipped pieces across the dataset: 4 -> 0; board-space centroids
+  unchanged within 1 px, confirming the offset compensated the crop exactly.
+  Docs updated, and fixed a pre-existing error in `coordinate_spaces.md` that
+  sized the rectified image from board rather than object dimensions.
+- 2026-07-24 : found an unrelated pre-existing flake,
+  `test_printed_at_defaults_to_today` compares `date.today()` (local) against
+  `datetime.now(tz=UTC).date()`, so it fails nightly between local and UTC
+  midnight. Left alone as out of scope; needs a decision.

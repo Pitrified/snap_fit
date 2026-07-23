@@ -406,6 +406,49 @@ at `x5` given its 2.5x digital upscale.
   one rectified scale. Phase 6 handles that by rescaling at comparison time
   rather than changing the matcher (Q12, D11).
 
+### the metadata text line sits inside the piece area
+
+Surfaced by the phase 1 fix: with the crop no longer overshooting, the
+human-readable identity line ("gd_s 01/04 2026-07-23") is now visible at the
+bottom of the cropped sheet.
+
+It is not a regression, it is a board-generation flaw the over-crop was hiding.
+`SheetMetadataEncoder._place_text` draws at `(x0, y0 - 4)` where `y0` is the
+**top** of the QR strip, and `putText`'s y is the baseline, so the text extends
+upward from there:
+
+```
+text occupies board y   446 .. 456
+piece area ends at      460
+```
+
+Entirely inside the region reserved for pieces. The method's own docstring says
+"just above the QR strip", so the placement is deliberate; what is wrong is that
+"just above the strip" *is* the piece area.
+
+Measured impact on this dataset: **none**.
+
+- raw contour count is identical with the old and new crop on all 12 photos
+  (7/7, 6/6, 5/5, 4/4), so the wider crop introduces no contour at all, not even
+  a sub-threshold one,
+- no contour falls in the text band on any photo,
+- the lowest piece clears the band by 38-54 px (9-13 mm of real board),
+- mean grey in the text band is within a few levels of the rest of the sheet.
+
+The reason is `blur_kernel_size = 21`: a 21x21 Gaussian runs before the HSV mask,
+and the text is ~10 px tall with ~1 px strokes in the rectified image, so it
+dissolves into the background completely.
+
+That last point is the catch, and it is a constraint on phase 7 rather than a
+problem now. The text is invisible *because of a parameter phase 7 sweeps*. Drop
+the blur far enough and it becomes contours. A piece placed in the bottom ~14 px
+of the piece area would also overlap it, which nothing prevents; this dataset
+just happens not to do that.
+
+The real fix is in board generation, moving the text inside the QR strip instead
+of above it. It does not help already-photographed boards, so it is out of scope
+here and recorded as a spin-off candidate (Q20).
+
 ### incidental finding
 
 `Contour.area` is `compute_rect_area(self.region)`, the **bounding-box** area,
@@ -758,6 +801,10 @@ the instability turns out to be fixable.
 
 ### open
 
-None. The bootstrap is complete; the next step is to derive `tracking.md` and
-the seven `NN_*.md` sub-plans from the phases above. New questions get appended
-here as a fresh batch continuing from Q20.
+- Q20: the metadata text line is drawn inside the piece area, not inside the QR
+  strip (see the finding above). Harmless on this dataset, but only because the
+  21 px blur erases it, and phase 7 sweeps that blur. Fixing
+  `SheetMetadataEncoder._place_text` changes board generation and cannot help
+  boards already photographed, so it does not belong in this effort. Spin it out
+  as its own feature folder, or leave it as a note here?
+  ANS: ...

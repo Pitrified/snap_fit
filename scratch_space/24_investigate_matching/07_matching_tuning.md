@@ -33,6 +33,12 @@ to run at.
   (whose value floor the docstring already documents as tuned from real
   captures, safe band 60-120), blur kernel, erosion and dilation iterations. The
   erosion pass is a prime suspect for knob loss.
+- **Constraint on the blur sweep**: the board's human-readable metadata line
+  falls inside the piece area (see `00_start.md`, "the metadata text line sits
+  inside the piece area"). It currently produces no contour at all, but only
+  because the 21 px blur erases it. Lowering `blur_kernel_size` can surface it
+  as spurious contours near the bottom edge, so the sweep must watch contour
+  count in that band and not just the separation score.
 - Matcher candidates, from
   [`SegmentMatcher.match_shape`](../../src/snap_fit/image/segment_matcher.py#L50):
   the two `MAYBE` comments in that method are open design questions left by the

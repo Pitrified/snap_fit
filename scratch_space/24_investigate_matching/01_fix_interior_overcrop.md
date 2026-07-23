@@ -1,5 +1,5 @@
 ---
-status: planned
+status: done
 ---
 
 # Phase 1 - Fix the interior over-crop
@@ -116,3 +116,66 @@ removing it entirely satisfies that.
 - Both docs reflect the new numbers.
 - `uv run pytest && uv run ruff check . && uv run pyright && uv run pre-commit run --all-files`
   passes.
+
+## Outcome
+
+Done, 2026-07-24. All criteria met.
+
+### `crop_offset` did not need changing, and the plan was wrong about it
+
+The plan said to change `crop_offset` to `marker_length + margin`. That would
+have been a bug. The existing formula
+
+```
+crop_offset = crop_margin - rect_margin + margin
+```
+
+is the correct *general* relation for any `crop_margin`, derived from
+`board = cropped + crop_margin - rect_margin + margin`. It was never wrong; it
+was producing 140 only because `crop_margin` was wrong. Hardcoding it to
+`ring_start` would have broken every config that sets `crop_margin` explicitly.
+
+So only the one `crop_margin` default changed, and `crop_offset` corrected
+itself to 120 as a consequence. Confirmed on the real photos: board-space
+centroids are unchanged to within 1 px (e.g. sheet 0 B2 at (365,351) before and
+(366,351) after), which is exactly what should happen when the crop moves by 20
+and the offset compensates by 20.
+
+It was extracted to a `SheetAruco.crop_offset` property, because it was computed
+inline inside `load_sheet` and therefore unreachable from a test. That, not the
+formula, was the actual defect worth fixing.
+
+### No ring buffer was needed
+
+The sliver check came back clean: all 12 photos still yield exactly 4 pieces
+with 4 distinct labels, 48 piece rows before and after, and no unlabelled
+contour anywhere. So the extra 20 px was never protecting against anything, and
+no knob was added. This settles the D5 refinement in favour of the direct fix.
+
+### B2 is clear
+
+| capture | bbox before | bbox after | clipped |
+| ------- | ----------- | ---------- | ------- |
+| x1      | 99x82       | 105x82     | no      |
+| x2      | 100x81      | 105x81     | no      |
+| x4      | 98x77       | 99x77      | no      |
+| x5      | 100x82      | 105x82     | no      |
+
+The piece only ever overhung by ~5 px, so 20 px was more than enough. Clipped
+count across the dataset went 4 -> 0.
+
+### Test coverage
+
+`tests/puzzle/test_sheet_aruco.py`, 6 tests. Verified by reverting the fix: 5 of
+the 6 fail. The 6th (`test_explicit_crop_margin_keeps_the_offset_consistent`)
+correctly does not, because it pins the general offset relation rather than the
+default.
+
+### Unrelated pre-existing failure
+
+`tests/aruco/test_sheet_metadata.py::test_printed_at_defaults_to_today` fails,
+and did before this change. `SheetMetadata.printed_at` defaults via
+`date.today()` (local) while the test asserts against
+`datetime.now(tz=UTC).date()`. The machine is CEST, so between local midnight
+and UTC midnight the two dates differ and the test fails. Not touched here; it
+is a real latent bug, not a one-off.
