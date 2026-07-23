@@ -13,7 +13,7 @@ Status: `candidate` (not yet decided) / `promoted` (an entry exists) /
 
 | Capability | Freshest reference | Status | Notes |
 | ---------- | ------------------ | ------ | ----- |
-| Board generation (green preset, QR, slot grid) | `scratch_space/23_green_background/generate_green_board.py` | candidate | seed; `generate_board`, preset-parameterized |
+| Board generation (green preset, QR, slot grid) | `scratch_space/23_green_background/generate_green_board.py` | promoted | `generate_board.ipynb`, preset-parameterized |
 | Sheet ingest (QR to resolved config to pieces) | `scratch_space/23_green_background/ingest_green_sheet.py` | candidate | seed; `ingest_sheet` |
 | Bulk ingest into SheetManager + SQLite | `scratch_space/fastapi_scaffold/01_db_ingestion.ipynb` | candidate | |
 | Segment matching | `scratch_space/contour_/01_match_.ipynb`, `scratch_space/piece_matcher/02_usage.ipynb` | candidate | |

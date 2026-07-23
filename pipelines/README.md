@@ -49,4 +49,4 @@ Order and dependencies of the current entries.
 
 | Entry | Does | Needs | Guide |
 | ----- | ---- | ----- | ----- |
-| _(none yet)_ | | | |
+| [generate_board.ipynb](generate_board.ipynb) | Compose an ArUco board set (QR + slot grid) and save PNGs + config JSONs | nothing (params in-notebook) | [green_background](../docs/guides/green_background.md) |
