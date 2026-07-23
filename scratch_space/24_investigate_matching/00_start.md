@@ -69,7 +69,7 @@ Decoded from the QR in the photos themselves, not from the filenames:
 - `total_sheets = 4`, but only sheets 0, 1, 2 were photographed, which is
   deliberate: 12 pieces at 4 slots per sheet needs exactly 3 sheets (Q2).
   `sheet_03` is not missing data, and the corpus is the whole dataset.
-- 4 captures per sheet, 12 photos, all 4080x3072.
+- 4 captures per sheet, 12 photos, all 3072x4080 portrait.
 
 Board geometry (`greendemo_small`, 4x5 markers, `marker_length=100`,
 `marker_separation=40`, `margin=20`, `rect_margin=50`):
@@ -83,6 +83,10 @@ piece area       x 120..440, y 120..460   (320 x 340)
 slot grid        2x2 -> 4 pieces per sheet, slots ~160 x 170
 ```
 
+The board's long edge is 165 mm edge to edge (Q14), so 700 board units span
+165 mm and **1 board unit = 0.236 mm** (4.24 units/mm). The board is 132 mm
+wide. Every pixel figure below converts through that.
+
 12 physical pieces total (3 sheets x 4 slots), 48 segments.
 
 ### what actually varies between captures
@@ -95,7 +99,7 @@ the frame. EXIF confirms it and says more:
 | x1      | Google Camera | 6.81  | 24      | none         | 0.19 m       | yes  |
 | x2      | Google Camera | 6.81  | 48      | none         | 0.33-0.36 m  | yes  |
 | x5      | Google Camera | 6.81  | 48      | 2.5x         | 0.75-0.79 m  | yes  |
-| x4      | Open Camera   | 6.81  | -       | -            | -            | no   |
+| x4      | Open Camera   | 6.81  | -       | -            | derived (Q15)| no   |
 
 Every one of the 12 shots is the **same physical lens**: 6.81 mm at f/1.85, the
 Pixel 7 Pro main sensor. The 5x telephoto module is never used, not even on
@@ -114,13 +118,18 @@ Reading the axes off the table, what actually differs is three things at once:
    2x crop plus a further 2.5x digital upscale, so its true optical detail is
    ~2.5x lower than its pixel count suggests.
 
-`x4` is off all three axes simultaneously: different app, unknown distance, no
-crop metadata. It is a fourth capture condition, not a fourth point on any axis
-(Q3, D6).
+`x4` is off all three axes simultaneously: different app, no distance recorded,
+no crop metadata. It is a fourth capture condition, not a fourth point on any
+axis (Q3, D6). Its distance is derived from the board's apparent size in phase 5
+(Q15): the board's 165 mm long edge spans a known pixel count, the lens is
+6.81 mm, and the sensor is 9.83 x 7.37 mm (from the 24 mm equivalent), so
+`d = f * H_real / h_on_sensor` recovers it. The same formula run on `x1`/`x2`/`x5`
+checks the method against their recorded `SubjectDistance` before it is trusted
+on `x4`.
 
 The task framing "which zoom level is cleanest" therefore does not have a clean
 answer, because there is no zoom axis. The answerable question is which of four
-named capture conditions gives the best contours, and phase 4 reports it that
+named capture conditions gives the best contours, and phase 5 reports it that
 way.
 
 ### probe results
@@ -159,15 +168,21 @@ one: `PieceId.piece_id` is a per-capture ordinal over descending contour area
 and does reorder between captures, so it must never be used to join. The label
 is read off `SlotGrid`, not off the ordinal, so it is unaffected.
 
-That 1-4 px spread is itself the parallax the capture note predicted, and it
-comes out the right size. The homography rectifies the *board plane*; a piece
-sits a couple of mm above it, so its top face is displaced radially outward by
-roughly `r * t / d`. With `t ~ 2 mm`, an edge piece at `r ~ 5 cm`, and a board
-~15 cm wide (Q14), that is ~2 board px at `x1`'s 0.19 m and ~0.5 px at `x5`'s
-0.79 m. Matches the observed spread, and confirms "far and zoomed -> straighter"
-as a real but small effect. Phase 4 checks the sign as well as the size: the
-displacement must point radially outward from the frame centre and shrink with
-distance.
+That 1-4 px spread is the parallax the capture note predicted, and with the
+board size now known (Q14) it comes out the right size. The homography rectifies
+the *board plane*; a piece sits a couple of mm above it, so its top face is
+displaced radially outward by roughly `r * t / d`. With `t ~ 2 mm` (Q16), an
+edge piece at `r ~ 70 mm` from the board centre, and 4.24 units/mm:
+
+| capture | distance | predicted displacement |
+| ------- | -------- | ---------------------- |
+| x1      | 0.19 m   | 0.74 mm = 3.1 board px |
+| x2      | 0.35 m   | 0.40 mm = 1.7 board px |
+| x5      | 0.79 m   | 0.18 mm = 0.8 board px |
+
+That is the observed 1-4 px spread, so "far and zoomed -> straighter" is real,
+quantified, and small. Phase 5 checks the sign too: the displacement must point
+radially outward from the frame centre and shrink with distance.
 
 ### which pieces are clipped
 
@@ -201,7 +216,8 @@ at the first marker corner. The ring's inner edge in rectified space is at
 `margin = 20` px, on every side.
 
 Measured: the cropped sheet is `280 x 300` where the true piece area is
-`320 x 340`. 20 px lost left, right, top and bottom.
+`320 x 340`. 20 px lost left, right, top and bottom, which is 4.7 mm of real
+board on each side.
 
 Recovering those 20 px is sufficient: the piece does not overhang the ring
 interior on the physical board (Q1), so no crop into the ring band is needed.
@@ -218,10 +234,90 @@ That judgement was made against the full-size `greendemo` board. On
 same 20 px is exactly what clips sheet 0's B2. The prior decision is reopened
 (D1).
 
+### segment shape classification is unstable
+
+This is the biggest finding, and it was not in any of the three tasks.
+
+Classified all 48 segments under all 4 capture conditions and compared. **10 of
+48 segments (21%) do not get the same `SegmentShape` across conditions**, and
+the disagreements are not confined to one capture:
+
+| segment        | x1   | x2   | x4   | x5   | kind          |
+| -------------- | ---- | ---- | ---- | ---- | ------------- |
+| s0:A1 TOP      | OUT  | OUT  | EDGE | OUT  | knob lost     |
+| s0:B1 BOTTOM   | OUT  | IN   | OUT  | IN   | 2-2 inversion |
+| s2:A1 RIGHT    | IN   | IN   | OUT  | IN   | inversion     |
+| s2:A1 TOP      | OUT  | EDGE | OUT  | OUT  | knob lost     |
+| s2:A2 LEFT     | OUT  | OUT  | IN   | OUT  | inversion     |
+| s2:A2 BOTTOM   | EDGE | EDGE | OUT  | EDGE | knob invented |
+| s2:B1 LEFT     | EDGE | IN   | IN   | IN   | knob lost     |
+| s2:B1 BOTTOM   | IN   | IN   | OUT  | IN   | inversion     |
+| s2:B1 RIGHT    | OUT  | EDGE | EDGE | EDGE | knob invented |
+| s2:B2 TOP      | OUT  | IN   | EDGE | OUT  | three answers |
+
+Sheet 2 accounts for 7 of the 10. `x4` is the odd one out in 6, but `x1` alone
+is wrong twice and `x2` alone once, so this is not simply "`x4` is bad".
+
+This sits upstream of everything else in task 3. `SegmentMatcher.compute_similarity`
+calls `is_compatible` **before** it measures any shape, and `EDGE` is
+incompatible with everything, `IN` with `IN`, `OUT` with `OUT`. So a segment
+that flips returns `1e6` against its true partner and never gets scored. Tuning
+the score is pointless while a fifth of the segments can fail the gate.
+
+Two mechanisms are visible in the code, both worth naming:
+
+**The adaptive threshold is self-defeating.** `_detect_shape_adaptive` sets
+`flat_th = max(10.0, np.std(s1_xs) * 1.5)`, so the threshold for detecting a
+knob is derived from the spread that the knob itself creates. A stronger knob
+raises its own bar. Any small change in the contour moves `std`, which moves the
+threshold, which flips the verdict. That is exactly the observed behaviour.
+
+**Corner placement depends on the bounding box, which we already know moves.**
+The chain is all in code that has been read:
+
+```
+bbox varies (up to 25 px, see below)
+  -> pad_rect region varies
+  -> piece image shape varies
+  -> build_cross_masked thickness = sum(shape)/2/4*1.05 varies
+  -> find_corner lands elsewhere
+  -> match_corners picks different split indices
+  -> ShapeDetector sees a different point set
+  -> shape flips
+```
+
+An inversion (`OUT` -> `IN`) cannot come from the transform: the alignment uses
+`cv2.estimateAffinePartial2D`, a 4-DOF similarity with no reflection, so
+handedness is preserved. It has to come from the segment boundaries moving far
+enough that the chord falls on the other side of the mass, which is what a
+displaced corner does. This is the leading hypothesis, not a confirmed cause,
+and phase 3 tests it by correlating shape disagreements against bbox
+disagreements per segment.
+
+**Majority vote across the four conditions is a usable denoiser.** Every
+`EDGE` that appears in only one condition is contradicted by the other three,
+and the two that appear in three of four (`s2:A2 BOTTOM`, `s2:B1 RIGHT`) look
+genuine. That gives a defensible shape label per segment without hand-labelling
+all 48, and it is how phase 4 seeds the truth file (D13).
+
+### what the flat-edge census does and does not tell us
+
+Majority vote leaves exactly **2 genuinely flat segments** out of 48, both on
+sheet 2. That rules out a whole class of structure: a rectangular assembly of
+`r x c` pieces has `2(r+c)` flat border edges, so even a single 3x4 block would
+need 14. Two flat edges across 12 pieces means these are interior fragments cut
+out of a larger puzzle, not self-contained rectangles.
+
+So the census does **not** pin down the grouping, and Q13 cannot be recovered by
+measurement any more than from memory. It is deferred: the pieces will be
+matched by hand later, and that hand-matching becomes the truth (D12). What the
+census still gives is a real invariant to check the hand-matching against:
+exactly 2 segments should end up with no partner, and the other 46 should pair
+up or be explained.
+
 ### the x4 captures lose piece extent
 
-Not something the tasks predicted, but it falls straight out of the same table.
-Bounding boxes of the same physical piece across captures:
+Bounding boxes of the same physical piece across conditions:
 
 | sheet | label | x1     | x2     | x4 (IMG) | x5     |
 | ----- | ----- | ------ | ------ | -------- | ------ |
@@ -233,31 +329,28 @@ Bounding boxes of the same physical piece across captures:
 | 2     | B2    | 103x85 | 97x67  | **83x66**| 100x84 |
 
 `x4` shrinks the piece on every single row, sometimes by 25 px in one axis
-(sheet 0 B1: 86 wide becomes 61). `x2` shrinks on sheet 2 as well; `x1` and `x5`
-agree with each other throughout.
+(sheet 0 B1: 86 wide becomes 61, which is 5.9 mm of real board). `x2` shrinks on
+sheet 2 as well; `x1` and `x5` agree with each other throughout.
 
 Two explanations are ruled out by arithmetic:
 
-- **Not parallax.** The thickness effect above is ~2 px at the worst distance,
-  an order of magnitude short of 25 px, and it inflates rather than shrinks.
-- **Not resolution.** All four captures fill the frame with the board, so they
-  all land ~3000 source px across a 520-unit board and downsample by the same
-  ~6x. The resampling load is uniform.
+- **Not parallax.** The thickness effect is ~3 px at the worst distance, an
+  order of magnitude short of 25 px, and it inflates rather than shrinks.
+- **Not resolution.** All four conditions fill the frame with the board, so they
+  all land ~4080 source px across a 165 mm edge and downsample by the same
+  ~5.8x. The resampling load is uniform.
 
 What is left is the segmentation. The size of the loss is the tell: 25 px on a
-~100 px piece is one knob. The specific hypothesis is that `x4`'s missing HDR+
-stack means different white balance and flatter local contrast at the piece
-boundary, pushing boundary pixels into the green HSV band, which the
+~100 px piece is one knob. The hypothesis is that `x4`'s missing HDR+ stack
+means different white balance and flatter local contrast at the piece boundary,
+pushing boundary pixels into the green HSV band, which the
 `BackgroundMaskConfig` docstring already names as the failure mode that
-"silently erodes every piece". Losing a knob is the worst possible failure for
-matching, because `SegmentMatcher.compute_similarity` gates on `SegmentShape`
-compatibility before it ever measures shape, so an eroded `OUT` that reads as
-`EDGE` returns `1e6` against its true partner.
+"silently erodes every piece".
 
-That gives phase 4 a sharp, checkable prediction rather than a ranking exercise:
-on `x4`, the shrunk pieces should have a segment whose `SegmentShape` disagrees
-with the same physical segment on `x1`. Cheap to test, and it needs no ground
-truth.
+And the shape table above confirms the consequence rather than just predicting
+it: `s0:A1 TOP` and `s2:A2 BOTTOM` are exactly knobs appearing and disappearing
+on `x4`. The bbox loss and the shape instability are the same defect measured
+two ways.
 
 ### the resolution ceiling
 
@@ -269,18 +362,27 @@ out_height = board_height + 2 * rect_margin
 ```
 
 There is no dependence on the source photo. Confirmed by probe: every capture
-rectifies to `620 x 760` from a 4080x3072 sensor frame.
+rectifies to `620 x 760` from a 3072x4080 sensor frame.
 
-Because the board fills the frame in all 12 shots, this discards roughly the
-same ~6x of linear detail every time. So it is **not** a differentiator between
-captures, and it does not belong in task 2. It is a standing ceiling on the
-whole pipeline: a piece is ~100 x 100 px in the rectified sheet no matter what,
-a segment is ~100 points, and about 6x of available detail is thrown away before
-matching ever runs.
+In physical units, now that the board is known to be 165 mm on its long edge:
 
-Whether spending that detail actually improves match scores is an experiment,
-not an assumption, and it gets its own phase before any config knob is
-committed (Q4, Q10, D8).
+```
+rectified   700 units / 165 mm  =  4.24 px/mm   (~108 dpi)
+source     4080 px    / 165 mm  = 24.7 px/mm    (~628 dpi)
+discarded  5.8x linear
+```
+
+Because the board fills the frame in all 12 shots, that ~5.8x is discarded
+equally every time. So it is **not** a differentiator between captures, and it
+does not belong in task 2. It is a standing ceiling on the whole pipeline: a
+piece is ~100 x 100 px rectified, a segment is ~100 points, and most of the
+available detail is thrown away before matching ever runs.
+
+Whether spending that detail improves match scores is an experiment, not an
+assumption, and it gets its own phase before any config knob is committed (Q4,
+Q10, D8). Candidate scales in physical terms: 2x = 8.5 px/mm, 3x = 12.7 px/mm,
+4x = 17 px/mm, against an optical ceiling of ~24.7 px/mm at `x1` and rather less
+at `x5` given its 2.5x digital upscale.
 
 ### what already exists for task 3
 
@@ -291,7 +393,7 @@ committed (Q4, Q10, D8).
 - `SegmentMatcher.compute_similarity` returns `1e6` for a shape-incompatible
   pair and otherwise a mean point distance after an affine fit. Lower is better,
   and it is **not** scale-normalised, so raw scores are only comparable within
-  one rectified scale. Phase 5 handles that by rescaling at comparison time
+  one rectified scale. Phase 6 handles that by rescaling at comparison time
   rather than changing the matcher (Q12, D11).
 
 ### incidental finding
@@ -317,7 +419,7 @@ here; not in scope unless it bites.
   `PieceId.piece_id` is a per-capture ordinal and must not be used to join.
 - **D3**: ground truth is stated once per physical edge pair, in
   `(sheet_index, label, edge_pos)` terms, independent of any capture. This also
-  makes it survive the scale experiment in phase 5, which a pixel-space truth
+  makes it survive the scale experiment in phase 6, which a pixel-space truth
   would not.
 - **D4**: the corpus (all 12 photos ingested and keyed by D2) is built once and
   shared by every later phase. Nothing else starts before it exists.
@@ -335,42 +437,68 @@ here; not in scope unless it bites.
   overloading the field would conflate "what the matcher scored" with "what is
   actually true".
 - **D8**: the rectification scale is investigated as an **experiment first**
-  (Q10). Phase 5 measures whether a higher rectified resolution improves match
+  (Q10). Phase 6 measures whether a higher rectified resolution improves match
   separation, and only proposes a config knob if it does. Rejected alternative:
   build the knob up front. It moves every pixel threshold in the codebase, so
   paying that cost before knowing the payoff is backwards.
 - **D9**: every phase stays scratch-local to `24_investigate_matching/`. No
   `pipelines/` entry from this effort. Promotion is a separate call, made after
   the investigation says what is worth keeping.
-- **D10**: `x4` gets one salvage attempt via mask/threshold tuning in phase 4
+- **D10**: `x4` gets one salvage attempt via mask/threshold tuning in phase 5
   (Q9). If per-condition preprocessing does not recover the lost extent, `x4` is
   ranked worst and the investigation moves on rather than chasing it.
 - **D11**: `SegmentMatcher` is left un-normalised. Cross-scale comparisons in
-  phase 5 divide the score by the scale factor at analysis time (Q12). Rejected
+  phase 6 divide the score by the scale factor at analysis time (Q12). Rejected
   alternative: normalise inside the matcher. That silently changes every score
   the rest of the codebase and the stored databases already hold.
-- **D12**: the 12 pieces form **disjoint** groups (Q11). Phase 3 asserts that
-  the true-pair graph is a disjoint union with no edge crossing between groups,
-  which is a real completeness check even before the group sizes are known
-  (Q13).
+- **D12**: the 12 pieces form **disjoint** groups (Q11), the group sizes are not
+  known to anyone (Q13), and the flat-edge census cannot recover them. So the
+  grouping is **supplied by hand, later**, and that hand-matching is the truth.
+  Phase 4 splits around that hand-off: everything that prepares for it runs now,
+  the transcription runs when the answer arrives. Phase 4 asserts structure, not
+  a count: disjointness, at most one partner per segment, and exactly 2
+  partnerless flat segments.
+  Rejected alternative: have the matcher discover the grouping and confirm it by
+  eye. It sounds cheaper but it is the same circularity D15 rejects, and with an
+  unknown group count there is no signal for when to stop looking.
+- **D13**: segment shapes for the truth file are seeded by **majority vote
+  across the four capture conditions**, then reviewed by eye only where the vote
+  is split. Rejected alternative: hand-label all 48 from scratch. The vote
+  already resolves 38 unanimously and isolates the 10 that need a human.
+- **D14**: shape-classification stability is its own phase, placed **before**
+  ground truth. Rejected alternative: treat it as one metric inside the capture
+  comparison, which is where it started. It gates `compute_similarity` before
+  any score is computed, so a fifth of the segments cannot be scored at all
+  until it is addressed. It is a correctness problem, not a quality metric.
+- **D15**: ground truth is **human-authored**, not matcher-derived. The pieces
+  are matched by hand against the physical pieces (Q13); the matcher never gets
+  a vote on what is true.
+  Rejected alternative: accept the matcher's top-N as truth. That bakes the
+  matcher's current bias into the yardstick used to measure the matcher, and
+  every later phase would be measuring agreement with itself.
 
 ## phases
 
 Phase 1 is an isolated bug fix and runs first. Phase 2 is the shared
-prerequisite. Ground truth (phase 3) comes before the capture comparison
-because the best-match score is the primary quality metric (Q6), and it is
-stated in physical terms (D3) so the later scale experiment does not invalidate
-it. Phase 5 also depends only on phase 3, not on phase 4; it is sequenced after
-phase 4 to keep one variable moving at a time.
+prerequisite. Phase 3 comes next because shape classification gates the matcher
+outright (D14), so neither the truth file nor any score comparison is meaningful
+until it is understood. Ground truth (phase 4) precedes the capture comparison
+because the best-match score is the primary quality metric (Q6). Phase 6 depends
+only on phase 4, and is sequenced after phase 5 to keep one variable moving at
+a time.
 
-| #   | Phase                          | Plan file                      | Covers  |
-| --- | ------------------------------ | ------------------------------ | ------- |
-| 1   | Fix the interior over-crop     | `01_fix_interior_overcrop.md`  | task 1  |
-| 2   | Labelled capture corpus        | `02_capture_corpus.md`         | -       |
-| 3   | Ground-truth edge pairs        | `03_match_ground_truth.md`     | task 3  |
-| 4   | Capture condition comparison   | `04_capture_quality.md`        | task 2  |
-| 5   | Rectification scale experiment | `05_rectify_scale_experiment.md` | -     |
-| 6   | Matching and preprocess tuning | `06_matching_tuning.md`        | task 3  |
+The one external dependency is the hand-matching (Q13, D12). Phase 4 is split so
+that only the transcription half waits on it; nothing else in the plan blocks.
+
+| #   | Phase                          | Plan file                        | Covers  |
+| --- | ------------------------------ | -------------------------------- | ------- |
+| 1   | Fix the interior over-crop     | `01_fix_interior_overcrop.md`    | task 1  |
+| 2   | Labelled capture corpus        | `02_capture_corpus.md`           | -       |
+| 3   | Segment shape stability        | `03_shape_stability.md`          | task 3  |
+| 4   | Ground-truth edge pairs        | `04_match_ground_truth.md`       | task 3  |
+| 5   | Capture condition comparison   | `05_capture_quality.md`          | task 2  |
+| 6   | Rectification scale experiment | `06_rectify_scale_experiment.md` | -       |
+| 7   | Matching and preprocess tuning | `07_matching_tuning.md`          | task 3  |
 
 **Phase 1 - fix the interior over-crop.**
 `crop_margin` becomes `marker_length + rect_margin`, plus an explicit named ring
@@ -385,38 +513,66 @@ Ingest all 12 photos, key every piece by `(sheet_index, label)`, persist pieces
 and segments. Assert 4 pieces and 4 distinct labels per capture, and centroid
 agreement across the 4 captures of each sheet, so a regression in labelling is
 caught rather than silently joined on. Record the EXIF condition per capture
-alongside, so phase 4 groups by condition rather than by filename. Scratch-local
-(D9).
+alongside, so later phases group by condition rather than by filename.
+Scratch-local (D9).
 
-**Phase 3 - ground-truth edge pairs.**
-Hand-drive the matcher over the 48 segments on the best capture condition and
-record the true pairs in D3 form in the truth file (D7). Assert the disjoint-
-group invariant (D12). Report the score separation between true and false pairs
-as the baseline everything later is measured against.
+**Phase 3 - segment shape stability.**
+Reproduce the 10/48 disagreement table as a fixture. Test the corner-placement
+hypothesis by correlating shape disagreements against bbox disagreements per
+segment. Attack the self-defeating `flat_th = 1.5 * std` threshold: candidates
+are an absolute threshold in mm (now that 4.24 units/mm is known), a threshold
+from the segment chord length rather than its deviation, or measuring signed
+area between the segment and its chord instead of counting points. Success is a
+lower disagreement count on the same fixture, not a prettier formula. Also
+decide whether `EDGE` should keep hard-gating `is_compatible`, given that a
+spurious `EDGE` silently deletes a true pair.
 
-**Phase 4 - capture condition comparison.**
-Primary metric is the phase-3 best-match score per condition (Q6). Alongside it,
-three cheap metrics that need no ground truth: `SegmentShape` agreement of the
-same physical segment across conditions (the sharp `x4` prediction above),
-bounding-box agreement, and contour point count. Also check the parallax sign
-and magnitude against the `r * t / d` estimate. Attempt the `x4` salvage per
-D10. Report over conditions, not zoom (D6).
+**Phase 4 - ground-truth edge pairs.**
+Split by the hand-matching hand-off (D12), so the half that does not need it is
+not blocked.
 
-**Phase 5 - rectification scale experiment.**
-Re-rectify the corpus at 2x / 3x / 4x, rerun matching, and measure separation
-against the phase-3 truth file, rescaling scores at comparison time (D11).
-Everything in pixel units has to move with the scale for the run to be
-meaningful: `crop_margin`, `min_area`, blur and erosion kernels, `pad`, and
-`SlotGrid`. Outcome is a go/no-go on a real config knob, with the measured gain
-attached (D8). The phase 3 truth file survives unchanged by construction (D3).
+*4a, runs now.* Seed shapes by majority vote (D13) and review the split ones by
+eye. Define the truth file format in D3 terms and write its loader and the
+structural assertions: disjointness, at most one partner per segment, exactly 2
+partnerless flat segments. Produce the artifact that makes hand-matching
+practical: a contact sheet of the 12 piece crops at a consistent scale, each
+tagged with its `(sheet, label)` and its four edges marked with the voted shape,
+so pairs can be written down as `s0:A1 RIGHT <-> s2:B1 LEFT` without going back
+to the photos.
 
-**Phase 6 - matching and preprocess tuning.**
-Sweep preprocess and matcher parameters against the phase-3 ground truth at
-whatever scale phase 5 settles on, with true-vs-false score separation as the
+*4b, runs when the hand-matching arrives.* Transcribe it into the truth file,
+run the structural assertions, and report the score separation between true and
+false pairs as the baseline everything later is measured against.
+
+Phases 5 and 6 need only the 4b baseline for their primary metric, and both have
+secondary metrics that need no truth at all, so they can start against those
+while 4b waits.
+
+**Phase 5 - capture condition comparison.**
+Primary metric is the phase-4 best-match score per condition (Q6). Alongside it,
+three metrics that need no ground truth: `SegmentShape` agreement (the phase-3
+fixture, re-read as a per-condition score), bounding-box agreement, and contour
+point count. Derive the `x4` subject distance from apparent board size and
+validate the method against the recorded distances first (Q15). Check the
+parallax sign and magnitude against the `r * t / d` table. Attempt the `x4`
+salvage per D10. Report over conditions, not zoom (D6).
+
+**Phase 6 - rectification scale experiment.**
+Re-rectify the corpus at 2x / 3x / 4x (8.5 / 12.7 / 17 px/mm), rerun matching,
+and measure separation against the phase-4 truth file, rescaling scores at
+comparison time (D11). Everything in pixel units has to move with the scale for
+the run to be meaningful: `crop_margin`, `min_area`, blur and erosion kernels,
+`pad`, and `SlotGrid`. Outcome is a go/no-go on a real config knob, with the
+measured gain attached (D8). The phase 4 truth file survives unchanged by
+construction (D3).
+
+**Phase 7 - matching and preprocess tuning.**
+Sweep preprocess and matcher parameters against the phase-4 ground truth at
+whatever scale phase 6 settles on, with true-vs-false score separation as the
 objective.
 
-Phases 4-6 stay `draft` until phase 2 lands; their shape depends on what the
-corpus looks like.
+Phases 5-7 stay `draft` until phase 3 lands; their shape depends on how much of
+the instability turns out to be fixable.
 
 ## open questions
 
@@ -489,14 +645,18 @@ corpus looks like.
   comparable after the rescale. Do we normalise the score by segment length as
   part of phase 5, or keep the raw score and only ever compare within one scale?
   ANS: rescale while comparing
-
-### open
-
 - Q13: the groups are disjoint (Q11), but how many groups are there and how big
   is each? With the sizes, phase 3 can assert the exact true-pair count and know
   when the truth file is complete. Without them it can only assert disjointness
   and stop when hand-driving runs dry.
   ANS: dude i have no idea
+  Follow-up: the flat-edge census cannot recover it either. Majority vote leaves
+  only 2 flat segments in 48, far too few for any rectangular assembly, so these
+  are interior fragments of a bigger puzzle.
+  **Deferred**: the pieces will be matched by hand later, and that becomes the
+  truth (D12, D15). Phase 4 is split so only the transcription half waits on it
+  (4b); 4a prepares the truth file format and the contact sheet that makes the
+  hand-matching practical.
 - Q14: how large is the board physically, as displayed and photographed? Needed
   to turn board units into mm, which is what makes the parallax check
   quantitative rather than order-of-magnitude, and what a "px per mm" scale knob
@@ -507,3 +667,26 @@ corpus looks like.
   from, or should phase 4 estimate it from the board's apparent size and treat
   it as derived?
   ANS: derive it
+
+### open
+
+- Q16: what is the piece thickness? 2 mm is assumed above, and it is the only
+  unmeasured input to the parallax prediction. A caliper reading turns that
+  table from an order-of-magnitude check into a real one, and it is the number
+  that would let the pipeline correct thickness parallax rather than just
+  tolerate it.
+  ANS: no caliper available
+- Q17: phase 3 needs an acceptance criterion for shape classification, and
+  "all four conditions agree" is not sufficient on its own, because a classifier
+  that returns `WEIRD` everywhere would score perfectly. Should the phase 4
+  truth file also carry a human-confirmed `IN`/`OUT`/`EDGE` per segment, so
+  stability is measured against truth rather than against self-consistency? It
+  is 48 judgements, most already settled by the majority vote.
+  ANS: by hand, i will check them
+- Q18: should a spurious `EDGE` be able to delete a true pair? `is_compatible`
+  currently hard-gates on it, so one bad classification silently removes a
+  correct match with no trace. Options are to keep the gate, downgrade `EDGE` to
+  a score penalty, or treat a low-confidence shape as `WEIRD` (which already
+  passes the gate). This is phase 3 work but it changes what phase 4 can even
+  observe, so it is worth settling early.
+  ANS: is compatible should be a score penalty, not a hard gate.
