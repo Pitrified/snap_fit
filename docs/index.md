@@ -14,7 +14,7 @@
 | FastAPI webapp | guides/fastapi.md | complete | 2026-04-07 | |
 | Updating docs | guides/update_docs.md | complete | 2026-04-07 | Meta guide for this workflow |
 | Coordinate spaces | guides/coordinate_spaces.md | complete | 2026-04-16 | Image cropping, slot assignment, 4 coordinate spaces |
-| Green background boards | guides/green_background.md | complete | 2026-07-21 | Screen-displayed green boards, HSV mask, QR + slot tracking |
+| Green background boards | guides/green_background.md | complete | 2026-07-23 | Screen-displayed green boards, HSV mask, QR + slot tracking; runnable steps point at pipelines/ |
 
 ---
 

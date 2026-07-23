@@ -8,6 +8,16 @@ Grep tip: `grep "^## \[" docs/log.md | tail -10` shows the last 10 entries.
 
 ---
 
+## [2026-07-23] update | guides/green_background
+
+Repointed the guide's runnable steps at the new `pipelines/` entries. The
+`23_green_background/generate_green_board.py` and `ingest_green_sheet.py` scratch scripts were
+promoted to `pipelines/generate_board.ipynb` and `pipelines/ingest_sheet.ipynb` and then retired
+(pipelines-cleanup phase 4, decision D18), so the guide's "Generate the board set" and "Ingest by
+decoding the QR" sections now link to those notebooks instead of the deleted scripts. The
+illustrative code snippets are kept; only the dead `python scratch_space/...` invocations were
+replaced. No API or pitfall content changed.
+
 ## [2026-07-21] ingest | scratch_space/23_green_background
 
 Compiled the green-background feature into the wiki. New guide

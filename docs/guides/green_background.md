@@ -47,17 +47,13 @@ composer = BoardImageComposer(board_config, metadata_zone)
 img = composer.compose(metadata)  # one SheetMetadata per sheet
 ```
 
-A runnable end-to-end version lives in
-`scratch_space/23_green_background/generate_green_board.py`. It writes the sheet PNGs plus both
-config JSONs and verifies the QR round-trips:
+The runnable end-to-end version is the
+[`generate_board`](../../pipelines/generate_board.ipynb) pipeline. It writes the sheet PNGs plus
+both config JSONs and verifies the QR round-trips; open it and run top to bottom.
 
-```bash
-python scratch_space/23_green_background/generate_green_board.py
-```
-
-Set `TOTAL_SHEETS` to the number of boards you need. Each sheet gets its own `sheet_index` inside
-the QR payload, which is what makes a photo traceable later. A 4x3 slot grid holds 12 pieces per
-sheet, so a 1500-piece puzzle needs on the order of 125 sheets.
+Set `TOTAL_SHEETS` (a parameter cell) to the number of boards you need. Each sheet gets its own
+`sheet_index` inside the QR payload, which is what makes a photo traceable later. A 4x3 slot grid
+holds 12 pieces per sheet, so a 1500-piece puzzle needs on the order of 125 sheets.
 
 ### 2. Display and photograph
 
@@ -81,11 +77,9 @@ config = load_sheet_config_by_id(metadata.board_config_id)  # mask already enabl
 sheet = SheetAruco(config).load_sheet(photo_fp)
 ```
 
-A runnable version is `scratch_space/23_green_background/ingest_green_sheet.py`:
-
-```bash
-python scratch_space/23_green_background/ingest_green_sheet.py path/to/photo.jpg
-```
+The runnable version is the [`ingest_sheet`](../../pipelines/ingest_sheet.ipynb) pipeline: set
+`PHOTO_FP` to your capture and run top to bottom. It also reports the piece count, the slot labels,
+and a labelled overlay on the rectified sheet for validation.
 
 ### 4. Read the tracking key
 

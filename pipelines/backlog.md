@@ -13,8 +13,8 @@ Status: `candidate` (not yet decided) / `promoted` (an entry exists) /
 
 | Capability | Freshest reference | Status | Notes |
 | ---------- | ------------------ | ------ | ----- |
-| Board generation (green preset, QR, slot grid) | `scratch_space/23_green_background/generate_green_board.py` | promoted | `generate_board.ipynb`, preset-parameterized |
-| Sheet ingest (QR to resolved config to pieces) | `scratch_space/23_green_background/ingest_green_sheet.py` | promoted | `ingest_sheet.ipynb`, depends on generate_board |
+| Board generation (green preset, QR, slot grid) | `pipelines/generate_board.ipynb` | promoted | preset-parameterized; scratch script retired (D18) |
+| Sheet ingest (QR to resolved config to pieces) | `pipelines/ingest_sheet.ipynb` | promoted | depends on generate_board; scratch script retired (D18) |
 | Bulk ingest into SheetManager + SQLite | `scratch_space/fastapi_scaffold/01_db_ingestion.ipynb` | candidate | |
 | Segment matching | `scratch_space/contour_/01_match_.ipynb`, `scratch_space/piece_matcher/02_usage.ipynb` | candidate | |
 | Grid model and scoring | `scratch_space/grid_model/01_grid_model.ipynb`, `scratch_space/grid_model/02_scoring.ipynb` | candidate | tutorial-shaped; may be docs-only |
