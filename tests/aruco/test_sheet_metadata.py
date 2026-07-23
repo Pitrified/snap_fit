@@ -1,8 +1,6 @@
 """Tests for SheetMetadata model."""
 
-from datetime import UTC
 from datetime import date
-from datetime import datetime
 
 import numpy as np
 import pytest
@@ -72,13 +70,20 @@ def test_payload_size_typical(typical_metadata: SheetMetadata) -> None:
 
 
 def test_printed_at_defaults_to_today() -> None:
-    """printed_at defaults to today when not supplied."""
+    """printed_at defaults to today when not supplied.
+
+    Compared against the local date, matching the model's `date.today()`
+    default. Comparing against the UTC date instead makes this fail for every
+    hour the two calendars disagree, which is a real window for any machine not
+    on UTC. Local is also the right meaning here: `printed_at` is the calendar
+    date rendered onto a physical sheet.
+    """
     meta = SheetMetadata(
         tag_name="oca",
         sheet_index=0,
         board_config_id="oca",
     )
-    assert meta.printed_at == datetime.now(tz=UTC).date()
+    assert meta.printed_at == date.today()  # noqa: DTZ011
 
 
 # ---------------------------------------------------------------------------
