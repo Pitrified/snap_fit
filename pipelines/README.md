@@ -50,3 +50,4 @@ Order and dependencies of the current entries.
 | Entry | Does | Needs | Guide |
 | ----- | ---- | ----- | ----- |
 | [generate_board.ipynb](generate_board.ipynb) | Compose an ArUco board set (QR + slot grid) and save PNGs + config JSONs | nothing (params in-notebook) | [green_background](../docs/guides/green_background.md) |
+| [ingest_sheet.ipynb](ingest_sheet.ipynb) | Ingest a board photo: decode QR, resolve config, detect + label pieces, overlay | a board photo + that board's config on disk (from `generate_board`) | [green_background](../docs/guides/green_background.md) |
