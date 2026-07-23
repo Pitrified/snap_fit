@@ -1,0 +1,86 @@
+# implementation tracking
+
+Investigation into piece matching on the `greendemo_small` dataset: 12 photos of
+3 board sheets under 4 capture conditions. Started from three tasks (a clipped
+piece, a capture-quality comparison, a matching ground truth) and grew a fourth
+that outranks them: segment shape classification is unstable across captures and
+gates the matcher before any score is computed. Analysis, decisions and the full
+Q1-Q19 record are in [`00_start.md`](00_start.md).
+
+## Key decisions
+
+Full list with rejected alternatives in [`00_start.md`](00_start.md#decisions).
+The ones that shape more than one phase:
+
+- **D2**: `(sheet_index, slot_label)` is the physical-piece identity key across
+  captures. `PieceId.piece_id` is a per-capture ordinal and must never be used
+  to join.
+- **D3**: ground truth is stated in `(sheet_index, label, edge_pos)` terms, so it
+  survives the phase 6 rescale that a pixel-space truth would not.
+- **D6**: task 2 is reported over four named capture conditions, not a zoom
+  axis. All 12 shots share one lens; app, distance and digital upscale move
+  together.
+- **D12 / D15**: the pairs and the per-segment shapes are hand-authored, and
+  collected as one hand-off produced at the end of phase 2.
+- **D14**: shape stability precedes ground truth. It is a correctness problem,
+  not a quality metric.
+- **D16**: shape incompatibility becomes a score penalty rather than a hard
+  gate. Mechanism in phase 3, number measured in phase 4, default fixed in
+  phase 7.
+- **D9**: everything stays scratch-local. No `pipelines/` entry from this
+  effort.
+
+## Phases
+
+| #   | Phase                          | Plan                                                             | Status  |
+| --- | ------------------------------ | ---------------------------------------------------------------- | ------- |
+| 1   | Fix the interior over-crop     | [`01_fix_interior_overcrop.md`](01_fix_interior_overcrop.md)      | planned |
+| 2   | Corpus and annotation hand-off | [`02_capture_corpus.md`](02_capture_corpus.md)                    | planned |
+| 3   | Segment shape stability        | [`03_shape_stability.md`](03_shape_stability.md)                  | planned |
+| 4   | Ground-truth edge pairs        | [`04_match_ground_truth.md`](04_match_ground_truth.md)            | planned |
+| 5   | Capture condition comparison   | [`05_capture_quality.md`](05_capture_quality.md)                  | draft   |
+| 6   | Rectification scale experiment | [`06_rectify_scale_experiment.md`](06_rectify_scale_experiment.md)| draft   |
+| 7   | Matching and preprocess tuning | [`07_matching_tuning.md`](07_matching_tuning.md)                  | draft   |
+
+Status values: draft / planned / in progress / done / superseded / discarded.
+
+Phases 5-7 stay `draft` until phase 3 lands; their shape depends on how much of
+the shape instability turns out to be fixable.
+
+## External dependency
+
+Phase 2 ends by handing over an annotation sheet. Phase 4 cannot complete until
+it comes back, and phase 3's acceptance number depends on it too. Everything
+else runs regardless; phases 5 and 6 carry secondary metrics that need no truth
+at all.
+
+## Log
+
+Append-only. Newest at the bottom.
+
+- 2026-07-23 : bootstrapped `00_start.md` from the three-task draft. Probed
+  `p1_x1`, `p1_x4`, `p2_x1`: found the cropped sheet is 280x300 where the piece
+  area is 320x340, root-caused to `crop_margin` double-counting `board.margin`.
+  Ruled out undetected markers (all 14 printed ring markers detected every
+  time; the 6 interior ids are never printed).
+- 2026-07-23 : ran the ingest over all 12 photos keyed by `(sheet_index, label)`.
+  Confirmed label stability (centroids agree within 4 px across each sheet's 4
+  captures), so `(sheet_index, label)` is the join key. Found only sheet 0's B2
+  is clipped, on all 4 captures, and nothing else in the dataset. Found `x4`
+  shrinks every piece bounding box, up to 25 px in one axis.
+- 2026-07-23 : pulled EXIF across all 12. All shots are one lens (6.81 mm
+  f/1.85, main sensor); the 5x telephoto is never used. Subject distance runs
+  0.19 m to 0.79 m, HDR+ on all PXL and absent on IMG, `x5` carries a 2.5x
+  digital upscale. Concluded there is no zoom axis, so task 2 is reported over
+  capture conditions (D6). Corrected an earlier wrong claim that zoom changed
+  the downsampling ratio: the board fills the frame everywhere, so the ~5.8x
+  discard is uniform.
+- 2026-07-24 : ran a `SegmentShape` census over all 48 segments x 4 conditions.
+  10 of 48 disagree, including sign inversions and one segment with three
+  different answers. Sheet 2 accounts for 7. This gates `compute_similarity`
+  before any score, so it became phase 3 ahead of ground truth (D14). Also
+  found the flat-edge census cannot recover the group structure: majority vote
+  leaves only 2 flat segments in 48, far too few for any rectangular assembly,
+  so the pieces are interior fragments and the grouping must be hand-authored.
+- 2026-07-24 : all of Q1-Q19 answered and folded in. Derived `tracking.md` and
+  the seven sub-plans from the phase list.

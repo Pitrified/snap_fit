@@ -171,8 +171,9 @@ is read off `SlotGrid`, not off the ordinal, so it is unaffected.
 That 1-4 px spread is the parallax the capture note predicted, and with the
 board size now known (Q14) it comes out the right size. The homography rectifies
 the *board plane*; a piece sits a couple of mm above it, so its top face is
-displaced radially outward by roughly `r * t / d`. With `t ~ 2 mm` (Q16), an
-edge piece at `r ~ 70 mm` from the board centre, and 4.24 units/mm:
+displaced radially outward by roughly `r * t / d`. Taking `t ~ 2 mm` as a
+placeholder, an edge piece at `r ~ 70 mm` from the board centre, and
+4.24 units/mm:
 
 | capture | distance | predicted displacement |
 | ------- | -------- | ---------------------- |
@@ -183,6 +184,15 @@ edge piece at `r ~ 70 mm` from the board centre, and 4.24 units/mm:
 That is the observed 1-4 px spread, so "far and zoomed -> straighter" is real,
 quantified, and small. Phase 5 checks the sign too: the displacement must point
 radially outward from the frame centre and shrink with distance.
+
+The thickness cannot be measured directly, there is no caliper (Q16), so phase 5
+**inverts the relation instead**: three known distances and the measured
+displacements give `t` by least squares over all 12 pieces. That turns the one
+assumed input into a derived one. Expect it to be crude, because the observed
+displacements are 1-4 px against integer centroids, so the signal sits near the
+quantisation floor. Two things make it usable: fitting a piece *corner* rather
+than the centroid, since corners sit further out and so move further, and using
+all 12 pieces at once rather than eyeballing rows (D17).
 
 ### which pieces are clipped
 
@@ -461,10 +471,17 @@ here; not in scope unless it bites.
   Rejected alternative: have the matcher discover the grouping and confirm it by
   eye. It sounds cheaper but it is the same circularity D15 rejects, and with an
   unknown group count there is no signal for when to stop looking.
-- **D13**: segment shapes for the truth file are seeded by **majority vote
-  across the four capture conditions**, then reviewed by eye only where the vote
-  is split. Rejected alternative: hand-label all 48 from scratch. The vote
-  already resolves 38 unanimously and isolates the 10 that need a human.
+  The pairs and the per-segment shapes (D13) are both hand judgements over the
+  same 12 pieces, so they are collected as **one hand-off**, not two: a single
+  annotation sheet produced at the end of phase 2, returned once, consumed by
+  phases 3 and 4.
+- **D13**: segment shapes are **confirmed by hand for all 48** (Q17), with the
+  majority vote across the four conditions used only to pre-fill the annotation
+  sheet and to flag the 10 split ones for attention. That makes phase 3's
+  acceptance criterion "agrees with truth" rather than "agrees with itself".
+  Rejected alternative: accept the vote as truth and hand-check only the 10
+  splits. A unanimous wrong answer is exactly what a systematic classifier bug
+  produces, so the vote cannot certify the 38.
 - **D14**: shape-classification stability is its own phase, placed **before**
   ground truth. Rejected alternative: treat it as one metric inside the capture
   comparison, which is where it started. It gates `compute_similarity` before
@@ -476,6 +493,30 @@ here; not in scope unless it bites.
   Rejected alternative: accept the matcher's top-N as truth. That bakes the
   matcher's current bias into the yardstick used to measure the matcher, and
   every later phase would be measuring agreement with itself.
+- **D16**: shape incompatibility becomes a **score penalty, not a hard gate**
+  (Q18). One misclassified segment currently deletes a true pair silently, with
+  no trace in the results, which is the worst possible failure mode for a
+  yardstick. As a penalty the pair still ranks, just badly, and the mistake is
+  visible and recoverable.
+  Constraint: `1e6` is currently overloaded across four unrelated meanings, and
+  only the first of them changes. `SegmentMatcher` returns it for shape
+  incompatibility; `PieceMatcher` for a missing segment; `grid/suggestion._NO_SCORE`
+  for no placed neighbour or an uncached pair; `interactive_service` writes it as
+  the user-rejected marker. The penalty must therefore stay bounded well below
+  `1e6` so a penalised pair can never be confused with any of the three
+  sentinels that remain.
+  Consequence: the gate currently prunes, so removing it means every pair gets
+  scored. At 48 segments that is ~1100 pairs and irrelevant, but it is a real
+  cost at puzzle scale and should be noted rather than discovered later.
+  The penalty lands as a **config value in phase 3** with a provisional default,
+  is computed from phase 4's measured true-vs-false separation, and has its
+  default fixed in phase 7 (Q19). So the mechanism ships before the number is
+  known, and the number is derived rather than guessed.
+- **D17**: piece thickness is **derived, not measured** (Q16). Phase 5 fits it
+  from the parallax displacement across the three known subject distances.
+  Rejected alternative: leave `t = 2 mm` as an assumption. It is the only
+  unmeasured input to the one physical-geometry claim in this document, and the
+  data to pin it down has already been captured.
 
 ## phases
 
@@ -487,13 +528,16 @@ because the best-match score is the primary quality metric (Q6). Phase 6 depends
 only on phase 4, and is sequenced after phase 5 to keep one variable moving at
 a time.
 
-The one external dependency is the hand-matching (Q13, D12). Phase 4 is split so
-that only the transcription half waits on it; nothing else in the plan blocks.
+The one external dependency is the hand annotation: the pairs (Q13) and the
+per-segment shapes (Q17). Both are judgements over the same 12 pieces, so phase
+2 ends by producing one annotation sheet and handing it over (D12). Phase 3 can
+start against the majority vote while it is out; only its acceptance number and
+phase 4's truth file actually wait.
 
 | #   | Phase                          | Plan file                        | Covers  |
 | --- | ------------------------------ | -------------------------------- | ------- |
 | 1   | Fix the interior over-crop     | `01_fix_interior_overcrop.md`    | task 1  |
-| 2   | Labelled capture corpus        | `02_capture_corpus.md`           | -       |
+| 2   | Corpus and annotation hand-off | `02_capture_corpus.md`           | -       |
 | 3   | Segment shape stability        | `03_shape_stability.md`          | task 3  |
 | 4   | Ground-truth edge pairs        | `04_match_ground_truth.md`       | task 3  |
 | 5   | Capture condition comparison   | `05_capture_quality.md`          | task 2  |
@@ -508,7 +552,7 @@ Verify sheet 0's B2 is no longer flush after the change, and that no ArUco
 sliver appears as a contour. Update `docs/guides/coordinate_spaces.md` (it
 hardcodes 170 / 140 / 660x940) and `docs/library/puzzle/sheet_aruco.md`.
 
-**Phase 2 - labelled capture corpus.**
+**Phase 2 - corpus and annotation hand-off.**
 Ingest all 12 photos, key every piece by `(sheet_index, label)`, persist pieces
 and segments. Assert 4 pieces and 4 distinct labels per capture, and centroid
 agreement across the 4 captures of each sheet, so a regression in labelling is
@@ -516,37 +560,43 @@ caught rather than silently joined on. Record the EXIF condition per capture
 alongside, so later phases group by condition rather than by filename.
 Scratch-local (D9).
 
+Then produce the **annotation sheet**, the single hand-off (D12): the 12 piece
+crops at a consistent scale, each tagged with its `(sheet, label)`, each of its
+four edges marked and pre-filled with the majority-vote shape, and the 10 split
+segments flagged. It comes back carrying two things, the confirmed shape per
+segment (D13) and the pairs written as `s0:A1 RIGHT <-> s2:B1 LEFT` (D15).
+Getting this right is most of the phase: if the sheet is awkward to annotate,
+the hand pass is where the whole plan stalls.
+
 **Phase 3 - segment shape stability.**
 Reproduce the 10/48 disagreement table as a fixture. Test the corner-placement
 hypothesis by correlating shape disagreements against bbox disagreements per
 segment. Attack the self-defeating `flat_th = 1.5 * std` threshold: candidates
 are an absolute threshold in mm (now that 4.24 units/mm is known), a threshold
 from the segment chord length rather than its deviation, or measuring signed
-area between the segment and its chord instead of counting points. Success is a
-lower disagreement count on the same fixture, not a prettier formula. Also
-decide whether `EDGE` should keep hard-gating `is_compatible`, given that a
-spurious `EDGE` silently deletes a true pair.
+area between the segment and its chord instead of counting points. Success is measured against the hand-confirmed
+shapes (D13), not against self-consistency, so a classifier that hedges to
+`WEIRD` everywhere scores badly rather than perfectly. Work can start against
+the majority vote and be re-scored when the annotation returns.
+
+Separately and independently of the classifier: convert `is_compatible` from a
+hard gate into a score penalty (D16), keeping the penalty bounded well below the
+three `1e6` sentinels that stay. This is worth doing even if the classifier
+improves, because it makes a misclassification visible instead of silent. The
+penalty ships as a config value with a provisional default; the real number
+comes from phase 4 and is fixed in phase 7 (Q19).
 
 **Phase 4 - ground-truth edge pairs.**
-Split by the hand-matching hand-off (D12), so the half that does not need it is
-not blocked.
+Transcribe the returned annotation into the truth file, in D3 terms (D7), and
+write its loader and the structural assertions: disjointness, at most one
+partner per segment, and exactly 2 partnerless flat segments. Those assertions
+are the check on the hand pass, so they run against it rather than being
+asserted of it. Report the score separation between true and false pairs as the
+baseline everything later is measured against.
 
-*4a, runs now.* Seed shapes by majority vote (D13) and review the split ones by
-eye. Define the truth file format in D3 terms and write its loader and the
-structural assertions: disjointness, at most one partner per segment, exactly 2
-partnerless flat segments. Produce the artifact that makes hand-matching
-practical: a contact sheet of the 12 piece crops at a consistent scale, each
-tagged with its `(sheet, label)` and its four edges marked with the voted shape,
-so pairs can be written down as `s0:A1 RIGHT <-> s2:B1 LEFT` without going back
-to the photos.
-
-*4b, runs when the hand-matching arrives.* Transcribe it into the truth file,
-run the structural assertions, and report the score separation between true and
-false pairs as the baseline everything later is measured against.
-
-Phases 5 and 6 need only the 4b baseline for their primary metric, and both have
-secondary metrics that need no truth at all, so they can start against those
-while 4b waits.
+Phases 5 and 6 need only that baseline for their primary metric, and both carry
+secondary metrics that need no truth at all, so they can start against those if
+the annotation is still out.
 
 **Phase 5 - capture condition comparison.**
 Primary metric is the phase-4 best-match score per condition (Q6). Alongside it,
@@ -554,8 +604,10 @@ three metrics that need no ground truth: `SegmentShape` agreement (the phase-3
 fixture, re-read as a per-condition score), bounding-box agreement, and contour
 point count. Derive the `x4` subject distance from apparent board size and
 validate the method against the recorded distances first (Q15). Check the
-parallax sign and magnitude against the `r * t / d` table. Attempt the `x4`
-salvage per D10. Report over conditions, not zoom (D6).
+parallax sign and magnitude against the `r * t / d` table, then invert it to fit
+the piece thickness over all 12 pieces, using corner displacement rather than
+centroid for signal (D17). Attempt the `x4` salvage per D10. Report over
+conditions, not zoom (D6).
 
 **Phase 6 - rectification scale experiment.**
 Re-rectify the corpus at 2x / 3x / 4x (8.5 / 12.7 / 17 px/mm), rerun matching,
@@ -569,7 +621,8 @@ construction (D3).
 **Phase 7 - matching and preprocess tuning.**
 Sweep preprocess and matcher parameters against the phase-4 ground truth at
 whatever scale phase 6 settles on, with true-vs-false score separation as the
-objective.
+objective. Fix the default shape-incompatibility penalty here, computed from
+that separation (D16, Q19).
 
 Phases 5-7 stay `draft` until phase 3 lands; their shape depends on how much of
 the instability turns out to be fixable.
@@ -654,9 +707,8 @@ the instability turns out to be fixable.
   only 2 flat segments in 48, far too few for any rectangular assembly, so these
   are interior fragments of a bigger puzzle.
   **Deferred**: the pieces will be matched by hand later, and that becomes the
-  truth (D12, D15). Phase 4 is split so only the transcription half waits on it
-  (4b); 4a prepares the truth file format and the contact sheet that makes the
-  hand-matching practical.
+  truth (D12, D15). Collected together with the shape confirmations (Q17) on the
+  annotation sheet that phase 2 hands off.
 - Q14: how large is the board physically, as displayed and photographed? Needed
   to turn board units into mm, which is what makes the parallax check
   quantitative rather than order-of-magnitude, and what a "px per mm" scale knob
@@ -668,14 +720,15 @@ the instability turns out to be fixable.
   it as derived?
   ANS: derive it
 
-### open
-
 - Q16: what is the piece thickness? 2 mm is assumed above, and it is the only
   unmeasured input to the parallax prediction. A caliper reading turns that
   table from an order-of-magnitude check into a real one, and it is the number
   that would let the pipeline correct thickness parallax rather than just
   tolerate it.
   ANS: no caliper available
+  Follow-up: derived instead. Three known subject distances and the measured
+  displacements determine `t` by least squares, so the assumption is removed
+  without a caliper (D17).
 - Q17: phase 3 needs an acceptance criterion for shape classification, and
   "all four conditions agree" is not sufficient on its own, because a classifier
   that returns `WEIRD` everywhere would score perfectly. Should the phase 4
@@ -683,6 +736,8 @@ the instability turns out to be fixable.
   stability is measured against truth rather than against self-consistency? It
   is 48 judgements, most already settled by the majority vote.
   ANS: by hand, i will check them
+  Follow-up: collected in the same hand-off as the pairs, since both are
+  judgements over the same 12 pieces (D12, D13).
 - Q18: should a spurious `EDGE` be able to delete a true pair? `is_compatible`
   currently hard-gates on it, so one bad classification silently removes a
   correct match with no trace. Options are to keep the gate, downgrade `EDGE` to
@@ -690,3 +745,19 @@ the instability turns out to be fixable.
   passes the gate). This is phase 3 work but it changes what phase 4 can even
   observe, so it is worth settling early.
   ANS: is compatible should be a score penalty, not a hard gate.
+  Follow-up: constrained by the `1e6` sentinel being overloaded four ways, only
+  one of which changes (D16).
+
+- Q19: how big should the shape-incompatibility penalty be (D16)? It has to be
+  large enough that a true pair always outranks a shape-mismatched one, and
+  small enough to stay well under `1e6`. Phase 4's measured separation between
+  true and false pairs gives the scale to set it from, which argues for landing
+  D16 as a config value in phase 3 and only fixing its default in phase 7.
+  ANS: we'll compute it from the phase 4 separation, and land it as a config
+  value in phase 3. The default is fixed in phase 7.
+
+### open
+
+None. The bootstrap is complete; the next step is to derive `tracking.md` and
+the seven `NN_*.md` sub-plans from the phases above. New questions get appended
+here as a fresh batch continuing from Q20.
