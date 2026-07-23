@@ -254,8 +254,9 @@ the disagreements are not confined to one capture:
 
 | segment        | x1   | x2   | x4   | x5   | kind          |
 | -------------- | ---- | ---- | ---- | ---- | ------------- |
-| s0:A1 TOP      | OUT  | OUT  | EDGE | OUT  | knob lost     |
-| s0:B1 BOTTOM   | OUT  | IN   | OUT  | IN   | 2-2 inversion |
+| s0:A1 TOP      | IN   | IN   | EDGE | IN   | knob lost     |
+| s1:B1 RIGHT    | OUT  | EDGE | OUT  | IN   | three answers |
+| s2:A1 BOTTOM   | IN   | EDGE | EDGE | IN   | knob lost     |
 | s2:A1 RIGHT    | IN   | IN   | OUT  | IN   | inversion     |
 | s2:A1 TOP      | OUT  | EDGE | OUT  | OUT  | knob lost     |
 | s2:A2 LEFT     | OUT  | OUT  | IN   | OUT  | inversion     |
@@ -265,8 +266,56 @@ the disagreements are not confined to one capture:
 | s2:B1 RIGHT    | OUT  | EDGE | EDGE | EDGE | knob invented |
 | s2:B2 TOP      | OUT  | IN   | EDGE | OUT  | three answers |
 
-Sheet 2 accounts for 7 of the 10. `x4` is the odd one out in 6, but `x1` alone
-is wrong twice and `x2` alone once, so this is not simply "`x4` is bad".
+Sheet 2 accounts for 8 of the 11. `x4` is the odd one out in 6, but `x1` alone
+is wrong twice and `x2` alone twice, so this is not simply "`x4` is bad".
+
+Re-measured after phase 1, on untruncated contours. The count was 10 before that
+fix, which matters more than the number does; see the next section.
+
+### the crop fix moved the baseline, which is the phase 3 hypothesis in action
+
+Phase 1 widened the crop by 20 px per side. The disagreement count went 10 -> 11
+and the membership changed:
+
+- `s0:B1 BOTTOM` became stable and left the list,
+- `s1:B1 RIGHT` and `s2:A1 BOTTOM` became unstable and joined it,
+- `s0:A1 TOP` **flipped sign**, from an `OUT` majority to an `IN` majority.
+
+Nothing physical changed. Same pieces, same photo files; only the image border
+moved. The pre-fix numbers were taken on truncated contours so they were never
+the right baseline, but the mechanism this exposes is the point: a pure border
+change propagates through `pad_rect` to the piece image size, to the
+`build_cross_masked` thickness (literally `sum(shape)/2/4*1.05`), to
+`find_corner`, to where segments get split.
+
+That is the corner-placement chain phase 3 set out to test, demonstrated before
+phase 3 starts. It also means shape counts are only comparable within one
+pipeline configuration, which constrains phases 6 and 7 as well.
+
+### the IN/OUT convention is sound; corner placement is the weak link
+
+Checked independently of `ShapeDetector`: for each segment take the chord
+between its endpoints and measure the largest perpendicular deviation, signed
+outward from the piece centroid. A tab bulges outward, a socket inward.
+
+Result across all 48 `x1` segments: **0 disagreements** with the assigned
+`IN`/`OUT`. So `IN` = socket, `OUT` = tab, and the sign convention is not the
+problem.
+
+What this does *not* validate is where the corners are, since it uses the same
+detected corners the classifier does, so a displaced corner misleads both
+identically. `s0:A1` is the illustration: its tab sits near the top-left corner,
+and depending on where that corner lands the tab belongs to either `TOP` or
+`LEFT`. Post-fix it reads `LEFT: OUT` (deviation +28.5 px, the largest in the
+set) with `TOP: IN`; pre-fix it read the other way. Neither is obviously wrong.
+The corner decides, and the corner moves.
+
+By-product worth having in phase 3: **deviation magnitude is a confidence
+measure**. Typical segments bulge 17-25 px, but five sit at 1-5 px
+(`s2:A2 BOTTOM` 1.0, `s2:B1 RIGHT` 1.7, `s0:A2 BOTTOM` 1.8, `s2:A1 TOP` 2.2,
+`s1:B1 RIGHT` 5.4) and four of those five are in the disagreement list. Low
+deviation predicts instability, and it is exactly the signal
+`flat_th = 1.5 * std` throws away by scaling the threshold with the feature.
 
 This sits upstream of everything else in task 3. `SegmentMatcher.compute_similarity`
 calls `is_compatible` **before** it measures any shape, and `EDGE` is
@@ -807,4 +856,7 @@ the instability turns out to be fixable.
   `SheetMetadataEncoder._place_text` changes board generation and cannot help
   boards already photographed, so it does not belong in this effort. Spin it out
   as its own feature folder, or leave it as a note here?
-  ANS: ...
+  ANS: mark as note.
+  So: no spin-off folder. It stays recorded in the finding above, with the
+  blur-sweep constraint carried in `07_matching_tuning.md`. Whoever next touches
+  board generation should move the text inside the QR strip.

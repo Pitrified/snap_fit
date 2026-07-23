@@ -23,10 +23,13 @@ unstable". Depends on [`02_capture_corpus.md`](02_capture_corpus.md).
 
 ## The observed instability
 
+Post-phase-1 baseline, on untruncated contours:
+
 | segment        | x1   | x2   | x4   | x5   | kind          |
 | -------------- | ---- | ---- | ---- | ---- | ------------- |
-| s0:A1 TOP      | OUT  | OUT  | EDGE | OUT  | knob lost     |
-| s0:B1 BOTTOM   | OUT  | IN   | OUT  | IN   | 2-2 inversion |
+| s0:A1 TOP      | IN   | IN   | EDGE | IN   | knob lost     |
+| s1:B1 RIGHT    | OUT  | EDGE | OUT  | IN   | three answers |
+| s2:A1 BOTTOM   | IN   | EDGE | EDGE | IN   | knob lost     |
 | s2:A1 RIGHT    | IN   | IN   | OUT  | IN   | inversion     |
 | s2:A1 TOP      | OUT  | EDGE | OUT  | OUT  | knob lost     |
 | s2:A2 LEFT     | OUT  | OUT  | IN   | OUT  | inversion     |
@@ -36,8 +39,26 @@ unstable". Depends on [`02_capture_corpus.md`](02_capture_corpus.md).
 | s2:B1 RIGHT    | OUT  | EDGE | EDGE | EDGE | knob invented |
 | s2:B2 TOP      | OUT  | IN   | EDGE | OUT  | three answers |
 
-Sheet 2 accounts for 7 of 10. `x4` is the odd one out in 6, but `x1` alone is
-wrong twice and `x2` once, so this is not reducible to "`x4` is a bad capture".
+Sheet 2 accounts for 8 of 11. `x4` is the odd one out in 6, but `x1` alone is
+wrong twice and `x2` twice, so this is not reducible to "`x4` is a bad capture".
+
+### the hypothesis is already partly confirmed
+
+Phase 1 changed only the crop width, by 20 px per side. That moved the count
+from 10 to 11, changed which segments are unstable, and **flipped `s0:A1 TOP`
+from an `OUT` majority to an `IN` majority**. No piece moved; only the image
+border did.
+
+So the correlation study below is no longer testing whether the corner chain
+matters. It is measuring how much. Phase 2 also handed over two results that
+narrow the work:
+
+- **the sign convention is fine.** Comparing each segment's assigned `IN`/`OUT`
+  against the sign of its chord deviation gives 0 disagreements in 48. `IN` is a
+  socket, `OUT` is a tab. Do not go looking for a sign bug.
+- **deviation magnitude is a usable confidence measure.** Typical segments bulge
+  17-25 px; five sit at 1-5 px, and four of those five are in the table above.
+  The current `flat_th = 1.5 * std` discards exactly this signal.
 
 ## Goals
 

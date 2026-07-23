@@ -35,7 +35,7 @@ The ones that shape more than one phase:
 | #   | Phase                          | Plan                                                             | Status  |
 | --- | ------------------------------ | ---------------------------------------------------------------- | ------- |
 | 1   | Fix the interior over-crop     | [`01_fix_interior_overcrop.md`](01_fix_interior_overcrop.md)      | done    |
-| 2   | Corpus and annotation hand-off | [`02_capture_corpus.md`](02_capture_corpus.md)                    | planned |
+| 2   | Corpus and annotation hand-off | [`02_capture_corpus.md`](02_capture_corpus.md)                    | done    |
 | 3   | Segment shape stability        | [`03_shape_stability.md`](03_shape_stability.md)                  | planned |
 | 4   | Ground-truth edge pairs        | [`04_match_ground_truth.md`](04_match_ground_truth.md)            | planned |
 | 5   | Capture condition comparison   | [`05_capture_quality.md`](05_capture_quality.md)                  | draft   |
@@ -97,6 +97,21 @@ Append-only. Newest at the bottom.
   unchanged within 1 px, confirming the offset compensated the crop exactly.
   Docs updated, and fixed a pre-existing error in `coordinate_spaces.md` that
   sized the rectified image from board rather than object dimensions.
+- 2026-07-24 : phase 2 done. `build_corpus.py` ingests all 12 into
+  `cache/gds_corpus/` via `DatasetStore` (48 pieces, 12 physical), assertions
+  green first run. `build_annotation_sheet.py` renders the hand-off sheet with
+  coloured segments and the majority vote pre-filled, plus a YAML stub. Nothing
+  in `src` needed changing; the capture condition went to a `captures.json`
+  sidecar rather than growing `SheetRecord`.
+- 2026-07-24 : two findings while validating the sheet. (a) The phase 1 crop fix
+  moved the shape baseline from 10 to 11 disagreements, changed the membership,
+  and flipped `s0:A1 TOP` from OUT to IN, with only the image border changing.
+  That is phase 3's corner-placement hypothesis demonstrated ahead of phase 3,
+  and it means shape counts are only comparable within one pipeline config.
+  (b) Checked IN/OUT against an independent chord-deviation sign: 0 mismatches
+  in 48, so the convention is sound and there is no sign bug to chase. Deviation
+  magnitude turns out to be a confidence measure, four of the five lowest are in
+  the disagreement list.
 - 2026-07-24 : found an unrelated pre-existing flake,
   `test_printed_at_defaults_to_today` compares `date.today()` (local) against
   `datetime.now(tz=UTC).date()`, so it fails nightly between local and UTC
