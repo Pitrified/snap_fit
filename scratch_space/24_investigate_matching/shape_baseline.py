@@ -16,6 +16,7 @@ Run: ``uv run python scratch_space/24_investigate_matching/shape_baseline.py``
 
 from __future__ import annotations
 
+import json
 from collections import Counter
 from pathlib import Path
 
@@ -48,10 +49,28 @@ def load_truth() -> dict[tuple[int, str, EdgePos], str]:
     return truth
 
 
+def require_corpus() -> Path:
+    """Return the corpus folder, or explain how to build it."""
+    corpus_fol = get_snap_fit_params().paths.cache_fol / CORPUS_TAG
+    missing = [
+        name
+        for name in ("captures.json", "dataset.db")
+        if not (corpus_fol / name).is_file()
+    ]
+    if missing:
+        msg = (
+            f"corpus incomplete at {corpus_fol} (missing {', '.join(missing)}). "
+            "Run build_corpus.py first; cache/ is gitignored, so a fresh clone "
+            "has to rebuild it from the photos."
+        )
+        raise FileNotFoundError(msg)
+    return corpus_fol
+
+
 def load_predictions() -> dict[tuple[int, str, EdgePos], dict[str, str]]:
     """Per-segment shape from each capture condition."""
-    corpus_fol = get_snap_fit_params().paths.cache_fol / CORPUS_TAG
-    captures = yaml.safe_load((corpus_fol / "captures.json").read_text())
+    corpus_fol = require_corpus()
+    captures = json.loads((corpus_fol / "captures.json").read_text())
     with DatasetStore(corpus_fol / "dataset.db") as store:
         sheets = {s.sheet_id: s for s in store.load_sheets()}
         pieces = store.load_pieces()

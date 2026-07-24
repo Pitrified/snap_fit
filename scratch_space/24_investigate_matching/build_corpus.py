@@ -41,6 +41,7 @@ if TYPE_CHECKING:
     from snap_fit.puzzle.sheet import Sheet
 
 CORPUS_TAG = "gds_corpus"
+EXPECTED_CAPTURES = 12
 EXPECTED_LABELS = {"A1", "A2", "B1", "B2"}
 # Worst observed centroid spread across a sheet's captures is 4 px (thickness
 # parallax, see 00_start.md). 8 leaves room without letting a real mix-up pass.
@@ -147,10 +148,24 @@ def main() -> None:
     sheets_fol = paths.data_fol / "greendemo_small" / "sheets"
     corpus_fol = paths.cache_fol / CORPUS_TAG
     img_fol = corpus_fol / "sheets"
-    img_fol.mkdir(parents=True, exist_ok=True)
 
-    photos = sorted(sheets_fol.glob("*.jpg"))
+    photos = sorted(sheets_fol.glob("*__gds_p*.jpg"))
+    if not photos:
+        # Without this the run "succeeds" with an empty corpus, and the failure
+        # only surfaces later as a confusing error in a downstream script.
+        msg = (
+            f"no captures matching '*__gds_p*.jpg' in {sheets_fol}. "
+            "Copy the 12 renamed photos there; note that greendemo_small.zip "
+            "holds them under their original camera names, without the "
+            "__gds_pM_xZ suffix this pipeline parses the condition from."
+        )
+        raise CorpusAssertionError(msg)
+    if len(photos) != EXPECTED_CAPTURES:
+        lg.warning(f"expected {EXPECTED_CAPTURES} captures, found {len(photos)}")
     lg.info(f"ingesting {len(photos)} captures from {sheets_fol}")
+    # Created only once the inputs check out, so a failed run leaves no
+    # half-built corpus folder behind to confuse the next one.
+    img_fol.mkdir(parents=True, exist_ok=True)
 
     sheet_records: list[SheetRecord] = []
     piece_records: list[PieceRecord] = []
