@@ -140,14 +140,25 @@ class QRChunkHandler:
                 first = next((t for t in decoded if t), None)
                 if first:
                     return first
-        # WeChatQRCode provides a robust fallback for challenging cases.
+        # WeChatQRCode provides a robust fallback for challenging cases, and on
+        # real board photos it is usually the one that succeeds. It ships only
+        # in opencv-contrib-python, so log loudly when it is unavailable:
+        # swallowing that silently turns a broken environment into an
+        # indistinguishable "no QR code found".
         try:
             wechat = cv2.wechat_qrcode_WeChatQRCode()  # type: ignore[attr-defined]
             texts, _ = wechat.detectAndDecode(image)
             if texts:
                 return texts[0]
-        except (cv2.error, AttributeError):
-            pass
+        except AttributeError:
+            lg.warning(
+                "cv2.wechat_qrcode_WeChatQRCode is missing, so the robust QR"
+                " fallback is disabled. Install opencv-contrib-python, and make"
+                " sure plain opencv-python is not also installed: they ship the"
+                " same cv2 package and overwrite each other."
+            )
+        except cv2.error as exc:
+            lg.warning(f"WeChat QR fallback failed: {exc}")
         return None
 
 

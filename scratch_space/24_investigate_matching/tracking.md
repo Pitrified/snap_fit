@@ -61,6 +61,8 @@ scp data/greendemo_small/sheets/*__gds_p*.jpg \
 
 # on pmn-14g4
 uv sync
+# must print True; the QR decode depends on it (see below)
+uv run python -c "import cv2; print(hasattr(cv2,'wechat_qrcode_WeChatQRCode'))"
 uv run python scratch_space/24_investigate_matching/build_corpus.py
 uv run python scratch_space/24_investigate_matching/build_annotation_sheet.py
 uv run python scratch_space/24_investigate_matching/shape_baseline.py   # expect 43/48
@@ -74,6 +76,26 @@ suffix, so unzipping it silently produces a corpus with no zoom tags.
 `cache/gds_corpus/` is regenerable from those two commands, so it is not worth
 copying. No credentials are needed: nothing in this analysis reads
 `~/cred/snap_fit/.env`.
+
+### the opencv trap
+
+`cv2.QRCodeDetector().detectMulti` **fails** on these board photos. Every QR in
+this dataset is decoded by the `cv2.wechat_qrcode_WeChatQRCode` fallback, which
+ships only in `opencv-contrib-python`. The project used to depend on both
+`opencv-python` and `opencv-contrib-python`; they ship the same `cv2` package
+and overwrite each other, so which one won came down to install order, and the
+loser's modules simply vanished. That is why one machine decoded all 12 and
+another decoded none.
+
+`opencv-python` has been dropped from `pyproject.toml`. If a machine still shows
+`False` for the check above, force a clean reinstall:
+
+```bash
+uv sync --reinstall-package opencv-contrib-python
+```
+
+Uninstalling one of the two also deletes shared files the other owns, so a
+half-broken `cv2` needs the reinstall rather than a plain `uv sync`.
 
 ## External dependency
 

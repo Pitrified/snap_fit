@@ -14,8 +14,11 @@ dependencies = [
     "loguru>=0.7.2",
     "matplotlib>=3.9.3",
     "numpy>=2.1.3",
+    # Exactly one opencv wheel may be installed: they all ship the same `cv2`
+    # package and silently overwrite each other, so the winner depends on
+    # install order. contrib is the superset and is required, because the QR
+    # decode leans on cv2.wechat_qrcode_WeChatQRCode as its fallback.
     "opencv-contrib-python>=4.10.0.84",
-    "opencv-python>=4.10.0.84",
     "pandas>=2.2.3",
     "pydantic>=2.12.5",
     "pydantic-settings>=2.12.0",
