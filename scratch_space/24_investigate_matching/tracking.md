@@ -47,6 +47,34 @@ Status values: draft / planned / in progress / done / superseded / discarded.
 Phases 5-7 stay `draft` until phase 3 lands; their shape depends on how much of
 the shape instability turns out to be fixable.
 
+## Resuming on another machine
+
+Everything needed is in the repo **except the 12 photos**, which are 33 MB and
+stay out per the no-dataset-committed convention. The board configs are now
+committed (force-added past the `*.json` ignore, as `ab1` and `oca` already
+were), because they are 8 KB and nothing resolves without them.
+
+```bash
+# on the machine that has the photos
+scp data/greendemo_small/sheets/*__gds_p*.jpg \
+    pmn-14g4:~/repos/snap_fit/data/greendemo_small/sheets/
+
+# on pmn-14g4
+uv sync
+uv run python scratch_space/24_investigate_matching/build_corpus.py
+uv run python scratch_space/24_investigate_matching/build_annotation_sheet.py
+uv run python scratch_space/24_investigate_matching/shape_baseline.py   # expect 43/48
+```
+
+Do **not** transfer `greendemo_small.zip`: it holds the same 12 images under
+their original camera names (`PXL_20260723_203556185.jpg`), without the
+`__gds_pM_xZ` suffix. Every script here parses the capture condition out of that
+suffix, so unzipping it silently produces a corpus with no zoom tags.
+
+`cache/gds_corpus/` is regenerable from those two commands, so it is not worth
+copying. No credentials are needed: nothing in this analysis reads
+`~/cred/snap_fit/.env`.
+
 ## External dependency
 
 Phase 2 ends by handing over an annotation sheet. Phase 4 cannot complete until

@@ -1,0 +1,53 @@
+{
+  "min_area": 5000,
+  "crop_margin": null,
+  "detector": {
+    "adaptive_thresh_win_size_min": 3,
+    "adaptive_thresh_win_size_max": 23,
+    "adaptive_thresh_win_size_step": 10,
+    "rect_margin": 50,
+    "board": {
+      "markers_x": 4,
+      "markers_y": 5,
+      "marker_length": 100,
+      "marker_separation": 40,
+      "dictionary_id": 10,
+      "margin": 20,
+      "border_bits": 1,
+      "background_preset": "green"
+    }
+  },
+  "preprocess": {
+    "blur_kernel_size": 21,
+    "threshold": 130,
+    "erosion_kernel_size": 3,
+    "erosion_iterations": 2,
+    "dilation_kernel_size": 3,
+    "dilation_iterations": 1,
+    "background_mask": {
+      "enabled": true,
+      "mode": "as_threshold",
+      "lower_hsv": [
+        35,
+        40,
+        100
+      ],
+      "upper_hsv": [
+        95,
+        255,
+        255
+      ]
+    }
+  },
+  "metadata_zone": {
+    "enabled": true,
+    "qr_n_codes": 3,
+    "qr_ecc": "M",
+    "text_enabled": true,
+    "slot_grid": {
+      "cols": 2,
+      "rows": 2,
+      "label_inset_px": 4
+    }
+  }
+}
