@@ -112,6 +112,26 @@ Append-only. Newest at the bottom.
   in 48, so the convention is sound and there is no sign bug to chase. Deviation
   magnitude turns out to be a confidence measure, four of the five lowest are in
   the disagreement list.
+- 2026-07-24 : hand annotation returned with all 48 shapes confirmed (pairs
+  still pending). Copied it into the repo as `annotation.yaml`, since `cache/`
+  is gitignored and this is irreplaceable hand-authored data. Baseline against
+  truth: x1 41/48, x2 42/48, x4 40/48, x5 42/48, majority vote 43/48. One of the
+  five vote errors (`s2:A1 LEFT`) is unanimous across all four conditions, which
+  confirms D13's rejected alternative: trusting the vote for unanimous segments
+  would have put a wrong label into the truth file with nothing flagging it.
+- 2026-07-24 : walked back the phase 2 claim that chord deviation is a
+  confidence measure. It tracks instability but not correctness (median 19.7 px
+  right vs 11.9 px wrong, but only 1 of 5 errors is in the 5 lowest). Not usable
+  as a gate.
+- 2026-07-24 : blur sweep against truth is flat from ksize 21 to 3 (43/48 ->
+  42/48) with piece counts stable, so contour fidelity does not drive shape
+  accuracy; corner placement does, which matches the annotator's own comments on
+  `s0:A1` and `s2:B1`. Blur is still worth ~30% of contour area (4138 vs 6043
+  px^2 on s2:A1) and should be a phase 7 lever for the *score*, because an
+  inward shift adds rather than cancels between a tab and its socket. Also
+  corrected the annotator's "high erosion" diagnosis: on the mask path the
+  binary is background=255, so erode grows pieces and dilate shrinks them,
+  measured erosion-only 71x105 vs dilation-only 64x86.
 - 2026-07-24 : found an unrelated pre-existing flake,
   `test_printed_at_defaults_to_today` compares `date.today()` (local) against
   `datetime.now(tz=UTC).date()`, so it fails nightly between local and UTC

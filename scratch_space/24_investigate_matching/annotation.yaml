@@ -1,0 +1,80 @@
+# hand annotation - 12 physical pieces, 48 segments
+#
+# 1. shapes: confirm or correct every line. Pre-filled with the majority
+#    vote across the four capture conditions; lines marked SPLIT are the
+#    ones where the conditions disagreed, so check those first. The vote
+#    is only a starting point, a unanimous wrong answer is exactly what a
+#    systematic classifier bug produces (D13).
+#
+# 2. pairs: list every pair of segments that physically interlock, one per
+#    line, as 's0:A1 RIGHT <-> s2:B1 LEFT'. Groups are disjoint (Q11).
+#    Two segments should end up with no partner at all (the flat ones).
+
+shapes:
+  # --- s0:A1 ---
+  # the problem is the corner detection: left/top segments are not split correctly (left segment reaches into the top one)
+  s0:A1 LEFT: OUT
+  s0:A1 BOTTOM: IN
+  s0:A1 RIGHT: OUT
+  s0:A1 TOP: OUT   # SPLIT: EDGE/IN/IN/IN
+  # --- s0:A2 ---
+  s0:A2 LEFT: IN
+  s0:A2 BOTTOM: OUT
+  s0:A2 RIGHT: IN
+  s0:A2 TOP: OUT
+  # --- s0:B1 ---
+  s0:B1 LEFT: IN
+  s0:B1 BOTTOM: OUT
+  s0:B1 RIGHT: OUT
+  s0:B1 TOP: OUT
+  # --- s0:B2 ---
+  s0:B2 LEFT: IN
+  s0:B2 BOTTOM: IN
+  s0:B2 RIGHT: OUT
+  s0:B2 TOP: IN
+  # --- s1:A1 ---
+  s1:A1 LEFT: IN
+  s1:A1 BOTTOM: IN
+  s1:A1 RIGHT: IN
+  s1:A1 TOP: OUT
+  # --- s1:A2 ---
+  s1:A2 LEFT: IN
+  s1:A2 BOTTOM: OUT
+  s1:A2 RIGHT: IN
+  s1:A2 TOP: OUT
+  # --- s1:B1 ---
+  # the problem is high erosion, contour is quite inside the piece, right one almost flat
+  s1:B1 LEFT: OUT
+  s1:B1 BOTTOM: OUT
+  s1:B1 RIGHT: OUT   # SPLIT: EDGE/IN/OUT/OUT
+  s1:B1 TOP: IN
+  # --- s1:B2 ---
+  s1:B2 LEFT: OUT
+  s1:B2 BOTTOM: IN
+  s1:B2 RIGHT: OUT
+  s1:B2 TOP: IN
+  # --- s2:A1 ---
+  # the problem is high erosion, contour is quite inside the piece
+  s2:A1 LEFT: IN # was OUT, wrong
+  s2:A1 BOTTOM: OUT   # SPLIT: EDGE/EDGE/IN/IN
+  s2:A1 RIGHT: IN   # SPLIT: IN/IN/IN/OUT
+  s2:A1 TOP: EDGE   # SPLIT: EDGE/OUT/OUT/OUT
+  # --- s2:A2 ---
+  s2:A2 LEFT: OUT   # SPLIT: IN/OUT/OUT/OUT
+  s2:A2 BOTTOM: EDGE   # SPLIT: EDGE/EDGE/EDGE/OUT
+  s2:A2 RIGHT: OUT
+  s2:A2 TOP: IN
+  # --- s2:B1 ---
+  # problem: contour split into segment is wrong. left segment reaches into the bottom one
+  s2:B1 LEFT: IN   # SPLIT: EDGE/IN/IN/IN
+  s2:B1 BOTTOM: OUT   # SPLIT: IN/IN/IN/OUT
+  s2:B1 RIGHT: EDGE   # SPLIT: EDGE/EDGE/EDGE/OUT
+  s2:B1 TOP: IN
+  # --- s2:B2 ---
+  s2:B2 LEFT: OUT
+  s2:B2 BOTTOM: IN
+  s2:B2 RIGHT: IN
+  s2:B2 TOP: OUT   # SPLIT: EDGE/IN/OUT/OUT
+
+pairs:
+  # - s0:A1 RIGHT <-> s2:B1 LEFT

@@ -310,12 +310,112 @@ and depending on where that corner lands the tab belongs to either `TOP` or
 set) with `TOP: IN`; pre-fix it read the other way. Neither is obviously wrong.
 The corner decides, and the corner moves.
 
-By-product worth having in phase 3: **deviation magnitude is a confidence
-measure**. Typical segments bulge 17-25 px, but five sit at 1-5 px
-(`s2:A2 BOTTOM` 1.0, `s2:B1 RIGHT` 1.7, `s0:A2 BOTTOM` 1.8, `s2:A1 TOP` 2.2,
-`s1:B1 RIGHT` 5.4) and four of those five are in the disagreement list. Low
-deviation predicts instability, and it is exactly the signal
-`flat_th = 1.5 * std` throws away by scaling the threshold with the feature.
+Deviation magnitude looked like a confidence measure at first: typical segments
+bulge 17-25 px, five sit at 1-5 px, and four of those five are in the
+disagreement list. **That claim did not survive the ground truth** (see below):
+it predicts instability between conditions, but not correctness.
+
+### measured against the hand-confirmed truth
+
+All 48 shapes came back confirmed (Q17). Accuracy of the current classifier:
+
+| condition | correct | |
+| --------- | ------- | ---- |
+| x1        | 41/48   | 85% |
+| x2        | 42/48   | 88% |
+| x4        | 40/48   | 83% |
+| x5        | 42/48   | 88% |
+| **majority vote** | **43/48** | **90%** |
+
+So roughly one segment in eight is misclassified, and voting across four
+captures recovers only a little of it.
+
+The five the vote gets wrong:
+
+| segment        | truth | vote | votes           | deviation | flagged? |
+| -------------- | ----- | ---- | --------------- | --------- | -------- |
+| s0:A1 TOP      | OUT   | IN   | IN/IN/EDGE/IN   | -11.2     | split    |
+| s2:A1 BOTTOM   | OUT   | IN   | IN/EDGE/EDGE/IN | -11.9     | split    |
+| s2:A1 LEFT     | IN    | OUT  | OUT/OUT/OUT/OUT | +13.4     | **none** |
+| s2:A1 TOP      | EDGE  | OUT  | OUT/EDGE/OUT/OUT| +2.2      | split    |
+| s2:B1 BOTTOM   | OUT   | IN   | IN/IN/OUT/IN    | -17.4     | split    |
+
+`s2:A1 LEFT` is the important row. All four conditions agree, so nothing marks
+it for review, and it is wrong. That is exactly the case D13 rejected the cheap
+option for: had the 37 unanimous segments been taken on trust and only the 11
+splits hand-checked, this error would have entered the truth file silently.
+
+Three of the five are on `s2:A1`, one piece.
+
+**Correction to the deviation-as-confidence idea.** Median |deviation| is 19.7 px
+where the vote is right and 11.9 px where it is wrong, so there is a signal, but
+it is far too weak to filter on: the five lowest-deviation segments contain only
+one of the five errors, while `s2:B1 BOTTOM` (-17.4) and `s2:A1 LEFT` (+13.4)
+are wrong at perfectly confident magnitudes. Useful as a tie-breaker at best,
+not as a gate.
+
+### the bottleneck is corner placement, not contour quality
+
+The hand annotation named the mechanism directly, twice: `s0:A1` "the problem is
+the corner detection: left/top segments are not split correctly (left segment
+reaches into the top one)" and `s2:B1` "contour split into segment is wrong,
+left segment reaches into the bottom one".
+
+That is confirmed by a blur sweep against the truth. Blur controls how faithful
+the contour is, and it does **not** move shape accuracy at all:
+
+| blur ksize | sigma  | x1 | x2 | x4 | x5 | vote  |
+| ---------- | ------ | -- | -- | -- | -- | ----- |
+| 21         | 3.5 px | 41 | 42 | 40 | 42 | 43/48 |
+| 15         | 2.6 px | 42 | 42 | 38 | 42 | 43/48 |
+| 11         | 2.0 px | 42 | 43 | 41 | 41 | 43/48 |
+| 7          | 1.4 px | 42 | 42 | 43 | 41 | 42/48 |
+| 5          | 1.1 px | 41 | 42 | 41 | 42 | 42/48 |
+| 3          | 0.8 px | 42 | 41 | 41 | 41 | 42/48 |
+
+Flat across the range, and piece counts stay at 4 throughout. So a better
+contour does not buy a better shape verdict. The corners land wrong regardless,
+and once a segment boundary is in the wrong place no amount of contour precision
+recovers the right answer.
+
+### what the blur actually costs, and where it will matter
+
+`blur_kernel_size` is the kernel *support*, not the radius: `apply_gaussian_blur`
+passes `sigma=0`, so OpenCV derives `sigma = 0.3*((k-1)*0.5-1)+0.8`, which is
+**3.5 px** for `k=21`. On a ~100 px piece that is a 3.5% radius, on a ~25 px knob
+about 14%.
+
+It is not free, though. On `s2:A1`, contour area is 4138 px^2 at blur 21 against
+6043 px^2 with blur off, so the blur is eating roughly 30% of the piece, about
+2-3 px of boundary all the way round.
+
+That matters for **matching** even though it does not matter for shape. A
+systematic inward shift does not cancel between a true pair, because a tab
+shrinks while its matching socket grows, so the two boundaries move in opposite
+senses and the error adds rather than subtracts. On a score that is a mean point
+distance, 2-3 px per side is large. Phase 7 should treat blur as a candidate
+lever for the *score*, having established here that it is not one for the shape.
+
+### the erosion pass grows pieces, it does not shrink them
+
+The hand annotation attributes two pieces' problems to "high erosion, contour is
+quite inside the piece". The symptom is real, the mechanism is not: on the
+HSV-mask path the binary is background=255 and pieces=0, so `cv2.erode` shrinks
+the *background* and therefore grows the piece.
+
+Measured on `s2:A1`:
+
+| variant                | bbox   | contour area |
+| ---------------------- | ------ | ------------ |
+| erosion only (2, 0)    | 71x105 | 4568         |
+| default (ero 2, dil 1) | 69x103 | 4138         |
+| no morphology (0, 0)   | 67x101 | 3710         |
+| dilation only (0, 1)   | 64x86  | 3294         |
+
+Erosion pushes the contour out, dilation pulls it in, and the default nets
+slightly outward of no-morphology at all. The blur is what sits the contour
+inside the piece. Worth recording so phase 7 does not spend its sweep on the
+wrong parameter.
 
 This sits upstream of everything else in task 3. `SegmentMatcher.compute_similarity`
 calls `is_compatible` **before** it measures any shape, and `EDGE` is

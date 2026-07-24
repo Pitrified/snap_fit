@@ -56,9 +56,42 @@ narrow the work:
 - **the sign convention is fine.** Comparing each segment's assigned `IN`/`OUT`
   against the sign of its chord deviation gives 0 disagreements in 48. `IN` is a
   socket, `OUT` is a tab. Do not go looking for a sign bug.
-- **deviation magnitude is a usable confidence measure.** Typical segments bulge
-  17-25 px; five sit at 1-5 px, and four of those five are in the table above.
-  The current `flat_th = 1.5 * std` discards exactly this signal.
+- **deviation magnitude is not a usable gate.** It looked promising against
+  instability, but against the truth it is weak: median |deviation| 19.7 px when
+  the vote is right, 11.9 px when wrong, yet the five lowest-deviation segments
+  hold only one of the five errors. Tie-breaker at best.
+
+### the baseline, measured against the truth
+
+The hand annotation landed, so the acceptance number is real rather than
+provisional:
+
+| condition | correct | |
+| --------- | ------- | ---- |
+| x1        | 41/48   | 85% |
+| x2        | 42/48   | 88% |
+| x4        | 40/48   | 83% |
+| x5        | 42/48   | 88% |
+| majority  | 43/48   | 90% |
+
+Beat 43/48 and the phase has moved something. The five errors, and the fact that
+`s2:A1 LEFT` is unanimously wrong across all four conditions, are tabulated in
+`00_start.md`.
+
+### contour quality is not the lever; corner placement is
+
+A blur sweep against the truth is flat from ksize 21 down to 3 (43/48 to 42/48,
+piece counts stable). Blur controls contour fidelity and costs ~30% of contour
+area at the default, and it still buys **nothing** in shape accuracy.
+
+Combined with the hand annotation naming corner mis-splits on two pieces
+(`s0:A1`, `s2:B1`), the target is now specific: the segment boundaries are in
+the wrong place, and no amount of contour precision fixes a verdict once its
+boundary is wrong. Work `find_corner` and `build_cross_masked`, not the
+preprocessing.
+
+`s2:A1` alone carries three of the five errors, which makes it the natural test
+case to debug against.
 
 ## Goals
 
